@@ -1,0 +1,13 @@
+VELLETRI ZOMBIE SU WINDOWS
+
+1. Estrai tutta la cartella dallo zip (tasto destro, Estrai tutto).
+2. Apri la cartella e fai doppio clic su avvia_windows.bat.
+   Se Windows mostra un avviso di sicurezza, scegli "Ulteriori informazioni" e poi "Esegui comunque".
+3. Si apre una finestra nera (lasciala aperta) e poi il browser con il gioco.
+   Va bene Edge o Chrome. Premi Invio per iniziare.
+4. Per il duello: nel menu' scegli "Duello uno contro uno in rete".
+   Chi crea la stanza sente un codice di 4 cifre e lo dice agli altri; gli altri scelgono "Entra in una stanza" e scrivono il codice.
+   Per farti sentire dagli altri premi J in partita e accetta il permesso del microfono.
+5. Usa le cuffie. Il gioco parla da solo: se usi uno screen reader (NVDA, JAWS), mettilo in pausa mentre giochi.
+   La voce del gioco usa la voce italiana di Windows: se non c'e', installala da Impostazioni, Data/ora e lingua, Riconoscimento vocale.
+Tutti i comandi sono in GUIDA.txt.

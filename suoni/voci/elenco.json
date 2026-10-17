@@ -1,0 +1,260 @@
+{
+ "eddy": {
+  "minaccia": [
+   "eddy_minaccia1",
+   "eddy_minaccia2",
+   "eddy_minaccia3",
+   "eddy_minaccia4",
+   "eddy_minaccia5",
+   "eddy_minaccia6",
+   "eddy_minaccia7",
+   "eddy_minaccia8",
+   "eddy_minaccia9",
+   "eddy_minaccia10",
+   "eddy_minaccia11",
+   "eddy_minaccia12"
+  ],
+  "attacco": [
+   "eddy_attacco1",
+   "eddy_attacco2",
+   "eddy_attacco3",
+   "eddy_attacco4"
+  ],
+  "colpito": [
+   "eddy_colpito1",
+   "eddy_colpito2",
+   "eddy_colpito3",
+   "eddy_colpito4"
+  ],
+  "carica": [
+   "eddy_carica1",
+   "eddy_carica2",
+   "eddy_carica3"
+  ],
+  "spara": [
+   "eddy_spara1",
+   "eddy_spara2",
+   "eddy_spara3"
+  ],
+  "assalto": [
+   "eddy_assalto1",
+   "eddy_assalto2",
+   "eddy_assalto3"
+  ]
+ },
+ "reed": {
+  "minaccia": [
+   "reed_minaccia1",
+   "reed_minaccia2",
+   "reed_minaccia3",
+   "reed_minaccia4",
+   "reed_minaccia5",
+   "reed_minaccia6",
+   "reed_minaccia7",
+   "reed_minaccia8",
+   "reed_minaccia9",
+   "reed_minaccia10",
+   "reed_minaccia11",
+   "reed_minaccia12"
+  ],
+  "attacco": [
+   "reed_attacco1",
+   "reed_attacco2",
+   "reed_attacco3",
+   "reed_attacco4"
+  ],
+  "colpito": [
+   "reed_colpito1",
+   "reed_colpito2",
+   "reed_colpito3",
+   "reed_colpito4"
+  ],
+  "carica": [
+   "reed_carica1",
+   "reed_carica2",
+   "reed_carica3"
+  ],
+  "spara": [
+   "reed_spara1",
+   "reed_spara2",
+   "reed_spara3"
+  ],
+  "assalto": [
+   "reed_assalto1",
+   "reed_assalto2",
+   "reed_assalto3"
+  ]
+ },
+ "rocko": {
+  "minaccia": [
+   "rocko_minaccia1",
+   "rocko_minaccia2",
+   "rocko_minaccia3",
+   "rocko_minaccia4",
+   "rocko_minaccia5",
+   "rocko_minaccia6",
+   "rocko_minaccia7",
+   "rocko_minaccia8",
+   "rocko_minaccia9",
+   "rocko_minaccia10",
+   "rocko_minaccia11",
+   "rocko_minaccia12"
+  ],
+  "attacco": [
+   "rocko_attacco1",
+   "rocko_attacco2",
+   "rocko_attacco3",
+   "rocko_attacco4"
+  ],
+  "colpito": [
+   "rocko_colpito1",
+   "rocko_colpito2",
+   "rocko_colpito3",
+   "rocko_colpito4"
+  ],
+  "carica": [
+   "rocko_carica1",
+   "rocko_carica2",
+   "rocko_carica3"
+  ],
+  "spara": [
+   "rocko_spara1",
+   "rocko_spara2",
+   "rocko_spara3"
+  ],
+  "assalto": [
+   "rocko_assalto1",
+   "rocko_assalto2",
+   "rocko_assalto3"
+  ]
+ },
+ "sandy": {
+  "minaccia": [
+   "sandy_minaccia1",
+   "sandy_minaccia2",
+   "sandy_minaccia3",
+   "sandy_minaccia4",
+   "sandy_minaccia5",
+   "sandy_minaccia6",
+   "sandy_minaccia7",
+   "sandy_minaccia8",
+   "sandy_minaccia9",
+   "sandy_minaccia10",
+   "sandy_minaccia11",
+   "sandy_minaccia12"
+  ],
+  "attacco": [
+   "sandy_attacco1",
+   "sandy_attacco2",
+   "sandy_attacco3",
+   "sandy_attacco4"
+  ],
+  "colpito": [
+   "sandy_colpito1",
+   "sandy_colpito2",
+   "sandy_colpito3",
+   "sandy_colpito4"
+  ],
+  "carica": [
+   "sandy_carica1",
+   "sandy_carica2",
+   "sandy_carica3"
+  ],
+  "spara": [
+   "sandy_spara1",
+   "sandy_spara2",
+   "sandy_spara3"
+  ],
+  "assalto": [
+   "sandy_assalto1",
+   "sandy_assalto2",
+   "sandy_assalto3"
+  ]
+ },
+ "flo": {
+  "minaccia": [
+   "flo_minaccia1",
+   "flo_minaccia2",
+   "flo_minaccia3",
+   "flo_minaccia4",
+   "flo_minaccia5",
+   "flo_minaccia6",
+   "flo_minaccia7",
+   "flo_minaccia8",
+   "flo_minaccia9",
+   "flo_minaccia10",
+   "flo_minaccia11",
+   "flo_minaccia12"
+  ],
+  "attacco": [
+   "flo_attacco1",
+   "flo_attacco2",
+   "flo_attacco3",
+   "flo_attacco4"
+  ],
+  "colpito": [
+   "flo_colpito1",
+   "flo_colpito2",
+   "flo_colpito3",
+   "flo_colpito4"
+  ],
+  "carica": [
+   "flo_carica1",
+   "flo_carica2",
+   "flo_carica3"
+  ],
+  "spara": [
+   "flo_spara1",
+   "flo_spara2",
+   "flo_spara3"
+  ],
+  "assalto": [
+   "flo_assalto1",
+   "flo_assalto2",
+   "flo_assalto3"
+  ]
+ },
+ "shelley": {
+  "minaccia": [
+   "shelley_minaccia1",
+   "shelley_minaccia2",
+   "shelley_minaccia3",
+   "shelley_minaccia4",
+   "shelley_minaccia5",
+   "shelley_minaccia6",
+   "shelley_minaccia7",
+   "shelley_minaccia8",
+   "shelley_minaccia9",
+   "shelley_minaccia10",
+   "shelley_minaccia11",
+   "shelley_minaccia12"
+  ],
+  "attacco": [
+   "shelley_attacco1",
+   "shelley_attacco2",
+   "shelley_attacco3",
+   "shelley_attacco4"
+  ],
+  "colpito": [
+   "shelley_colpito1",
+   "shelley_colpito2",
+   "shelley_colpito3",
+   "shelley_colpito4"
+  ],
+  "carica": [
+   "shelley_carica1",
+   "shelley_carica2",
+   "shelley_carica3"
+  ],
+  "spara": [
+   "shelley_spara1",
+   "shelley_spara2",
+   "shelley_spara3"
+  ],
+  "assalto": [
+   "shelley_assalto1",
+   "shelley_assalto2",
+   "shelley_assalto3"
+  ]
+ }
+}

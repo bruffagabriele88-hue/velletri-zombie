@@ -1,0 +1,7 @@
+# file di lavoro che non servono al gioco online
+suoni/sorgenti/
+suoni/originali/
+js/_prova.js
+js/_fuzz.js
+.DS_Store
+*.zip

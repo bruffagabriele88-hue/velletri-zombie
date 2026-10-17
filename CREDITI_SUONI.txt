@@ -1,0 +1,58 @@
+VELLETRI ZOMBIE - CREDITI DEI SUONI
+Tutti i suoni vengono da Freesound.org con licenza Creative Commons.
+CC0 = pubblico dominio. CC-BY = libero citando l'autore (per questo c'è questo file).
+Mappe: dati © OpenStreetMap contributors, licenza ODbL.
+
+sparo_p99.ogg            "Walter_P99_96kHz-24bit.wav by ermfilm" — CC-BY 4.0 — https://freesound.org/s/162434/
+ricariche_glock17.ogg    "Pistol reloads by Ruben_Uitenweerde" — CC-BY 3.0 — https://freesound.org/s/486165/
+carrello_glock17.ogg     "Glock17_Slide by Stoniac" — CC0 (pubblico dominio) — https://freesound.org/s/842731/
+caricatore_cade.ogg      "Drop mag 07.wav by GreenFireSound" — CC-BY 3.0 — https://freesound.org/s/481073/
+bossolo.ogg              "Small_Bullet_Very_Soft_Hit_07 by BlondPanda" — CC0 (pubblico dominio) — https://freesound.org/s/778028/
+maneggio_96k.ogg         "Airsoft Pistol Handling by audiojacked" — CC0 (pubblico dominio) — https://freesound.org/s/177353/
+zombie_voce.ogg          "Solo Zombie 9 by Slave2theLight" — CC-BY 4.0 — https://freesound.org/s/157131/
+zombie_ringhio.ogg       "Zombie Growl 01 by Ezcah" — CC0 (pubblico dominio) — https://freesound.org/s/204821/
+zombie_respiro.ogg       "Zombie breathing by Diramus" — CC0 (pubblico dominio) — https://freesound.org/s/426409/
+passi_trascinati.ogg     "R11-36-Shuffling Shoes with a Click.wav by craigsmith" — CC0 (pubblico dominio) — https://freesound.org/s/480648/
+impatto_corpo.ogg        "SFX_Impact_Bullet_Hit_Body_1 by PoundSoundUK" — CC-BY 4.0 — https://freesound.org/s/719198/
+impatto_testa.ogg        "Headshot.wav by Pablobd" — CC0 (pubblico dominio) — https://freesound.org/s/511194/
+ambiente_notte.ogg       "windy night in Berlin by bruno.auzet" — CC0 (pubblico dominio) — https://freesound.org/s/727292/
+corpo_cade.ogg           "Body falling to floor.wav by jmdh" — CC0 (pubblico dominio) — https://freesound.org/s/181177/
+fucile_mossberg.ogg      "Mossberg 500A - 1 shot and pump by AnthonyChan0" — CC0 (pubblico dominio) — https://freesound.org/s/159710/
+pompa_remington.ogg      "Remington 870 12 gauge shotgun pump racking cha chock by TotallyPhilip" — CC0 (pubblico dominio) — https://freesound.org/s/755495/
+cartuccia_inserita.ogg   "Shotgun Shell Loading subtle.wav by Twigy233" — CC-BY 4.0 — https://freesound.org/s/683481/
+ak47_poligono.ogg        "Rifle Gun Shot AK47. close recording in a shooting range. by felix.blume" — CC0 (pubblico dominio) — https://freesound.org/s/136399/
+ak47_strada.ogg          "AK47 Fire into Street.aif by Franki-01234" — CC0 (pubblico dominio) — https://freesound.org/s/201670/
+ak_sgancio.ogg           "MagazineRelease_01.wav by fastson" — CC-BY 3.0 — https://freesound.org/s/399122/
+akm_inserimento.ogg      "AKM Inserting Loaded Polymer Magazine by DrinkingWindGames" — CC-BY 4.0 — https://freesound.org/s/851748/
+ak_otturatore.ogg        "AK 47 Action Rack 4.wav by dwightsabeast" — CC-BY 3.0 — https://freesound.org/s/543597/
+esplosione.ogg           "Grenade Explosion SFX (medium-sized, meaty, realistic) by unfa" — CC0 (pubblico dominio) — https://freesound.org/s/609587/
+fondina_glock.ogg        "Pistol holstering by Ruben_Uitenweerde" — CC-BY 3.0 — https://freesound.org/s/486169/
+lancio_swish.ogg         "throw swish x12 HZA 07-03-2019.wav by hz37" — CC0 (pubblico dominio) — https://freesound.org/s/463763/
+lattina_coperchio.ogg    "tin_can_lid by j1987" — CC0 (pubblico dominio) — https://freesound.org/s/829244/
+urlo_demone.ogg          "Zombie Demon Scream by Wakerone" — CC0 (pubblico dominio) — https://freesound.org/s/435651/
+urlo_zombie.ogg          "Zombie scream by mrsoundguy84859983975479387597" — CC0 (pubblico dominio) — https://freesound.org/s/678437/
+corsa_asfalto.ogg        "Footsteps boots run on asphalt by YannSauvin" — CC0 (pubblico dominio) — https://freesound.org/s/777606/
+ruggito_mostro.ogg       "Sleepy Monster Creauture Sound-Design Roar.wav by szegvari" — CC0 (pubblico dominio) — https://freesound.org/s/609182/
+ruggito2.ogg             "Monster Roar 02 by zerokingfull" — CC0 (pubblico dominio) — https://freesound.org/s/347410/
+passo_pesante.ogg        "Heavy Footstep 5 by Sabacky" — CC-BY 4.0 — https://freesound.org/s/766397/
+morso_mostro.ogg         "monster bite by LucasDuff" — CC0 (pubblico dominio) — https://freesound.org/s/467701/
+dolore_uomo.ogg          "Male Grunting In Pain by elynch0901" — CC0 (pubblico dominio) — https://freesound.org/s/464486/
+grugniti_uomo.ogg        "Male Grunts by abraksil" — CC0 (pubblico dominio) — https://freesound.org/s/727827/
+proiettile_sibilo.ogg    "Real Bullet Flyby Sound by qubodup" — CC0 (pubblico dominio) — https://freesound.org/s/855248/
+rimbalzo.ogg             "Ricochet 4.wav by saturdaysoundguy" — CC0 (pubblico dominio) — https://freesound.org/s/394187/
+battito.ogg              "Heartbeat, male 42yrs old (2012).wav by TRP" — CC0 (pubblico dominio) — https://freesound.org/s/616836/
+orda.ogg                 "CREAHmn_Crowd Of Zombies Groaning, Increasing Intensity_ShaneVincent_GSC24_XY-AKG214-96k.wav by ShangusBurger" — CC0 (pubblico dominio) — https://freesound.org/s/763806/
+lamento_strano.ogg       "Weird Zombie Moan.wav by mrh4hn" — CC0 (pubblico dominio) — https://freesound.org/s/426638/
+soffoco.ogg              "Zombie Choking.wav by mrh4hn" — CC0 (pubblico dominio) — https://freesound.org/s/426637/
+martello_chiodo.ogg      "Hammer hitting nail.wav by LiezelDippenaar" — CC0 (pubblico dominio) — https://freesound.org/s/707525/
+legno_rotto.ogg          "Smash.ogg by egomassive" — CC0 (pubblico dominio) — https://freesound.org/s/536777/
+cassa_rotta.ogg          "snd_box_smash.wav by gristi" — CC0 (pubblico dominio) — https://freesound.org/s/562189/
+filo_spinato.ogg         "Barb Wire Vibration recorded by a contact microphone by felix.blume" — CC0 (pubblico dominio) — https://freesound.org/s/211405/
+fontana.ogg              "WATRFoun Fountain next to town square and pedestrian street, Karlskrona, Sweden by vhio" — CC0 (pubblico dominio) — https://freesound.org/s/789097/
+campane.ogg              "sorana bells_345 campanile.wav by dADDoiT" — CC0 (pubblico dominio) — https://freesound.org/s/57197/
+cani_lontani.ogg         "Distant Dogs by IENBA" — CC0 (pubblico dominio) — https://freesound.org/s/820267/
+passi_asfalto.ogg        "Footsteps on tarmack by AugustSandberg" — CC0 (pubblico dominio) — https://freesound.org/s/677721/
+passi_ciottoli.ogg       "accented steps .wav by Jess_Weddle_6121" — CC0 (pubblico dominio) — https://freesound.org/s/695945/
+sirena.ogg               "Air raid siren (Prague) by nooly" — CC0 (pubblico dominio) — https://freesound.org/s/382611/
+zaino_zip.ogg            "Zipper_Backpack_Zipper_Ripping_01 by BlondPanda" — CC0 (pubblico dominio) — https://freesound.org/s/778090/
+civetta.ogg              "Owl at night by saralana" — CC0 (pubblico dominio) — https://freesound.org/s/559100/

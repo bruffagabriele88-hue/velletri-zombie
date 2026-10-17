@@ -1,0 +1,293 @@
+VELLETRI ZOMBIE
+Comandi e istruzioni per giocare
+
+Velletri Zombie è uno sparatutto che si gioca con le orecchie: tutto quello che succede lo senti in cuffia, nel punto esatto da cui arriva. Si può giocare allo stesso modo da ciechi e da vedenti. Servono le cuffie.
+
+
+1. COME SI AVVIA
+
+Su Windows
+1. Estrai lo zip: tasto destro sul file, "Estrai tutto".
+2. Apri la cartella e fai doppio clic su avvia_windows.bat.
+3. Se compare un avviso blu di sicurezza, scegli "Ulteriori informazioni" e poi "Esegui comunque".
+4. Si apre una finestra nera, che va lasciata aperta, e poi il browser con il gioco. Vanno bene Edge o Chrome.
+5. Premi Invio per iniziare.
+
+Su Mac
+1. Estrai lo zip con un doppio clic.
+2. Apri la cartella e apri il file avvia.command.
+3. Si apre Safari con il gioco. Premi Invio per iniziare.
+
+Da sapere
+- Il gioco parla da solo. Se usi uno screen reader (NVDA, JAWS, VoiceOver), mettilo in pausa mentre giochi.
+- Il gioco usa la voce italiana del computer. Se su Windows manca, si installa dalle impostazioni della lingua.
+- Per chiudere il gioco chiudi il browser e la finestra nera (su Mac, la finestra del Terminale).
+
+
+2. IL MENÙ
+
+Frecce su e giù: scorri le voci.
+Invio: scegli.
+Esc: torni indietro.
+
+Le modalità sono cinque:
+- Battaglia reale: tu contro undici avversari del computer, ne resta uno solo.
+- Assedio a Piazza Cairoli: sei fermo in piazza e arrivano ondate di zombie sempre più forti.
+- Esplorazione di Velletri: cammini per le strade vere della città.
+- Esplorazione di un'altra città: scrivi il nome di una città e giochi lì. Serve internet.
+- Duello in rete: da 2 a 4 giocatori veri, tutti contro tutti. Serve internet.
+
+Dopo aver scelto, fai un clic con il mouse o il trackpad: serve per agganciare il puntatore al gioco.
+
+
+NOVITÀ IN TUTTE LE MODALITÀ
+- Fucile di precisione (tasto 4): ora si può scegliere come arma principale nell'assedio e nell'esplorazione,
+  lo dà la polizia in esplorazione e arriva in regalo nell'assedio. Si trova anche nelle casse e nei forzieri.
+- Muro (B) e rampa (N) si costruiscono ovunque in mezzo secondo e costano 3 materiali.
+- T: scatola, quattro muri tutto intorno a te (10 materiali).
+- F: trappola sotto i piedi (5 materiali, massimo tre): chi ci passa sopra perde 40 di vita.
+- L: radar. Per 5 secondi senti un segnale da dove sono i nemici più vicini.
+  In esplorazione L serve ancora per la destinazione: lì il radar è Maiuscolo più L.
+  Si parte con un radar, altri si trovano nelle casse; nell'assedio ne ricevi uno ogni tre ondate.
+- Contro i nemici del computer il filo spinato ora è Maiuscolo più F, e la mina è Maiuscolo più T.
+- Assedio: dalla terza ondata, una su tre è speciale: tutti di corsa, arrivano i giganti, pieni di tiratori, o il doppio di gente.
+  Le armi che ti mancano arrivano dopo la seconda e dopo la quarta ondata.
+
+3. COME SI MIRA
+
+Muovi il mouse o il dito sul trackpad a destra e a sinistra per ruotare su te stesso. Puoi ruotare anche con le frecce destra e sinistra.
+
+Senti un suono di puntamento a impulsi:
+- più è acuto, più sei girato verso il bersaglio;
+- quando diventa un tono pieno e fisso, sei centrato: spara;
+- più gli impulsi sono veloci, più il bersaglio è vicino.
+
+Un colpo al centro del bersaglio è alla testa e fa molto più danno.
+
+
+4. COMANDI CHE VALGONO SEMPRE
+
+Clic: spari. Col mitragliatore tieni premuto per la raffica.
+R: ricarichi. Mentre ricarichi non puoi sparare.
+1: pistola.
+2: fucile a pompa.
+3: mitragliatore.
+4: fucile di precisione.
+Q: lanci una granata. Esplode dopo 3 secondi, 14 metri davanti a te.
+H: ti curi con un kit medico. Mentre ti curi sei scoperto.
+X: ti giri di scatto di mezzo giro.
+Spazio: riepilogo completo della situazione.
+I: inventario.
+C: quanti colpi hai.
+V: quanta vita hai.
+Più e meno: sensibilità della rotazione.
+U: musica accesa o spenta.
+G: grafica accesa o spenta.
+Esc: pausa. Nel duello non c'è pausa: Esc sgancia solo il mouse.
+M: torni al menù (in pausa, da morto, o nel duello col mouse sganciato).
+Invio da morto: ricominci subito.
+
+
+BATTAGLIA REALE: TU CONTRO UNDICI
+È la prima voce del menù. Dodici combattenti su un'isola, ne resta uno solo. Una partita dura due o tre minuti.
+
+Il lancio
+Scegli dove atterrare con le frecce e Invio: Piazza al centro (tanti forzieri e tanta gente), Campanile a nord,
+Fontana a est, Canile a sud, Bosco a ovest. Ogni luogo ha il suo suono: campane, acqua, cani, civetta.
+Tre secondi di caduta e sei a terra. Per i primi secondi nessuno ti prende di mira.
+
+Movimento: W avanti, S indietro, A e D di lato, Maiuscolo corri. Qui si corre molto più veloce che nelle altre modalità.
+
+I forzieri (tre note che si ripetono: chiama solo il più vicino)
+Vai sopra, senti "cassa, E", premi E. Dentro: armi di quattro rarità (comune, raro, epico, leggendario: più è rara, più fa male),
+pozioni scudo, bende, kit, granate, materiali. Chi viene eliminato lascia a terra il suo bottino.
+
+Tasti
+1 pistola, 2 fucile a pompa, 3 mitragliatore, 4 fucile di precisione.   R ricarica.   Q granata.
+H: ti curi (kit più 50, bende più 20).   P: bevi una pozione scudo (più 50, due secondi).
+B: muro.   N: rampa.   Costano 3 materiali e si costruiscono in mezzo secondo.
+   I muri fermano i proiettili, anche quelli degli avversari; dalla rampa spari oltre i muri.
+O: dov'è la zona sicura, quanto manca alla tempesta, il luogo più vicino e il punto cardinale.
+Spazio: quanti restano, chi senti vicino, forziere più vicino, zona, arma, vita, scudo, materiali.
+X: mezzo giro.
+
+Case di vetro, granate, sangue (novità)
+Case di vetro: otto cabine di vetro sparse per l'isola. Quando ci entri la voce dice "nessuno ti vede finché non spari":
+   gli avversari a più di 4 metri non ti prendono di mira. Ma se qualcuno spara al vetro, il vetro va in mille pezzi
+   (senti lo schianto e i frammenti che cadono) e le schegge feriscono chi sta lì vicino: 15 di vita, e la voce dice "Schegge!".
+   Anche i tuoi colpi rompono il vetro. K ti dice dov'è la casa di vetro più vicina.
+Granate: anche gli avversari te le lanciano, quando sei dietro un muro, in alto o nascosto nel vetro.
+   Senti il lancio, il rimbalzo dove cade, poi un bip sempre più fitto fino allo scoppio. Se cade vicino la voce grida "Granata!".
+   Il bip lo fanno anche le tue granate. Le granate si trovano nei forzieri.
+Forzieri: quando sei a meno di 15 metri senti il loro luccichio magico.
+Grafica: schizzi di sangue quando colpisci, macchie a terra che svaniscono, schizzi ai bordi dello schermo quando ti colpiscono.
+
+Novità (costruzioni, armi, forzieri)
+Tenendo premuto B si costruisce un muro ogni decimo di secondo; tenendo premuto N una rampa ogni 0,14 secondi.
+Sparare alle costruzioni: il colpo prende il primo muro o la prima rampa sulla traiettoria. Senti il legno colpito
+   da dove si trova, lo schianto quando si rompe, e la voce dice "muro distrutto" o "rampa distrutta".
+   Dall'alto passi sopra ai muri più bassi.
+Ogni arma ha la sua portata, e quando la prendi in mano la voce te la dice:
+   pistola 40 metri, fucile a pompa 15, mitragliatore 55, fucile di precisione 120.
+   Il suono di puntamento e la mira agganciata seguono solo chi è a portata dell'arma che hai in mano.
+K: senti le costruzioni più vicine, entro 25 metri. Un colpo di legno dal punto di ognuna (più acuto il muro,
+   più grave la rampa), poi la voce dice per le tre più vicine se è un muro o una rampa, dove si trova, se sta sopra
+   o sotto di te e quanto è integra.
+Forzieri: ora sono 46, nei luoghi e sparsi per l'isola. In più, ogni 25-35 secondi cade una cassa col paracadute
+   dentro la zona sicura, con un'arma almeno rara e 25 materiali.
+
+Aiuti per giocare senza vista (Battaglia reale)
+Difficoltà: dopo aver scelto dove lanciarti scegli facile (sette avversari, meno precisi, mira molto assistita),
+   normale (undici) o difficile (avversari più svelti e precisi, poca assistenza).
+Opzione tenuto premuto: la mira si aggancia all'avversario più vicino che senti e lo segue. Spara mentre lo tieni.
+Z: ti giri di scatto verso l'avversario più vicino che senti; la voce dice nome, distanza e se è sopra di te.
+Maiuscolo più Z: ti giri verso il forziere più vicino.
+Ctrl: ascolto. Un sonar suona dal punto di ogni avversario entro 60 metri, uno dopo l'altro dal più vicino:
+   più acuto se è sopra di te, più grave se è sotto. Poi la voce riassume. Si può usare ogni 6 secondi.
+Altezza: chi cammina su muri e rampe fa passi di legno; il suono di puntamento diventa più brillante se il
+   bersaglio è sopra di te e più cupo se è sotto; la voce dice "dall'alto" quando ti sparano da sopra.
+Preavviso: prima di cominciare a spararti un avversario fa il clic dell'arma. Hai mezzo secondo per spostarti o ripararti.
+Conferma dei colpi: un tic quando colpisci, un "ding" quando prendi la testa, un vetro che si rompe quando gli spacchi lo scudo.
+Battito del cuore: la tua vita è sotto 35.
+
+Costruzione rapidissima (novità)
+B: un muro all'istante. Tienilo premuto e i muri si costruiscono a raffica mentre ti giri.
+N: una rampa all'istante. Tieni premuti N e W insieme e costruisci una scala di rampe salendo di piano in piano,
+   fino al piano 6. La voce ti dice il piano in cui sei.
+Ogni pezzo costa 2 materiali. Si parte con 40, i forzieri ne danno 15, chi elimini ne lascia a terra.
+Un muro ferma i colpi solo se nessuno dei due che si sparano sta più in alto del muro: salire conviene.
+Se la rampa sotto di te viene distrutta cadi: da due piani in su ti fai male.
+Anche gli avversari costruiscono: un muro verso chi gli spara, una scatola quando sono feriti, rampe per salirti sopra.
+
+La tempesta
+Si chiude a fasi e ogni volta sposta il centro. La voce ti dice in che direzione e a quanti metri è la zona sicura.
+Vicino al bordo senti un ronzio. Nella tempesta perdi vita ogni secondo, sempre di più, e lo scudo non ti protegge.
+
+Gli avversari
+Hanno un nome e una voce. Saccheggiano, si sparano tra loro, ti insultano, alzano un muro quando li colpisci.
+Chi sta fermo e zitto non si sente: il suono di puntamento li segue solo se hanno fatto rumore negli ultimi secondi.
+
+Fine partita
+"Vittoria reale" se resti solo tu, altrimenti il tuo piazzamento su 12. Invio rigioca subito dallo stesso luogo, M torna al menù.
+
+5. DUELLO IN RETE
+
+Come ci si trova
+1. Nel menù tutti scelgono "Duello uno contro uno in rete".
+2. Uno solo sceglie "Crea una stanza". La voce gli dice un codice di 4 cifre. Spazio lo ripete.
+3. Gli altri scelgono "Entra in una stanza con un codice", scrivono le 4 cifre e premono Invio.
+4. Chi ha creato la stanza sente "Giocatore entrato" a ogni arrivo. Quando ci siete tutti, preme Invio per dare il via.
+5. Per farvi sentire dagli altri premete J durante la partita: il browser chiede il permesso per il microfono, accettate.
+
+Tutti devono avere la stessa versione del gioco.
+
+Le regole
+- Arena: Piazza Cairoli.
+- Tutti contro tutti. L'ultimo in piedi vince il round.
+- Chi arriva a 5 round vince la partita.
+- Si parte con la sola pistola e 12 materiali. Tutto il resto si trova nelle casse.
+
+Movimento
+W: avanti.
+S: indietro.
+A: passo a sinistra.
+D: passo a destra.
+Maiuscolo tenuto premuto: corri.
+
+Le casse
+- Si riconoscono da tre note che si ripetono dal punto in cui si trovano.
+- Due sono a terra all'inizio. Ogni 18 secondi ne cade un'altra col paracadute: senti un fischio che scende dall'alto.
+- Quando ci sei sopra la voce dice "cassa, E". Premi E per aprirla: ci vuole poco più di un secondo e in quel momento sei scoperto.
+- Dentro puoi trovare: scudo, fucile a pompa, mitragliatore, fucile di precisione, granate, kit medico o materiali.
+- Lo scudo vale 50 punti e assorbe i colpi prima della vita.
+
+La zona
+- Dopo 20 secondi la zona comincia a chiudersi verso il centro. In un minuto arriva a 5 metri di raggio.
+- Senti un ronzio elettrico dal bordo più vicino. Se cresce, stai andando verso il bordo.
+- Fuori zona perdi 6 di vita al secondo.
+
+Le costruzioni
+B: muro. Costa 4 materiali. Ferma i proiettili tra due giocatori a terra.
+N: rampa. Costa 4 materiali. Si costruisce due metri e mezzo davanti a te.
+- Cammina sulla rampa e sei "in alto": da lì spari oltre i muri e colpisci la testa più facilmente.
+- Chi è in alto lo senti dall'alto.
+- Le granate distruggono muri e rampe. Se la rampa crolla sotto di te, cadi e ti fai male.
+- Mentre costruisci sei scoperto.
+
+Novità del duello
+B: muro e N: rampa si costruiscono in mezzo secondo e costano 3 materiali. Si parte con 12 materiali.
+T: scatola. Quattro muri tutto intorno a te in un colpo solo. Costa 10 materiali.
+F: trappola. La piazzi sotto i piedi (5 materiali, massimo tre). Gli altri non la sentono:
+   chi ci passa sopra perde 40 di vita, e tu senti "Trappola!" col suo nome.
+L: radar. Si trova nelle casse. Per 5 secondi senti un segnale dal punto in cui si trova ogni avversario,
+   anche se sta fermo e zitto.
+Round speciali: dal secondo round, uno su tre ha una regola diversa, annunciata all'inizio:
+   solo fucili a pompa, solo fucili di precisione, tutti velocissimi, tutti con lo scudo pieno, oppure 60 materiali a testa.
+
+Cosa senti degli altri
+- I passi, gli spari e la ricarica vengono dal punto in cui si trova l'avversario.
+- Se un proiettile ti sfiora, lo senti fischiare dal lato giusto.
+- La voce di ogni avversario esce dal punto dell'arena in cui si trova, più debole se è lontano.
+
+Altri comandi del duello
+E: apri una cassa.
+J: accende il microfono (la prima volta il browser chiede il permesso: accetta), poi lo spegne e lo riaccende.
+Spazio: punteggio, dove sono gli avversari, cassa più vicina, distanza dal bordo della zona, colpi, vita, scudo e materiali.
+Invio a fine partita: rivincita (solo chi ha creato la stanza).
+
+
+6. ASSEDIO ED ESPLORAZIONE CONTRO GLI ZOMBIE
+
+NOVITÀ CONTRO I NEMICI DEL COMPUTER (assedio ed esplorazione)
+- I nemici ora sono persone: banditi, assalitori che corrono, giganti e tiratori. Parlano, ti minacciano e ti insultano dal punto in cui si trovano.
+- Nell'assedio ti muovi liberamente per la piazza: W avanti, S indietro, A e D di lato, Maiuscolo corri.
+- Ogni tanto cade una cassa col paracadute: tre note che si ripetono. Vai sopra e premi E. Dentro: scudo, armi, granate, kit o materiali.
+- N costruisce una rampa (4 materiali): salendoci sei in alto, chi attacca a mani nude non ti arriva e deve prima abbattere la rampa.
+- I tuoi muri (B) fermano anche i colpi dei tiratori.
+- 4: fucile di precisione, se lo trovi in una cassa.
+
+
+Comandi in più
+B: barricata. Se guardi una barricata danneggiata vicina, la ripari.
+Maiuscolo più F: filo spinato: rallenta e ferisce i nemici.
+Maiuscolo più T: mina: esplode quando un nemico ci passa sopra.
+K: elenco delle tue costruzioni.
+Z: spintone allo zombie che ti è addosso.
+Y: vento di sottofondo acceso o spento.
+Invio nella pausa tra due ondate: parte subito la successiva.
+
+Solo in esplorazione
+W o freccia su: cammini avanti.
+S o freccia giù: cammini indietro.
+Maiuscolo tenuto premuto: corri.
+O: orientamento: via, punto cardinale, distanza dal prossimo incrocio.
+P: luoghi vicini, uno alla volta. Maiuscolo più P torna indietro.
+L: imposti come destinazione il luogo scelto, o la togli.
+E: raccogli i rifornimenti quando la voce dice "rifornimenti".
+
+Come si cammina in città
+- Ti muovi sempre lungo le strade vere. Nelle curve giri insieme alla strada.
+- Agli incroci ti fermi e la voce elenca le vie con la loro direzione.
+- Girati: quando sei allineato con una via senti un tic e il suo nome. Premi W per imboccarla.
+- Con una destinazione senti un segnale a due note che viene dal prossimo incrocio da prendere.
+
+I nemici, da riconoscere al suono
+- Zombie normale: passi trascinati e versi lenti.
+- Corridore: quando ti sente urla e arriva di corsa.
+- Bruto: passi pesantissimi e ruggito. Ha molta vita e sfonda le barricate.
+- Soldato infetto: ti spara a raffiche da lontano.
+- Suono ovattato: il nemico è dietro i palazzi e non puoi colpirlo finché non sbuca.
+- Battito del cuore: la tua vita è bassa.
+
+Punti
+- Ogni zombie abbattuto vale punti, di più alla testa.
+- Più uccisioni in meno di 3 secondi fanno una serie che moltiplica i punti.
+- Alla morte la voce dice i punti e il tuo record.
+
+
+7. SE QUALCOSA NON VA
+
+- Non senti la voce del gioco: controlla che il computer abbia una voce italiana installata.
+- Il mouse non ruota: fai un clic dentro la finestra del gioco.
+- "Stanza non trovata": controlla il codice e che chi l'ha creata sia ancora in attesa.
+- Non senti la voce degli amici: con alcune reti la chat vocale non si collega. La partita funziona lo stesso.
