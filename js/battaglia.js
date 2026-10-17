@@ -490,8 +490,12 @@ function pezzoGiaLi(tipo, x, z, livello) {
 }
 
 // costruzione istantanea (la usa il giocatore: un tasto premuto, o tenuto premuto per costruire a raffica)
+// avversari della modalità in corso: i combattenti del computer, oppure gli amici del duello
+function avversariArena() { return G.modalita === 'duello' ? [...D.altri.values()] : B.bot; }
+function sonoFuori() { return G.modalita === 'duello' ? D.fuori : B.morto; }
+
 function costruisciRapido(tipo) {
-  if (B.morto || G.stato !== 'gioco' || G.tempo < 3) return false;
+  if (sonoFuori() || G.stato !== 'gioco' || (G.modalita === 'battaglia' && G.tempo < 3)) return false;
   const costo = 2;
   if (G.inventario.materiali < costo) { if (G.tempo - (B.avvisoMateriali || -9) > 2) { B.avvisoMateriali = G.tempo; parla('Materiali finiti.', 1); } return false; }
   const [fx, fz] = avanti(G.rotta), liv = G.livello || 0;
@@ -502,6 +506,7 @@ function costruisciRapido(tipo) {
   G.inventario.materiali -= costo;
   const c = nuovoPezzo(tipo === 'rampa' ? 'rampa' : 'barricata', x, z, fx, fz, liv);
   G.costruzioni.push(c);
+  if (G.modalita === 'duello') duelloInvia({ t: 'costruzione', c2: c });
   suonaInPunto('legno_colpito', x, z, { gain: 0.9, rate: tipo === 'rampa' ? 1.15 : 1.45, y: liv * 2.5 - liv * 2.5 });
   B.ultimaCostruzione = G.tempo;
   return true;
@@ -536,7 +541,7 @@ function aggiornaPianoMio() {
     const caduta = prima - dopo;
     suona('corpo_cade', { gain: 0.4, rate: 1.4 });
     parla(dopo === 0 ? 'a terra' : `piano ${dopo}`, 0);
-    if (caduta >= 2 && !B.morto) { B.ultimoAggressore = null; feriscimi(10 * (caduta - 1)); }
+    if (caduta >= 2 && !sonoFuori()) { B.ultimoAggressore = null; if (G.modalita === 'duello') D.ultimoColpoSubito = -99; feriscimi(10 * (caduta - 1)); }
   }
 }
 function aggiornaPianoBot(b) {
@@ -575,12 +580,12 @@ function botCostruisce(b, T) {
 // Opzione tenuto premuto: la mira si aggancia all'avversario più vicino che senti e lo segue
 function aggiornaAggancio(dt) {
   const tenuto = G.tasti.AltLeft || G.tasti.AltRight;
-  if (!tenuto || B.morto) { B.agganciato = null; return; }
+  if (!tenuto || sonoFuori()) { B.agganciato = null; return; }
   let b = B.agganciato;
   const portata = Math.max(15, armaDef().portata);
   if (!b || !b.vivo || Math.hypot(b.x - G.x, b.z - G.z) > portata) {
-    b = B.bot.filter(x => x.vivo && x.udito && Math.hypot(x.x - G.x, x.z - G.z) < portata).sort((p, q) => Math.hypot(p.x - G.x, p.z - G.z) - Math.hypot(q.x - G.x, q.z - G.z))[0] || null;
-    if (b && b !== B.agganciato) { suona('tic', { gain: 0.6, rate: 1.4 }); parla(`agganciato ${b.nome}${descriviAltezza(b)}`, 0); }
+    b = avversariArena().filter(x => x.vivo && x.udito && Math.hypot(x.x - G.x, x.z - G.z) < portata).sort((p, q) => Math.hypot(p.x - G.x, p.z - G.z) - Math.hypot(q.x - G.x, q.z - G.z))[0] || null;
+    if (b && b !== B.agganciato) { suona('tic', { gain: 0.6, rate: 1.4 }); parla(`agganciato ${b.nome || b.def.nome}${descriviAltezza(b)}`, 0); }
     B.agganciato = b;
   }
   if (!b) return;
@@ -604,7 +609,7 @@ function giratiVerso(forziere) {
     parla(`forziere, ${metri(c.d)}`, 1);
     return;
   }
-  const b = B.bot.filter(x => x.vivo && x.udito).sort((p, q) => Math.hypot(p.x - G.x, p.z - G.z) - Math.hypot(q.x - G.x, q.z - G.z))[0];
+  const b = avversariArena().filter(x => x.vivo && x.udito).sort((p, q) => Math.hypot(p.x - G.x, p.z - G.z) - Math.hypot(q.x - G.x, q.z - G.z))[0];
   if (!b) { parla('Non senti nessuno. Prova con Ctrl.', 1); return; }
   G.rotta = rottaVerso(G.x, G.z, b.x, b.z);
   suona('tic', { gain: 0.6, rate: 1.4 });
@@ -616,7 +621,7 @@ function giratiVerso(forziere) {
 function ascolta() {
   if (G.tempo < (B.prossimoAscolto || 0)) { parla('Ascolto non ancora pronto.', 0); return; }
   B.prossimoAscolto = G.tempo + 6;
-  const vicini = B.bot.filter(b => b.vivo && Math.hypot(b.x - G.x, b.z - G.z) < 60)
+  const vicini = avversariArena().filter(b => b.vivo && Math.hypot(b.x - G.x, b.z - G.z) < 60)
     .sort((p, q) => Math.hypot(p.x - G.x, p.z - G.z) - Math.hypot(q.x - G.x, q.z - G.z)).slice(0, 5);
   if (!vicini.length) { parla('Nessuno entro 60 metri.', 1); return; }
   vicini.forEach((b, i) => {
@@ -631,7 +636,7 @@ function ascolta() {
 
 // battito del cuore quando la vita è bassa
 function battitoBattaglia() {
-  if (G.vita < 35 && !B.morto) {
+  if (G.vita < 35 && !sonoFuori()) {
     if (!G.battito) G.battito = suona('battito', { loop: true, gain: 0 });
     G.battito.guadagno.gain.setTargetAtTime(0.25 + (35 - G.vita) / 35 * 0.5, Audio3D.ctx.currentTime, 0.3);
   } else if (G.battito) { try { G.battito.stop(); } catch (e) { /* già fermo */ } G.battito = null; }

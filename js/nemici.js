@@ -349,7 +349,7 @@ function bersaglioPuntamento() {
     if (!n.vivo || !n.udito || n.occluso) continue;
     const d = Math.hypot(n.x - G.x, n.z - G.z);
     // nella battaglia reale il suono di puntamento segue solo chi è a portata della mia arma
-    if (d > (G.modalita === 'battaglia' && G.arsenale ? Math.max(15, armaDef().portata) : 45)) continue;
+    if (d > (inArena() && G.arsenale ? Math.max(15, armaDef().portata) : 45)) continue;
     const errore = Math.abs(avvolgi(rottaVerso(G.x, G.z, n.x, n.z) - G.rotta));
     const b = { errore, distanza: d, centrato: errore <= conoColpo(n, d), dislivello: (n.livello || 0) - (G.livello || 0) };
     if (b.centrato && (!centrato || d < centrato.distanza)) centrato = b;
@@ -370,6 +370,9 @@ function registraDanno(n, danno, testa, dist, esplosivo = false) {
   if (n.remoto) {
     // avversario vero: comunico il colpo, la sua vita la gestisce il suo computer
     duelloColpito(n, danno, testa);
+    // conferma del colpo e sangue, come nella battaglia reale
+    suona(testa ? 'testa_marker' : 'colpito_marker', { gain: 0.7 });
+    if (typeof mostraNumero3D === 'function') { mostraNumero3D(n.x, n.z, n.livello || 0, String(danno), testa); sangue3D(n.x, n.z, n.livello || 0, testa, danno); }
     Resoconto.danno += danno; Resoconto.colpi++; Resoconto.testa ||= testa; Resoconto.esplosivo ||= esplosivo;
     annullaEventi('resoconto');
     pianifica(ARMI[G.arsenale.corrente].auto && !esplosivo ? 0.35 : 0.05, annunciaResoconto, 'resoconto');

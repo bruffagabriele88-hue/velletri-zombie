@@ -814,6 +814,13 @@ document.addEventListener('keydown', e => {
     if (c === 'KeyT') { costruisciScatola(); return; }
     if (c === 'KeyL') { duelloRadar(); return; }
     if (c === 'Space') { G.tasti[c] = true; duelloRicognizione(); return; }
+    // come nella battaglia reale: costruzione istantanea e a raffica, aiuti per giocare a orecchio
+    if (c === 'KeyB' || c === 'KeyN') { costruisciRapido(c === 'KeyB' ? 'barricata' : 'rampa'); G.prossimaTurbo = G.tempo + 0.3; return; }
+    if (c === 'KeyZ') { giratiVerso(e.shiftKey); return; }
+    if (c === 'KeyK') { senteCostruzioni(); return; }
+    if (c === 'ControlLeft' || c === 'ControlRight') { ascolta(); return; }
+    if (c === 'AltLeft' || c === 'AltRight') { e.preventDefault(); return; }
+    if (e.shiftKey && (c === 'Digit1' || c === 'Digit2' || c === 'Digit3')) { provocazione({ Digit1: 'minaccia', Digit2: 'attacco', Digit3: 'colpito' }[c]); return; }
   }
   G.tasti[c] = true;
   switch (c) {

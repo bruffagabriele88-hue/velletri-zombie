@@ -221,6 +221,20 @@ N: rampa. Costa 4 materiali. Si costruisce due metri e mezzo davanti a te.
 - Le granate distruggono muri e rampe. Se la rampa crolla sotto di te, cadi e ti fai male.
 - Mentre costruisci sei scoperto.
 
+Il duello ora ha tutto della Battaglia reale
+Grafica 3D come nella Battaglia reale, con il punteggio e la zona in alto a destra.
+B e N: muri e rampe istantanei; tenendoli premuti si costruisce a raffica, e con N più W si sale fino al piano 6.
+   Le costruzioni arrivano agli altri con il loro piano. Spari alle costruzioni: le senti colpite e rompersi.
+Opzione tenuto premuto: mira agganciata.   Z: girati verso l'avversario (Maiuscolo più Z: verso la cassa).
+Ctrl: ascolto con il sonar (più acuto se è sopra di te, più grave se è sotto).   K: costruzioni vicine.
+Chi sta in alto fa passi di legno. Ogni arma ha la sua portata, e la voce te la dice quando la prendi.
+Conferme dei colpi (tic, ding alla testa), sangue nella grafica, battito del cuore quando la vita è bassa.
+Granate: bip sempre più fitto prima dello scoppio, e "Granata!" se cade vicino. Cinque casse a inizio round.
+Provocazioni: Maiuscolo più 1 (minaccia), 2 (attacco) o 3 (insulto). Gli altri sentono la tua frase da dove ti trovi.
+   Ognuno ha sempre la stessa voce.
+Nuovi round speciali: cinque granate a testa; tempesta che si chiude subito e in fretta; torri, con cento materiali.
+Chi vince la partita sente la fanfara.
+
 Novità del duello
 B: muro e N: rampa si costruiscono in mezzo secondo e costano 3 materiali. Si parte con 12 materiali.
 T: scatola. Quattro muri tutto intorno a te in un colpo solo. Costa 10 materiali.

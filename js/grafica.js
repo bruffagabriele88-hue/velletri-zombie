@@ -43,7 +43,7 @@ function disegna(ora, dt) {
   if (!G.graficaAccesa) return;
   const W = tela.width, H = tela.height, oriz = H * 0.58;
   // Battaglia reale: scena 3D sotto, e qui sopra solo mirino, barre e sottotitoli
-  if (G.modalita === 'battaglia' && (G.stato === 'gioco' || G.stato === 'morto') && typeof disegna3D === 'function' && disegna3D(ora, dt)) {
+  if (inArena() && (G.stato === 'gioco' || G.stato === 'morto') && typeof disegna3D === 'function' && disegna3D(ora, dt)) {
     g.clearRect(0, 0, W, H);
     hudBattaglia(W, H, ora);
     interfaccia(W, H, H * 0.56, ora, dt);

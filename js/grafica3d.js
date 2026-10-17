@@ -191,7 +191,7 @@ function meshBot(b, i) {
   arma.position.set(0.28, 1.15, -0.4); gruppo.add(arma);
   const lampo = new T.Mesh(new T.SphereGeometry(0.18, 8, 6), new T.MeshBasicMaterial({ color: 0xffd36b }));
   lampo.position.set(0.28, 1.15, -0.85); lampo.visible = false; gruppo.add(lampo);
-  const nome = scritta3D(b.nome, '#ffffff', 0.45, false); // il nome non si vede attraverso i muri nome.position.y = 2.35; gruppo.add(nome);
+  const nome = scritta3D(b.nome || b.def.nome, '#ffffff', 0.45, false); // il nome non si vede attraverso i muri nome.position.y = 2.35; gruppo.add(nome);
   gruppo.userData = { corpo, lampo, px: b.x, pz: b.z, dir: 0 };
   V3.scena.add(gruppo);
   return gruppo;
@@ -285,20 +285,21 @@ function disegna3D(ora, dt) {
   if (V3.getto) V3.getto.scale.y = 1 + Math.sin(ora / 180) * 0.08;
   V3.mare.position.y = -0.7 + Math.sin(ora / 1400) * 0.06;
   // tempesta
-  const Z = B.zona;
+  const Z = zonaArena();
   V3.tempesta.scale.set(Math.max(0.1, Z.r), 1, Math.max(0.1, Z.r)); V3.tempesta.position.x = Z.cx; V3.tempesta.position.z = Z.cz;
   V3.tempesta.material.opacity = 0.26 + Math.sin(ora / 300) * 0.05;
-  const P = B.prossima;
+  const P = prossimaArena();
   V3.prossima.visible = !!P && P.r > 0.5;
   if (P) { V3.prossima.scale.set(P.r, P.r, 1); V3.prossima.position.x = P.cx; V3.prossima.position.z = P.cz; }
   // avversari: visibili solo se si sentono (o appena abbattuti)
-  sincronizza(V3.bot, B.bot, b => b.nome, b => meshBot(b, B.bot.indexOf(b)), (b, m) => {
+  const avversari = avversariArena();
+  sincronizza(V3.bot, avversari, b => b.nome || b.def.nome, b => meshBot(b, avversari.indexOf(b)), (b, m) => {
     const u = m.userData;
     const vx = b.x - u.px, vz = b.z - u.pz, mosso = Math.hypot(vx, vz);
     if (mosso > 0.002) u.dir = Math.atan2(-vx, -vz);
     if (b.bersaglio) { const [tx, tz] = posDi(b.bersaglio); u.dir = Math.atan2(-(tx - b.x), -(tz - b.z)); }
     u.px = b.x; u.pz = b.z;
-    m.visible = b.vivo ? b.udito : b.morteT < 2.5;
+    m.visible = b.vivo ? b.udito !== false : (b.morteT || 0) < 2.5;
     m.position.set(b.x, (b.livello || 0) * 2.5 + (mosso > 0.002 ? Math.abs(Math.sin(ora / 110)) * 0.06 : 0), b.z);
     m.rotation.y = u.dir;
     m.rotation.x = b.vivo ? 0 : -Math.min(1, b.morteT / 0.5) * Math.PI / 2;
@@ -383,10 +384,16 @@ function hudBattaglia(W, H, ora) {
   // in alto a destra: quanti restano, eliminazioni, tempesta
   g.textAlign = 'right'; g.font = `800 ${Math.round(24 * u)}px -apple-system, Helvetica, sans-serif`;
   g.fillStyle = 'rgba(0,0,0,0.45)'; g.fillRect(W - pad - 260 * u, pad, 260 * u, 76 * u);
+  if (G.modalita === 'duello') {
+    g.fillStyle = '#fff'; g.fillText(`Round ${D.round}   ${descriviPunteggio().replace(/\.$/, '')}`, W - pad - 14 * u, pad + 30 * u);
+    g.font = `600 ${Math.round(18 * u)}px -apple-system, Helvetica, sans-serif`; g.fillStyle = '#d6b4ff';
+    g.fillText(raggioZona() < RAGGIO_ARENA ? `Zona ${Math.round(raggioZona())} m` : 'Zona aperta', W - pad - 14 * u, pad + 60 * u);
+  } else {
   g.fillStyle = '#fff'; g.fillText(`👤 ${rimasti()}    ✖ ${B.eliminazioni}`, W - pad - 14 * u, pad + 30 * u);
   const f = FASI_TEMPESTA[B.fase];
   g.font = `600 ${Math.round(18 * u)}px -apple-system, Helvetica, sans-serif`; g.fillStyle = '#d6b4ff';
   g.fillText(!f ? 'Tempesta finale' : B.stadio === 'attesa' ? `Tempesta tra ${Math.max(0, Math.round(B.fine - G.tempo))}s` : 'La tempesta avanza', W - pad - 14 * u, pad + 60 * u);
+  }
   // bussola in alto al centro
   const cx = W / 2;
   g.fillStyle = 'rgba(0,0,0,0.35)'; g.fillRect(cx - 220 * u, pad, 440 * u, 30 * u);
@@ -399,7 +406,7 @@ function hudBattaglia(W, H, ora) {
   }
   schizziSchermo(W, H);
   // fuori zona: bordo viola
-  const Z = B.zona;
+  const Z = zonaArena();
   if (Math.hypot(G.x - Z.cx, G.z - Z.cz) > Z.r) {
     const v = g.createRadialGradient(cx, H / 2, H * 0.3, cx, H / 2, H * 0.9);
     v.addColorStop(0, 'rgba(120,40,200,0)'); v.addColorStop(1, `rgba(120,40,200,${0.45 + Math.sin(ora / 200) * 0.1})`);
@@ -459,3 +466,7 @@ function schizziSchermo(W, H) {
     g.fillStyle = gr; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
   }
 }
+
+// zona e avversari della modalità in corso (battaglia reale o duello)
+function zonaArena() { return G.modalita === 'duello' ? { cx: 0, cz: 0, r: typeof raggioZona === 'function' && D.attivo ? raggioZona() : 24 } : B.zona; }
+function prossimaArena() { return G.modalita === 'duello' ? null : B.prossima; }

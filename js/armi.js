@@ -185,7 +185,7 @@ function cambiaArma(chiave) {
     suona('arma_estrai', { gain: 0.8 });
     if (chiave === 'pompa' && !A.armi.pompa.camera && A.armi.pompa.caricatore > 0) { A.pompaDaFare = true; pianifica(0.35, pompa, 'pompa'); }
   });
-  parla(G.modalita === 'battaglia' ? `${ARMI[chiave].nome}, ${ARMI[chiave].raggio}` : ARMI[chiave].nome, 0);
+  parla(inArena() ? `${ARMI[chiave].nome}, ${ARMI[chiave].raggio}` : ARMI[chiave].nome, 0);
 }
 
 // ---------------------------------------------------------------- granate

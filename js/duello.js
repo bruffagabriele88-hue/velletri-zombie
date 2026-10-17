@@ -92,8 +92,9 @@ function messaggioValido(m) {
   if (!m || typeof m.t !== 'string' || typeof m.c !== 'string' || m.c.length > 12) return null;
   switch (m.t) {
     case 'ciao': case 'addio': case 'vivo': case 'ripeti': case 'presa': case 'rtc': return m;
+    case 'prov': return typeof m.n === 'string' && m.n.length < 30 ? { t: 'prov', c: m.c, n: m.n } : null;
     case 'ok': case 'via': { const l = listaPulita(m.lista); return l ? { ...m, lista: l } : null; }
-    case 's': return numOk(m.x) && numOk(m.z) ? { t: 's', c: m.c, x: lim(m.x, -LIMITE, LIMITE), z: lim(m.z, -LIMITE, LIMITE), m: [0, 1, 2].includes(m.m) ? m.m : 0, v: numOk(m.v) ? m.v : 100, h: m.h ? 1 : 0, f: m.f ? 1 : 0, rn: numOk(m.rn) ? m.rn : 0 } : null;
+    case 's': return numOk(m.x) && numOk(m.z) ? { t: 's', c: m.c, x: lim(m.x, -LIMITE, LIMITE), z: lim(m.z, -LIMITE, LIMITE), m: [0, 1, 2].includes(m.m) ? m.m : 0, v: numOk(m.v) ? m.v : 100, h: Number.isInteger(m.h) ? lim(m.h, 0, 6) : 0, f: m.f ? 1 : 0, rn: numOk(m.rn) ? m.rn : 0 } : null;
     case 'sparo': return { t: 'sparo', c: m.c, n: typeof m.n === 'string' ? m.n : 'sparo', r: numOk(m.r) ? m.r : 0 };
     case 'colpo': return numOk(m.d) && m.d > 0 ? { t: 'colpo', c: m.c, a: m.a, d: Math.min(m.d, 200), testa: !!m.testa } : null;
     case 'suono': return typeof m.n === 'string' ? m : null;
@@ -105,7 +106,8 @@ function messaggioValido(m) {
       if (!k || !TIPI_COSTRUZIONE.includes(k.tipo) || typeof k.id !== 'string' || ![k.x, k.z, k.ax, k.az, k.bx, k.bz].every(numOk)) return null;
       if (G.costruzioni.length >= 40) return null;
       const vita = numOk(k.vita) ? lim(k.vita, 1, 200) : 100;
-      return { t: 'costruzione', c: m.c, c2: { id: k.id.slice(0, 20), tipo: k.tipo, nome: k.tipo === 'rampa' ? 'rampa' : 'muro', x: k.x, z: k.z, ax: k.ax, az: k.az, bx: k.bx, bz: k.bz, vita, vitaMax: vita, pronta: true } };
+      const livello = Number.isInteger(k.livello) ? lim(k.livello, 0, 6) : 0, dir = (v) => (typeof v === 'number' && Math.abs(v) <= 1.01 ? v : 0);
+      return { t: 'costruzione', c: m.c, c2: { id: k.id.slice(0, 20), tipo: k.tipo, nome: k.tipo === 'rampa' ? 'rampa' : 'muro', x: k.x, z: k.z, ax: k.ax, az: k.az, bx: k.bx, bz: k.bz, livello, dirx: dir(k.dirx), dirz: dir(k.dirz), vita, vitaMax: vita, pronta: true, nato: G.tempo } };
     }
     case 'morto': return { t: 'morto', c: m.c, da: typeof m.da === 'string' ? m.da : null };
     case 'round': {
@@ -247,7 +249,7 @@ async function duelloAvvia() {
     D.punti[cid] = 0;
     if (cid === D.cid) continue;
     const a = {
-      remoto: true, cid, tipo: 'soldato', def: { nome: nomeAvversario(cid), raggio: 0.35, versi: [] },
+      remoto: true, cid, tipo: 'soldato', nome: nomeAvversario(cid), livello: 0, def: { nome: nomeAvversario(cid), raggio: 0.35, versi: [] },
       x: 0, z: -10, tx: 0, tz: -10, vita: 100, vivo: false, udito: true, allertato: true, occluso: false, occlusione: 0, alto: false,
       sorgente: creaSorgente({ ref: 5, riverbero: 0.15 }), sorgenteVoce: creaSorgente({ ref: 6, riverbero: 0.1 }),
       mov: 0, prossimoPasso: 0, fase: 0, morteT: 99, stordito: 0, carica: false, tono: 1, ultimoMessaggio: performance.now(),
@@ -270,18 +272,21 @@ function duelloEquipaggia(mod = 'normale') {
   G.arsenale = nuovoArsenale(null);
   G.arsenale.riserva = { '9mm': 45, cal12: 0, '762': 0, '308': 0 };
   G.inventario = { granate: 0, kit: 0, cibo: 0, materiali: 12, radar: 0 };
-  G.scudo = 0; G.alto = false; G.rampaSotto = null; G.velocitaExtra = 1;
+  G.scudo = 0; G.alto = false; G.livello = 0; G.rampaSotto = null; G.velocitaExtra = 1;
   D.trappole = [];
   // round speciali
   if (mod === 'pompa') { G.arsenale.armi.pompa = { caricatore: 6, camera: 1 }; G.arsenale.riserva.cal12 = 30; G.arsenale.corrente = 'pompa'; }
   if (mod === 'precisione') { G.arsenale.armi.precisione = { caricatore: 5, camera: 1 }; G.arsenale.riserva['308'] = 20; G.arsenale.corrente = 'precisione'; }
   if (mod === 'veloce') G.velocitaExtra = 1.5;
+  if (mod === 'granate') G.inventario.granate = 5;
+  if (mod === 'torri') G.inventario.materiali = 100;
   if (mod === 'scudi') G.scudo = 100;
   if (mod === 'costruttori') G.inventario.materiali = 60;
 }
 const ROUND_SPECIALI = {
   normale: '', pompa: 'solo fucili a pompa', precisione: 'solo fucili di precisione', veloce: 'tutti velocissimi',
   scudi: 'tutti con lo scudo pieno', costruttori: '60 materiali a testa: costruite!',
+  granate: 'cinque granate a testa', tempesta: 'la tempesta si chiude subito, e in fretta', torri: 'cento materiali, si combatte in alto',
 };
 
 const CONTENUTI_CASSA = [['scudo', 22], ['pompa', 18], ['mitra', 18], ['precisione', 11], ['radar', 10], ['granate', 9], ['kit', 7], ['materiali', 5]];
@@ -298,7 +303,7 @@ function duelloNuovoRound() {
   D.round++;
   const a0 = caso(-Math.PI, Math.PI), r = RAGGIO_ARENA * 0.7, pos = {};
   D.giocatori.forEach((cid, i) => { const a = a0 + i * PI2 / D.giocatori.length; pos[cid] = [Math.sin(a) * r, -Math.cos(a) * r]; });
-  const casse = [0, 1].map(() => { const [x, z] = puntoCasuale(13); return { id: Math.random().toString(36).slice(2), x, z, cont: contenutoCasuale() }; });
+  const casse = [0, 1, 2, 3, 4].map(() => { const [x, z] = puntoCasuale(16); return { id: Math.random().toString(36).slice(2), x, z, cont: contenutoCasuale() }; });
   // dal secondo round, uno su tre è speciale
   const mod = D.round > 1 && Math.random() < 0.34 ? scegli(Object.keys(ROUND_SPECIALI).filter(k => k !== 'normale')) : 'normale';
   const m = { t: 'round', n: D.round, pos, punti: D.punti, casse, mod };
@@ -363,6 +368,7 @@ function duelloFineRound(m) {
   D.punti = m.punti; D.fuori = true; G.occupatoFino = Infinity;
   const chi = !m.vincitore ? 'Nessuno in piedi.' : m.vincitore === D.cid ? 'Round tuo!' : `Round a ${nomeAvversario(m.vincitore)}.`;
   if (m.fine) {
+    if (m.vincitore === D.cid) suonaBase('vittoria', { gain: 0.9 });
     setTimeout(() => {
       if (!D.attivo) return;
       G.stato = 'morto'; D.finito = true; G.eventi = [];
@@ -385,7 +391,7 @@ function duelloRicevi(m, a) {
   switch (m.t) {
     case 's':
       if (!a) break;
-      a.tx = m.x; a.tz = m.z; a.mov = m.m; a.vita = m.v; a.alto = !!m.h;
+      a.tx = m.x; a.tz = m.z; a.mov = m.m; a.vita = m.v; a.livello = m.h; a.alto = m.h > 0;
       // recupero di messaggi persi: se dice di essere a terra e io non lo sapevo, lo segno abbattuto
       if (m.f && a.vivo && m.rn === D.round && !D.roundChiuso && G.tempo - D.inizioRound > 2) {
         a.vivo = false; a.morteT = 0; a.alto = false;
@@ -413,10 +419,11 @@ function duelloRicevi(m, a) {
     case 'colpo': if (m.a === D.cid && !D.fuori) { D.ultimoAggressore = m.c; D.ultimoColpoSubito = G.tempo; feriscimi(m.d, true); } break;
     case 'suono': if (a && Audio3D.buf[m.n] && SUONI_IN_RETE.has(m.n)) suonaBase(m.n, { dest: a.sorgente.ingresso, gain: 0.9 }); break;
     case 'boom':
-      pianifica(1.0, () => suonaInPunto('granata_rimbalzo', m.x, m.z, { gain: 0.9, rate: 0.75 }));
+      pianifica(1.0, () => { suonaInPunto('granata_rimbalzo', m.x, m.z, { gain: 0.9, rate: 0.75 }); if (!D.fuori && Math.hypot(G.x - m.x, G.z - m.z) < 8) parla('Granata!', 1); });
+      for (let t = 1.5; t < 2.85; t += 0.3 - (t - 1.5) * 0.12) pianifica(t, () => suonaInPunto('bip_granata', m.x, m.z, { gain: 1.0, ref: 3 }));
       pianifica(2.9, () => { suonaInPunto('esplosione', m.x, m.z, { gain: 1.6, riverbero: 1.2, ref: 4 }); G.effetti.esplosioni.push({ x: m.x, z: m.z, t: 0 }); });
       break;
-    case 'costruzione': if (m.c2 && typeof m.c2.x === 'number') { G.costruzioni.push(m.c2); suonaInPunto('martello', m.c2.x, m.c2.z, { gain: 0.9 }); } break;
+    case 'costruzione': if (m.c2 && typeof m.c2.x === 'number') { m.c2.nato = G.tempo; G.costruzioni.push(m.c2); suonaInPunto('legno_colpito', m.c2.x, m.c2.z, { gain: 1.0, rate: m.c2.tipo === 'rampa' ? 1.15 : 1.45, y: ((m.c2.livello || 0) - (G.livello || 0)) * 2.5 }); } break;
     case 'dannoC': { const c = G.costruzioni.find(c => c.id === m.id); if (c) danneggiaCostruzione(c, m.d); break; }
     case 'morto':
       if (a && a.vivo) {
@@ -431,6 +438,7 @@ function duelloRicevi(m, a) {
     case 'cassa': if (m.c === D.cidOspite) duelloArrivaCassa(m.cassa); break;
     case 'presa': D.casse = D.casse.filter(c => c.id !== m.id); break;
     case 'rtc': if (m.a === D.cid) vocaleSegnale(m); break;
+    case 'prov': if (a && /^[a-z]+_(minaccia|attacco|colpito)\d+$/.test(m.n) && Audio3D.buf[m.n]) suonaBase(m.n, { dest: a.sorgenteVoce.ingresso, gain: 1.4 }); break;
     // una trappola di qualcun altro è scattata: lo sento da lì
     case 'trappola': suonaInPunto('grilletto_vuoto', m.x, m.z, { gain: 1.2, rate: 0.6 }); suonaInPunto('colpo_corpo', m.x, m.z, { gain: 1.2, rate: 0.7, quando: 0.08 }); break;
   }
@@ -489,14 +497,15 @@ function duelloApriCassa() {
 
 // ---------------------------------------------------------------- zona che si restringe
 function raggioZona() {
-  const t = G.tempo - D.inizioRound;
-  if (t < 20) return RAGGIO_ARENA;
-  return Math.max(RAGGIO_FINALE, RAGGIO_ARENA - (t - 20) * (RAGGIO_ARENA - RAGGIO_FINALE) / 60);
+  const t = G.tempo - D.inizioRound, veloce = D.mod === 'tempesta';
+  const attesa = veloce ? 5 : 20, durata = veloce ? 30 : 60;
+  if (t < attesa) return RAGGIO_ARENA;
+  return Math.max(RAGGIO_FINALE, RAGGIO_ARENA - (t - attesa) * (RAGGIO_ARENA - RAGGIO_FINALE) / durata);
 }
 
 function aggiornaZona() {
   const r = raggioZona(), c = Math.hypot(G.x, G.z), fuori = c > r;
-  if (!D.zonaAnnunciata && G.tempo - D.inizioRound >= 20 && !D.roundChiuso) { D.zonaAnnunciata = true; parla('La zona si chiude.', 1); }
+  if (!D.zonaAnnunciata && raggioZona() < RAGGIO_ARENA && !D.roundChiuso) { D.zonaAnnunciata = true; parla('La zona si chiude.', 1); }
   // il ronzio viene dal punto del bordo più vicino a me; più mi avvicino, più è forte
   const [dx, dz] = c > 0.5 ? [G.x / c, G.z / c] : avanti(G.rotta);
   const s = D.sorgenteZona;
@@ -521,31 +530,35 @@ function aggiornaDuello(dt) {
   const mov = muoviLibero(dt, 0, 0, LIMITE, D.fuori);
   if (!D.fuori) controllaTrappole();
   aggiornaRadar();
-  if (!D.fuori) aggiornaAltezza();
+  if (!D.fuori) { aggiornaTurbo(); aggiornaPianoMio(); }
+  aggiornaAggancio(dt);
+  battitoBattaglia();
   if (!D.roundChiuso) aggiornaZona();
 
   // stato inviato 10 volte al secondo
   if (G.tempo >= D.prossimoInvio) {
     D.prossimoInvio = G.tempo + 1 / 10;
-    duelloInvia({ t: 's', x: +G.x.toFixed(2), z: +G.z.toFixed(2), m: mov, v: Math.round(G.vita), h: G.alto ? 1 : 0, f: D.fuori ? 1 : 0, rn: D.round });
+    duelloInvia({ t: 's', x: +G.x.toFixed(2), z: +G.z.toFixed(2), m: mov, v: Math.round(G.vita), h: G.livello || 0, f: D.fuori ? 1 : 0, rn: D.round });
   }
   // avversari: posizione ammorbidita, passi e voce che vengono da dove si trovano (anche dall'alto)
-  const k = Math.min(1, dt * 12), ora = performance.now(), mioY = G.alto ? 2.5 : 0;
+  const k = Math.min(1, dt * 12), ora = performance.now(), mioY = (G.livello || 0) * 2.5;
   for (const [cid, a] of [...D.altri]) {
     if (ora - a.ultimoMessaggio > 30000) { duelloUscito(cid); continue; }
     a.x += (a.tx - a.x) * k; a.z += (a.tz - a.z) * k; a.fase += dt * (a.mov ? 1 : 0);
-    const y = (a.alto ? 2.5 : 0) - mioY;
+    const y = (a.livello || 0) * 2.5 - mioY;
     posiziona(a.sorgente, a.x, y, a.z); posiziona(a.sorgenteVoce, a.x, y + 0.3, a.z);
     if (a.vivo && a.mov && G.tempo >= a.prossimoPasso) {
       a.prossimoPasso = G.tempo + (a.mov === 2 ? 0.33 : 0.55);
       suonaBase(a.mov === 2 ? `corsa${casoInt(1, 6)}` : `io_passo${casoInt(1, 4)}`, { dest: a.sorgente.ingresso, gain: a.mov === 2 ? 1.6 : 1.4, rate: caso(0.95, 1.05) });
+      // sulle costruzioni i passi sono di legno: si capisce che sta in alto
+      if ((a.livello || 0) > 0) suonaBase('legno_colpito', { dest: a.sorgente.ingresso, gain: 0.55, rate: caso(1.5, 1.8) });
     }
   }
   aggiornaCasse(D.fuori);
   // chi ha creato la stanza fa cadere una cassa nuova ogni tanto, dentro la zona
   if (D.ospite && !D.roundChiuso && G.tempo >= D.prossimaCassa) {
     D.prossimaCassa = G.tempo + 18;
-    if (D.casse.length < 4) {
+    if (D.casse.length < 6) {
       const [x, z] = puntoCasuale(raggioZona() * 0.8);
       const cassa = { id: Math.random().toString(36).slice(2), x, z, cont: contenutoCasuale() };
       duelloInvia({ t: 'cassa', cassa });
@@ -684,7 +697,7 @@ function aggiornaCasse(fermo = false) {
   }
   if (piuVicina && G.tempo >= (D.prossimoPingCassa || 0)) {
     D.prossimoPingCassa = G.tempo + 1.3;
-    const luccica = G.modalita === 'battaglia' && piuVicina.d < 15;
+    const luccica = inArena() && piuVicina.d < 15;
     if (luccica) D.prossimoPingCassa = G.tempo + 1.6;
     suonaInPunto(luccica ? 'luccichio' : 'cassa_ping', piuVicina.c.x, piuVicina.c.z, { gain: luccica ? 1.2 : 1.0, ref: luccica ? 4 : 9, riverbero: 0.15 });
   }
@@ -761,4 +774,17 @@ function aggiornaRadar() {
   const bersagli = G.modalita === 'duello' ? [...D.altri.values()].filter(a => a.vivo)
     : G.nemici.filter(n => n.vivo && Math.hypot(n.x - G.x, n.z - G.z) < 60).sort((a, b) => Math.hypot(a.x - G.x, a.z - G.z) - Math.hypot(b.x - G.x, b.z - G.z)).slice(0, 5);
   for (const a of bersagli) { suonaInPunto('ping', a.x, a.z, { gain: 1.2, ref: 10, riverbero: 0.1, y: a.alto ? 2.5 : 0 }); a.ultimoSuono = G.tempo; a.udito = true; }
+}
+
+// Maiuscolo più 1, 2 o 3: una provocazione (minaccia, attacco, insulto) che gli altri sentono dal punto in cui mi trovo
+function provocazione(categoria) {
+  if (G.tempo < (D.prossimaProvocazione || 0)) return;
+  D.prossimaProvocazione = G.tempo + 3;
+  const voci = Object.keys(Audio3D.voci || {}); if (!voci.length) return;
+  // ogni giocatore ha sempre la stessa voce, scelta dal suo identificativo
+  const mia = voci[[...D.cid].reduce((h, ch) => h + ch.charCodeAt(0), 0) % voci.length];
+  const frasi = (Audio3D.voci[mia] || {})[categoria] || []; if (!frasi.length) return;
+  const n = scegli(frasi);
+  suonaBase(n, { gain: 0.5 });
+  duelloInvia({ t: 'prov', n });
 }
