@@ -1,4 +1,11 @@
 VELLETRI ZOMBIE
+
+GIOCARE ONLINE (il modo più semplice)
+Apri questo indirizzo in Safari, Chrome o Edge, su Mac o su Windows:
+https://bruffagabriele88-hue.github.io/velletri-zombie/
+Non serve scaricare niente. La prima volta il caricamento dei suoni dura circa mezzo minuto, poi è più veloce.
+Il gioco online è sempre l'ultima versione: basta ricaricare la pagina.
+
 Comandi e istruzioni per giocare
 
 Velletri Zombie è uno sparatutto che si gioca con le orecchie: tutto quello che succede lo senti in cuffia, nel punto esatto da cui arriva. Si può giocare allo stesso modo da ciechi e da vedenti. Servono le cuffie.

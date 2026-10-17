@@ -1,5 +1,12 @@
 VELLETRI ZOMBIE - GUIDA AI COMANDI
 
+GIOCARE ONLINE (il modo più semplice)
+Apri questo indirizzo in Safari, Chrome o Edge, su Mac o su Windows:
+https://bruffagabriele88-hue.github.io/velletri-zombie/
+Non serve scaricare niente. La prima volta il caricamento dei suoni dura circa mezzo minuto, poi è più veloce.
+Il gioco online è sempre l'ultima versione: basta ricaricare la pagina.
+
+
 AVVIO
 Apri avvia.command, poi premi Invio in Safari. Nel menù: frecce su e giù, Invio per scegliere.
 Dopo aver scelto modalità e arma, fai un click per agganciare il trackpad.

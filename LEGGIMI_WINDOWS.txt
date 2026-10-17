@@ -1,5 +1,12 @@
 VELLETRI ZOMBIE SU WINDOWS
 
+GIOCARE ONLINE (il modo più semplice)
+Apri questo indirizzo in Safari, Chrome o Edge, su Mac o su Windows:
+https://bruffagabriele88-hue.github.io/velletri-zombie/
+Non serve scaricare niente. La prima volta il caricamento dei suoni dura circa mezzo minuto, poi è più veloce.
+Il gioco online è sempre l'ultima versione: basta ricaricare la pagina.
+
+
 1. Estrai tutta la cartella dallo zip (tasto destro, Estrai tutto).
 2. Apri la cartella e fai doppio clic su avvia_windows.bat.
    Se Windows mostra un avviso di sicurezza, scegli "Ulteriori informazioni" e poi "Esegui comunque".
