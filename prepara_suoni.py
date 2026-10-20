@@ -109,7 +109,7 @@ TAGLI = {
 }
 
 def sorgente(nome):
-    for ext in ('wav', 'flac', 'aif', 'aiff'):
+    for ext in ('wav', 'flac', 'aif', 'aiff', 'ogg'):
         p = os.path.join(ORIG, f'{nome}.{ext}')
         if os.path.exists(p):
             return p, True
