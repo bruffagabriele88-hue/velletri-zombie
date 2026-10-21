@@ -417,9 +417,10 @@ function aggiornaBot(b, dt) {
     const dIo = Math.hypot(b.x - G.x, b.z - G.z);
     if (dIo < 50 && G.tempo >= b.prossimoPasso) {
       b.prossimoPasso = G.tempo + (v > 3.5 ? 0.3 : b.cauto ? 0.6 : 0.4) * caso(0.9, 1.12);
-      suonoBot(b, v > 3.5 ? `corsa${casoInt(1, 6)}` : `io_passo${casoInt(1, 4)}`, { gain: b.cauto ? 1.3 : 2.4, rate: caso(0.93, 1.07) });
+      const P = passoSulTerreno(v > 3.5 ? `corsa${casoInt(1, 6)}` : `io_passo${casoInt(1, 4)}`, b.x, b.z, b.livello, { gain: b.cauto ? 1.3 : 2.4, rate: caso(0.93, 1.07) });
+      suonoBot(b, P.nome, P.opz);
       // chi cammina su muri e rampe fa passi di legno: si capisce che è in alto
-      if ((b.livello || 0) > 0) suonoBot(b, 'legno_colpito', { gain: 0.55, rate: caso(1.5, 1.8) });
+      if (P.legno) suonoBot(b, 'legno_colpito', { gain: 0.55, rate: caso(1.5, 1.8) });
     }
   }
   // spara
@@ -428,6 +429,7 @@ function aggiornaBot(b, dt) {
     if (d <= W.portata * (W.mischia ? 1 : 1.6) && G.tempo >= (b.ricaricaFino || 0)) sparaBot(b, T, tx, tz, d, W);
     else b.prossimoSparo = G.tempo + 0.3;
   }
+  occludi(b.sorgente, !!muroTra(G.x, G.z, b.x, b.z, G.livello || 0, b.livello || 0), dt);
   posiziona(b.sorgente, b.x, ((b.livello || 0) - (G.livello || 0)) * 2.5, b.z);
   aggiornaPianoBot(b);
   if (T && G.tempo >= (b.prossimaCostruzione || 0)) botCostruisce(b, T);
@@ -502,11 +504,9 @@ function sparaBot(b, T, tx, tz, d, W) {
   if (T === 'io') {
     // contro di me sono meno precisi, e lo diventano di più solo quando restano in pochi
     p *= (rimasti() <= 4 ? 0.5 : 0.36) * (G.inMovimento ? 0.6 : 1) * B.diff.prec;
-    if (Math.random() < p) pianifica(d / 600, () => { if (!B.morto) { B.ultimoAggressore = b; feriscimi(danno, true); } });
-    else if (Math.random() < 0.5) {
-      const lato = Math.random() < 0.5 ? -1 : 1;
-      suonaVicino('sibilo', lato * caso(0.6, 1.6), caso(-0.5, 0.5), 0.2, { gain: 1.0, quando: d / 600, rate: caso(0.9, 1.15) });
-    }
+    stressa(0.2);
+    if (Math.random() < p) { schioccoProiettile(b.x, b.z); pianifica(d / 850, () => { if (!B.morto) { B.ultimoAggressore = b; feriscimi(danno, true); } }); }
+    else if (Math.random() < 0.6) proiettilePassa(b.x, b.z); // il proiettile mi sfiora: schiocco e fischio che passa
   } else if (Math.random() < p * (G.tempo - B.atterratoA > 120 ? 0.7 : 0.4)) feritoBot(T, danno, b); // tra di loro si colpiscono meno all'inizio: la partita deve durare, ma non troppo
 }
 
@@ -809,7 +809,9 @@ function ascolta() {
 
 // battito del cuore quando la vita è bassa
 function battitoBattaglia() {
-  if (G.vita < 35 && !sonoFuori()) {
+  // il cuore ora lo fa il realismo (realismo.js), che accelera anche con la paura e la fatica
+  if (G.battito) { try { G.battito.stop(); } catch (e) { /* già fermo */ } G.battito = null; }
+  if (false) {
     if (!G.battito) G.battito = suona('battito', { loop: true, gain: 0 });
     G.battito.guadagno.gain.setTargetAtTime(0.25 + (35 - G.vita) / 35 * 0.5, Audio3D.ctx.currentTime, 0.3);
   } else if (G.battito) { try { G.battito.stop(); } catch (e) { /* già fermo */ } G.battito = null; }
@@ -900,6 +902,7 @@ function botGranata(b) {
   b.granate--;
   const gx = G.x + caso(-2.5, 2.5), gz = G.z + caso(-2.5, 2.5);
   suonoBot(b, 'lancio', { gain: 1.0 });
+  volo('granata_rimbalzo', b.x, b.z, gx, gz, 0.85, { gain: 0.25, doppler: 1.08, y: 2, ref: 2 }); // la granata in volo, che si avvicina
   B.granateVive.push({ x: gx, z: gz, boom: G.tempo + 3 });
   pianifica(0.9, () => {
     suonaInPunto('granata_rimbalzo', gx, gz, { gain: 1.0, rate: 0.75 });

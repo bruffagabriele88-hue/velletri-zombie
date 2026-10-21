@@ -291,7 +291,7 @@ function rafficaNemico(n, d) {
       else {
         // il proiettile mi sfiora: sibilo accanto alla testa, poi un rimbalzo alle spalle
         const lato = Math.random() < 0.5 ? -1 : 1;
-        suonaVicino('sibilo', lato * caso(0.6, 1.6), caso(-0.5, 0.5), 0.2, { gain: 1.0, quando: ritardo, rate: caso(0.9, 1.15) });
+        proiettilePassa(n.x, n.z);
         if (Math.random() < 0.4) suonaVicino('rimbalzo', lato * caso(1, 4), -caso(3, 8), -1, { gain: 0.6, quando: ritardo + 0.05 });
       }
     });

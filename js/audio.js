@@ -19,6 +19,7 @@ const ELENCO_SUONI = [
   'dolore1', 'dolore2', 'dolore3', 'battito', 'io_passo1', 'io_passo2', 'io_passo3', 'io_passo4', 'raccogli',
   'martello', 'legno_colpito', 'legno_rotto', 'filo_spinato',
   'fontana', 'campane', 'cani', 'civetta', 'sirena', 'orda',
+  'erba1', 'erba2', 'erba3', 'erba4', 'acqua1', 'acqua2', 'acqua3', 'acqua4', 'sassi1', 'sassi2', 'sassi3', 'sassi4',
 ];
 
 function creaContesto() {
@@ -121,14 +122,16 @@ async function inizializzaAudio(avanzamento) {
   A.buf.tic = creaTic(ctx, 1200);
   A.buf.tic2 = creaTic(ctx, 800);
   Object.assign(A.buf, creaSuoniDuello(ctx));
+  if (typeof creaSuoniRealismo === 'function') Object.assign(A.buf, creaSuoniRealismo(ctx));
   let fatti = 0;
-  await caricaInGruppi(ELENCO_SUONI.map(nome => [nome, `suoni/${nome}.wav?v=25`]), () => { fatti++; if (avanzamento) avanzamento(fatti / ELENCO_SUONI.length); });
+  await caricaInGruppi(ELENCO_SUONI.map(nome => [nome, `suoni/${nome}.wav?v=26`]), () => { fatti++; if (avanzamento) avanzamento(fatti / ELENCO_SUONI.length); });
   // frasi dei nemici: voce -> categoria -> elenco di suoni
   try {
     A.voci = await (await fetch('suoni/voci/elenco.json')).json();
     const nomi = Object.values(A.voci).flatMap(c => Object.values(c).flat());
     await caricaInGruppi(nomi.map(nome => [nome, `suoni/voci/${nome}.wav`]));
   } catch (e) { console.error('voci non caricate', e); A.voci = {}; }
+  if (typeof caricaAmbientiReali === 'function') await caricaAmbientiReali();
   console.log('Audio pronto a', ctx.sampleRate, 'Hz, HRTF');
 }
 
@@ -178,7 +181,9 @@ function posiziona(s, x, y, z, subito = false) {
     else { p.positionX.setTargetAtTime(x, t, 0.01); p.positionY.setTargetAtTime(y, t, 0.01); p.positionZ.setTargetAtTime(z, t, 0.01); }
   } else p.setPosition(x, y, z);
   const d = Math.hypot(x - A.ascoltatore.x, y, z - A.ascoltatore.z);
-  s.aria.frequency.setTargetAtTime(20000 * Math.exp(-d / (s.aria_m || 30)), t, 0.05); // assorbimento dell'aria
+  let f = 20000 * Math.exp(-d / (s.aria_m || 30)); // assorbimento dell'aria
+  if (s.occl) f = f * (1 - s.occl) + Math.min(f, 650) * s.occl; // dietro un muro: ovattato
+  s.aria.frequency.setTargetAtTime(f, t, 0.05);
 }
 
 function suona(nome, { dest, gain = 1, rate = 1, quando = 0, riverbero = 0, loop = false, offset = 0 } = {}) {
@@ -360,6 +365,7 @@ function orecchie(forza) {
 }
 // echi dello sparo sulle facciate: tre riflessioni a distanze diverse, sempre le stesse per ogni luogo
 function echiStrada(nome, x, z, forza, quanti = 3) {
+  if (typeof echiArena === 'function' && typeof G !== 'undefined' && inArena()) { echiArena(nome, x, z, forza); return; }
   const cx = Math.floor(x / 20), cz = Math.floor(z / 20);
   let seme = Math.abs((cx * 73856093) ^ (cz * 19349663)) % 2147483647 || 1;
   const rnd = () => (seme = (seme * 16807) % 2147483647) / 2147483647;
@@ -375,6 +381,7 @@ function sparoLontano(nome, x, z, sorgente, forza = 1, echi = true) {
   const opz = { gain: 1.3 * forza, rate: caso(0.97, 1.03), quando: ritardo, riverbero: 0.8 };
   if (sorgente) suona(nome, { ...opz, dest: sorgente.ingresso }); else suonaInPunto(nome, x, z, { ...opz, ref: 5 });
   if (echi) echiStrada(nome, x, z, 0.35 * forza);
+  if (typeof codaLontana === 'function') codaLontana(nome, d, 0.5 * forza);
 }
 
 // ---------------------------------------------------------------- suoni generati per il duello

@@ -106,7 +106,43 @@ TAGLI = {
     'orda':             ('orda', 9.80, 22.30, True),
     # Ambiente notturno (stereo, non spazializzato)
     'ambiente':         ('ambiente_notte', 20.0, 110.0, False),
+    # passi su superfici diverse (battaglia reale): erba nel bosco, acqua alla fontana, ciottoli in piazza
+    'erba1':            ('passi_erba', 0.06, 0.50, True),
+    'erba2':            ('passi_erba', 0.77, 1.20, True),
+    'erba3':            ('passi_erba', 1.45, 1.90, True),
+    'erba4':            ('passi_erba', 3.02, 3.45, True),
+    'acqua1':           ('passi_acqua', 0.10, 0.52, True),
+    'acqua2':           ('passi_acqua', 3.11, 3.50, True),
+    'acqua3':           ('passi_acqua', 3.83, 4.28, True),
+    'acqua4':           ('passi_acqua', 6.81, 7.22, True),
+    'sassi1':           ('passi_ciottoli', 6.21, 6.48, True),
+    'sassi2':           ('passi_ciottoli', 7.16, 7.43, True),
+    'sassi3':           ('passi_ciottoli', 8.40, 8.67, True),
+    'sassi4':           ('passi_ciottoli', 10.07, 10.34, True),
 }
+
+# ambienti registrati in binaurale (stereo per cuffie): anelli senza giunture, in FLAC per non pesare troppo
+# nome_uscita: (sorgente, inizio s, durata s)
+ANELLI = {
+    'amb_campagna': ('amb_campagna', 40.0, 50.0),
+    'amb_bosco':    ('amb_bosco', 120.0, 40.0),
+    'amb_uccelli':  ('amb_uccelli', 30.0, 45.0),
+}
+SOVRAPPOSIZIONE = 4.0
+
+def anello(out, src, a, dur):
+    import numpy as np
+    path = next(p for p in (os.path.join(ORIG, f'{src}.{e}') for e in ('wav', 'flac', 'mp3')) if os.path.exists(p))
+    sr = 48000
+    raw = subprocess.run(['ffmpeg', '-v', 'error', '-ss', str(a), '-t', str(dur + SOVRAPPOSIZIONE), '-i', path, '-ac', '2', '-ar', str(sr), '-f', 'f32le', '-'], capture_output=True, check=True).stdout
+    x = np.frombuffer(raw, np.float32).reshape(-1, 2).copy()
+    n, o = int(dur * sr), int(SOVRAPPOSIZIONE * sr)
+    corpo, coda = x[:n].copy(), x[n:n + o]
+    k = np.linspace(0, 1, len(coda))[:, None]
+    corpo[:len(coda)] = corpo[:len(coda)] * np.sqrt(k) + coda * np.sqrt(1 - k)  # la fine sfuma nell'inizio
+    corpo *= 0.7 / max(1e-6, np.abs(corpo).max())
+    subprocess.run(['ffmpeg', '-v', 'error', '-y', '-f', 'f32le', '-ar', str(sr), '-ac', '2', '-i', '-', '-c:a', 'flac', '-sample_fmt', 's16', os.path.join(OUT, out + '.flac')], input=corpo.astype(np.float32).tobytes(), check=True)
+    print(f"{out:16s} <- {os.path.basename(path)} (anello)")
 
 def sorgente(nome):
     for ext in ('wav', 'flac', 'aif', 'aiff', 'ogg'):
@@ -116,8 +152,13 @@ def sorgente(nome):
     return glob.glob(os.path.join(SORG, nome + '.*'))[0], False
 
 def main():
+    for out, (src, a, dur) in ANELLI.items():
+        if any(os.path.exists(os.path.join(ORIG, f'{src}.{e}')) for e in ('wav', 'flac', 'mp3')): anello(out, src, a, dur)
     for out, (src, a, b, mono) in TAGLI.items():
+        if not any(os.path.exists(p) for p in [os.path.join(ORIG, f'{src}.{e}') for e in ('wav', 'flac', 'aif', 'aiff', 'ogg')] + glob.glob(os.path.join(SORG, src + '.*'))): continue
         path, originale = sorgente(src)
+        # dalle anteprime compresse rifaccio solo i suoni che mancano: quelli già fatti dagli originali restano
+        if not originale and os.path.exists(os.path.join(OUT, out + '.wav')): continue
         dur = b - a
         fade = min(0.004, dur / 10)
         filtri = [f'afade=t=in:d={fade}', f'afade=t=out:st={dur - min(0.03, dur / 5)}:d={min(0.03, dur / 5)}']

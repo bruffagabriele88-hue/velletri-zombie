@@ -118,6 +118,21 @@ Un muro ferma i colpi solo se nessuno dei due che si sparano sta più in alto de
 Se la rampa sotto di te viene distrutta cadi: da due piani in su ti fai male.
 Anche gli avversari costruiscono: un muro verso chi gli spara, una scatola quando sono feriti, rampe per salirti sopra.
 
+
+AUDIO REALISTICO (battaglia reale e duello)
+- Muri: chi sta dietro un muro lo senti ovattato, più basso e scuro. Capisci subito se è coperto o allo scoperto.
+- Spari lontani: se ti sparano da lontano senti prima lo schiocco secco del proiettile accanto alla testa e poi,
+  in ritardo, il botto. Gli spari lontani hanno una coda che rimbomba, come in una valle.
+- Proiettili e granate che ti passano vicino si spostano davvero nello spazio e cambiano tono mentre passano (effetto Doppler).
+- Echi veri: lo sparo rimbalza sul campanile, sulle case della piazza, sul canile, sul bosco e sui muri costruiti,
+  ognuno con il suo ritardo. Dagli echi capisci dove sono le cose.
+- Terreno: i passi cambiano. Erba nel bosco, acqua alla fontana, ciottoli in piazza, legno sui muri e sulle rampe.
+  Vale per i tuoi passi e per quelli degli avversari: dal rumore capisci dove sono.
+- Il tuo corpo: dopo una corsa lunga senti il fiato corto. Il cuore si sente quando ti sparano, quando sei ferito
+  o stanco, e accelera con la paura.
+- Ambienti registrati in binaurale, da ascoltare in cuffia: campagna con uccelli e vento sull'isola,
+  il vento tra gli alberi nel bosco, uccelli nel duello. Y li accende e spegne insieme al vento.
+
 Niente tempesta
 L'isola resta tutta aperta fino alla fine. Dopo due minuti dall'atterraggio gli avversari vanno a caccia:
    sanno più o meno da che parte sono gli altri, ma non il punto esatto.

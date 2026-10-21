@@ -410,10 +410,7 @@ function duelloRicevi(m, a) {
       a.lampo = 1;
       // se il colpo mi passa vicino sento il proiettile fischiare dal lato giusto
       const d = Math.hypot(G.x - a.x, G.z - a.z), errore = avvolgi(rottaVerso(a.x, a.z, G.x, G.z) - m.r);
-      if (Math.abs(errore) < 12 * GRADI && d > 3) {
-        const [fx, fz] = avanti(m.r);
-        suonaInPunto('sibilo', a.x + fx * d, a.z + fz * d, { gain: 1, quando: d / 700, y: 0.2, ref: 1 });
-      }
+      if (Math.abs(errore) < 12 * GRADI && d > 3) proiettilePassa(a.x, a.z);
       break;
     }
     case 'colpo': if (m.a === D.cid && !D.fuori) { D.ultimoAggressore = m.c; D.ultimoColpoSubito = G.tempo; feriscimi(m.d, true); } break;
@@ -550,6 +547,8 @@ function aggiornaDuello(dt) {
     if (ora - a.ultimoMessaggio > 30000) { duelloUscito(cid); continue; }
     a.x += (a.tx - a.x) * k; a.z += (a.tz - a.z) * k; a.fase += dt * (a.mov ? 1 : 0);
     const y = (a.livello || 0) * 2.5 - mioY;
+    const muro = !!muroTra(G.x, G.z, a.x, a.z, G.livello || 0, a.livello || 0);
+    occludi(a.sorgente, muro, dt); occludi(a.sorgenteVoce, muro, dt);
     posiziona(a.sorgente, a.x, y, a.z); posiziona(a.sorgenteVoce, a.x, y + 0.3, a.z);
     if (a.vivo && a.mov && G.tempo >= a.prossimoPasso) {
       a.prossimoPasso = G.tempo + (a.mov === 2 ? 0.33 : 0.55);

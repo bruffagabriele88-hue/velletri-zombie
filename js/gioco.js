@@ -203,6 +203,7 @@ function primoIncontro() {
 function feriscimi(danno, proiettile = false) {
   if (G.stato !== 'gioco') return;
   if (!Number.isFinite(danno) || danno <= 0) return;
+  stressa(0.5);
   danno = Math.min(danno, 300);
   // lo scudo assorbe i colpi prima della vita
   if (G.scudo > 0) {
@@ -442,7 +443,9 @@ function passiMiei(corsa) {
   prossimoMioPasso = G.tempo + (corsa ? 0.33 : 0.55) * (G.modalita === 'battaglia' ? 0.75 : 1);
   // nelle arene i miei passi si sentono chiari, come in Fortnite
   const k = mixEssenziale() ? 2.2 : 1;
-  suona(`io_passo${1 + (piedeMio++ % 4)}`, { gain: (corsa ? 0.3 : 0.2) * k, rate: caso(0.95, 1.05) });
+  const P = passoSulTerreno(`io_passo${1 + (piedeMio++ % 4)}`, G.x, G.z, G.livello, { gain: (corsa ? 0.3 : 0.2) * k, rate: caso(0.95, 1.05) });
+  suona(P.nome, P.opz);
+  if (P.legno) suona('legno_colpito', { gain: 0.15, rate: caso(1.5, 1.8) }); // sui muri e sulle rampe i passi suonano di legno
 }
 
 function annunciaIncrocio() {
@@ -934,6 +937,7 @@ function cicloInterno(ora) {
     aggiornaMusica(0);
     if (G.stato === 'morto') { for (const n of G.nemici) if (!n.vivo) n.morteT += dt; }
   }
+  aggiornaRealismo(dt, G.stato === 'gioco' && !G.pausa);
   disegna(ora, dt);
 }
 requestAnimationFrame(ciclo);
