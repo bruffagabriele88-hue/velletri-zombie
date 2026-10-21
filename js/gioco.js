@@ -966,6 +966,7 @@ function muoviLibero(dt, cx, cz, limite, bloccato) {
     if (G.modalita !== 'duello' && G.tempo - (G.ultimoMuro || -9) > 2) { G.ultimoMuro = G.tempo; suona('tic2', { gain: 0.6 }); parla('fine della piazza', 0); }
   }
   G.inMovimento = true;
+  if (corsa) G.ultimaCorsa = G.tempo;
   if (corsa && G.modalita !== 'duello') allertaNemici(G.x, G.z, 25);
   passiMiei(corsa);
   return corsa ? 2 : 1;

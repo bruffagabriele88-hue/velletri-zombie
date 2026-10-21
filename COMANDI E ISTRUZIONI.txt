@@ -126,7 +126,7 @@ Tasti
 H: ti curi (kit più 50, bende più 20).   P: bevi una pozione scudo (più 50, due secondi).
 B: muro.   N: rampa.   Costano 3 materiali e si costruiscono in mezzo secondo.
    I muri fermano i proiettili, anche quelli degli avversari; dalla rampa spari oltre i muri.
-O: dov'è la zona sicura, quanto manca alla tempesta, il luogo più vicino e il punto cardinale.
+O: il luogo più vicino e il punto cardinale.
 Spazio: quanti restano, chi senti vicino, forziere più vicino, zona, arma, vita, scudo, materiali.
 X: mezzo giro.
 
@@ -136,7 +136,10 @@ Case di vetro: otto cabine di vetro sparse per l'isola. Quando ci entri la voce 
    (senti lo schianto e i frammenti che cadono) e le schegge feriscono chi sta lì vicino: 15 di vita, e la voce dice "Schegge!".
    Anche i tuoi colpi rompono il vetro. K ti dice dov'è la casa di vetro più vicina.
 Granate: anche gli avversari te le lanciano, quando sei dietro un muro, in alto o nascosto nel vetro.
-   Senti il lancio, il rimbalzo dove cade, poi un bip sempre più fitto fino allo scoppio. Se cade vicino la voce grida "Granata!".
+   Senti il lancio, il rimbalzo dove cade, poi un bip sempre più fitto fino allo scoppio.
+   Se cade vicino la voce dice "Granata" e da che parte. Come scappare: hai circa due secondi.
+   Gira le spalle al bip e corri con Maiuscolo e W: a 7 metri sei salvo. Oppure metti un muro (B) tra te e la granata:
+   il muro ti toglie quasi tutto il danno. Anche stare su una rampa, al piano di sopra, ne toglie metà.
    Il bip lo fanno anche le tue granate. Le granate si trovano nei forzieri.
 Forzieri: quando sei a meno di 15 metri senti il loro luccichio magico.
 Grafica: schizzi di sangue quando colpisci, macchie a terra che svaniscono, schizzi ai bordi dello schermo quando ti colpiscono.
@@ -148,12 +151,13 @@ Sparare alle costruzioni: il colpo prende il primo muro o la prima rampa sulla t
    Dall'alto passi sopra ai muri più bassi.
 Ogni arma ha la sua portata, e quando la prendi in mano la voce te la dice:
    pistola 40 metri, fucile a pompa 15, mitragliatore 55, fucile di precisione 120.
-   Il suono di puntamento e la mira agganciata seguono solo chi è a portata dell'arma che hai in mano.
+   Puoi colpire anche oltre la portata, fino a 160 metri: il proiettile arriva, ma fa meno danno.
+   Il suono di puntamento e la mira agganciata seguono chiunque tu senta, anche lontanissimo.
 K: senti le costruzioni più vicine, entro 25 metri. Un colpo di legno dal punto di ognuna (più acuto il muro,
    più grave la rampa), poi la voce dice per le tre più vicine se è un muro o una rampa, dove si trova, se sta sopra
    o sotto di te e quanto è integra.
-Forzieri: ora sono 46, nei luoghi e sparsi per l'isola. In più, ogni 25-35 secondi cade una cassa col paracadute
-   dentro la zona sicura, con un'arma almeno rara e 25 materiali.
+Forzieri: tanti, nei luoghi e sparsi per tutta l'isola. In più, ogni 25-35 secondi cade una cassa col paracadute,
+   con un'arma almeno rara e 25 materiali.
 
 Aiuti per giocare senza vista (Battaglia reale)
 Difficoltà: dopo aver scelto dove lanciarti scegli facile (sette avversari, meno precisi, mira molto assistita),
@@ -178,12 +182,17 @@ Un muro ferma i colpi solo se nessuno dei due che si sparano sta più in alto de
 Se la rampa sotto di te viene distrutta cadi: da due piani in su ti fai male.
 Anche gli avversari costruiscono: un muro verso chi gli spara, una scatola quando sono feriti, rampe per salirti sopra.
 
-La tempesta
-Si chiude a fasi e ogni volta sposta il centro. La voce ti dice in che direzione e a quanti metri è la zona sicura.
-Vicino al bordo senti un ronzio. Nella tempesta perdi vita ogni secondo, sempre di più, e lo scudo non ti protegge.
+Niente tempesta
+L'isola resta tutta aperta fino alla fine. Dopo due minuti dall'atterraggio gli avversari vanno a caccia:
+   sanno più o meno da che parte sono gli altri, ma non il punto esatto.
 
 Gli avversari
 Hanno un nome e una voce. Saccheggiano, si sparano tra loro, ti insultano, alzano un muro quando li colpisci.
+Si comportano come persone: si accorgono di te solo se ti vedono da vicino o ti sentono (spari, corse, colpi).
+   Se ti perdono vanno a controllare l'ultimo punto in cui ti hanno sentito, con passi più leggeri.
+   I primi colpi sono meno precisi, poi la mira si assesta. Quando finisce il caricatore ricaricano spostandosi di lato:
+   senti il caricatore che esce ed entra, ed è il momento buono per attaccare.
+   Se sono feriti gravi a volte scappano a curarsi. Scappano dalle granate. Ogni tanto si fermano a guardarsi intorno.
 Chi sta fermo e zitto non si sente: il suono di puntamento li segue solo se hanno fatto rumore negli ultimi secondi.
 
 Fine partita

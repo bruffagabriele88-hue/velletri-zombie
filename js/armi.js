@@ -100,7 +100,7 @@ function tentaSparo() {
   for (let p = 0; p < def.pallini; p++) {
     const dir = G.rotta + (Math.random() - 0.5) * 2 * def.dispersione;
     G.colpoSuMuro = false;
-    const c = tracciaColpo(G.x, G.z, dir, def.portata);
+    const c = tracciaColpo(G.x, G.z, dir, inArena() ? Math.max(def.portata, PORTATA_ARENA) : def.portata);
     if (c) colpi.push(c);
     // nessun avversario sulla traiettoria: forse ho colpito una costruzione
     else if (!G.colpoSuMuro && inArena() && colpoSuCostruzione(dir, def)) { /* sentito il legno */ }
@@ -110,7 +110,9 @@ function tentaSparo() {
     }
   }
   for (const c of colpi) {
-    const cadutaDanno = def.pallini > 1 ? lim(1.4 - c.distanza / 22, 0.3, 1) : 1;
+    let cadutaDanno = def.pallini > 1 ? lim(1.4 - c.distanza / 22, 0.3, 1) : 1;
+    // oltre la portata dell'arma il proiettile arriva, ma più debole
+    if (c.distanza > def.portata) cadutaDanno *= lim(1 - (c.distanza - def.portata) / (def.portata * 2), 0.35, 1);
     const base = c.testa ? caso(...def.dannoTesta) : caso(...def.danno);
     registraDanno(c.nemico, Math.round(base * cadutaDanno * (st.rarita || 1)), c.testa, c.distanza); // le armi rare fanno più danno
   }
@@ -237,6 +239,7 @@ function lanciaGranata() {
   pianifica(1.1, () => suonaInPunto('granata_rimbalzo', gx, gz, { gain: 0.9, rate: 0.75 }));
   pianifica(1.5, () => suonaInPunto('granata_rimbalzo', gx + 0.6, gz, { gain: 0.5, rate: 0.85 }));
   for (let t = 1.6; t < 2.95; t += 0.3 - (t - 1.6) * 0.12) pianifica(t, () => suonaInPunto('bip_granata', gx, gz, { gain: 1.0, ref: 3 }));
+  if (G.modalita === 'battaglia') B.granateVive.push({ x: gx, z: gz, boom: G.tempo + 3 });
   pianifica(3.0, () => esplosione(gx, gz, 7, 260));
 }
 

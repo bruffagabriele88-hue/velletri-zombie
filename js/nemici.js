@@ -299,6 +299,7 @@ function rafficaNemico(n, d) {
 }
 
 // ---------------------------------------------------------------- colpire i nemici
+const PORTATA_ARENA = 160; // oltre la portata dell'arma il colpo arriva lo stesso, ma fa meno danno
 function conoColpo(n, d) {
   // nella battaglia reale la mira assistita allarga il bersaglio, a seconda della difficoltà
   const aiuto = G.modalita === 'battaglia' && typeof B !== 'undefined' && B.diff ? B.diff.cono : 1;
@@ -350,8 +351,8 @@ function bersaglioPuntamento() {
   for (const n of G.nemici) {
     if (!n.vivo || !n.udito || n.occluso) continue;
     const d = Math.hypot(n.x - G.x, n.z - G.z);
-    // nella battaglia reale il suono di puntamento segue solo chi è a portata della mia arma
-    if (d > (inArena() && G.arsenale ? Math.max(15, armaDef().portata) : 45)) continue;
+    // nelle arene il suono di puntamento segue chiunque si senta, anche lontanissimo
+    if (d > (inArena() ? PORTATA_ARENA : 45)) continue;
     const errore = Math.abs(avvolgi(rottaVerso(G.x, G.z, n.x, n.z) - G.rotta));
     const b = { errore, distanza: d, centrato: errore <= conoColpo(n, d), dislivello: (n.livello || 0) - (G.livello || 0) };
     if (b.centrato && (!centrato || d < centrato.distanza)) centrato = b;

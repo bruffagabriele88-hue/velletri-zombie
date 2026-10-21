@@ -122,7 +122,7 @@ async function inizializzaAudio(avanzamento) {
   A.buf.tic2 = creaTic(ctx, 800);
   Object.assign(A.buf, creaSuoniDuello(ctx));
   let fatti = 0;
-  await caricaInGruppi(ELENCO_SUONI.map(nome => [nome, `suoni/${nome}.wav?v=24`]), () => { fatti++; if (avanzamento) avanzamento(fatti / ELENCO_SUONI.length); });
+  await caricaInGruppi(ELENCO_SUONI.map(nome => [nome, `suoni/${nome}.wav?v=25`]), () => { fatti++; if (avanzamento) avanzamento(fatti / ELENCO_SUONI.length); });
   // frasi dei nemici: voce -> categoria -> elenco di suoni
   try {
     A.voci = await (await fetch('suoni/voci/elenco.json')).json();
