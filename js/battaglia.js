@@ -26,6 +26,7 @@ const ARMI_BOT = {
   pistola: { suoni: ['sparo', 'sparo2', 'sparo3'], danno: 15, cadenza: 0.65, prob: 0.5, portata: 35, distanza: 10, valore: 1 },
   pompa: { suoni: ['pompa_sparo'], danno: 42, cadenza: 1.3, prob: 0.75, portata: 13, distanza: 5, valore: 2 },
   mitra: { suoni: ['ak_sparo', 'ak_sparo2', 'ak_sparo3'], danno: 10, cadenza: 0.16, raffica: 4, pausa: 1.1, prob: 0.4, portata: 45, distanza: 14, valore: 3 },
+  piccone: { mischia: true, danno: 20, cadenza: 0.7, prob: 0.6, portata: 2.4, distanza: 1.2, valore: 0 },
   precisione: { suoni: ['ak_sparo4'], danno: 65, cadenza: 2.4, prob: 0.5, portata: 80, distanza: 30, valore: 3 },
 };
 
@@ -61,8 +62,10 @@ async function battagliaAvvia(lancio, difficolta) {
   G.modalita = 'battaglia'; G.pos = null; G.ondata = null;
   G.tempo = 0; G.campo = null; G.uccisi = 0; G.punti = 0; G.serie = { n: 0, fino: 0 }; G.ultimaFerita = -99; G.prossimaSpinta = 0;
   G.vita = 100; G.scudo = 0; G.alto = false; G.rampaSotto = null; G.cx = 0; G.cz = 0; G.velocitaExtra = 1;
+  // come in Fortnite si parte col solo piccone: le armi si trovano nei forzieri
   G.arsenale = nuovoArsenale(null);
-  G.arsenale.riserva = { '9mm': 45, cal12: 0, '762': 0, '308': 0 };
+  G.arsenale.armi = { piccone: { caricatore: 0, camera: 0 } }; G.arsenale.corrente = 'piccone';
+  G.arsenale.riserva = { '9mm': 0, cal12: 0, '762': 0, '308': 0 };
   G.inventario = { granate: 0, kit: 0, cibo: 2, materiali: 40, pozioni: 0, radar: 0 };
   G.livello = 0; G.prossimaTurbo = 0;
   D.trappole = []; D.radarFino = 0;
@@ -78,10 +81,9 @@ async function battagliaAvvia(lancio, difficolta) {
   B.prossimaCassa = 25;
   creaCaseDiVetro();
 
-  // io
+  // io: parto sul bus, sopra l'isola
   const mio = LUOGHI[lancio] || LUOGHI.piazza;
-  [G.x, G.z] = attorno(mio.x, mio.z, 5);
-  G.rotta = rottaVerso(G.x, G.z, mio.x, mio.z);
+  preparaBus(mio);
 
   // gli undici avversari: almeno due atterrano dove atterro io, così c'è subito da fare
   const chiavi = Object.keys(LUOGHI), voci = Object.keys(Audio3D.voci || {});
@@ -89,12 +91,13 @@ async function battagliaAvvia(lancio, difficolta) {
   B.bot = NOMI_BOT.slice(0, B.diff.bot).map((nome, i) => {
     const L = LUOGHI[atterraggi[i % atterraggi.length]] || LUOGHI[scegli(chiavi)];
     let [x, z] = attorno(L.x, L.z, 14);
-    if (Math.hypot(x - G.x, z - G.z) < 9) { x += 10; z += 6; }
+    if (Math.hypot(x - mio.x, z - mio.z) < 9) { x += 10; z += 6; }
     const b = {
       bot: true, tipo: 'soldato', def: { nome, raggio: 0.35 }, nome, x, z, vita: 100, scudo: 0, vivo: true, udito: false, ultimoSuono: -99,
       allertato: false, allertaFino: 0, occluso: false, occlusione: 0, alto: false, carica: false, stordito: 0, fase: Math.random() * 9, morteT: 0,
-      sorgente: creaSorgente({ ref: 5, riverbero: 0.15 }), voce: voci.length ? voci[i % voci.length] : null, tono: caso(0.94, 1.06),
-      arma: 'pistola', rar: 1, materiali: 40, livello: 0, granate: Math.random() < 0.5 ? 1 : 0, bersaglio: null, prossimoPensiero: caso(0, 0.5), prossimoSparo: 4 + caso(0, 2), colpiRaffica: 0,
+      sorgente: creaSorgente({ ref: 9, rolloff: 0.8, riverbero: 0.15 }), voce: voci.length ? voci[i % voci.length] : null, tono: caso(0.94, 1.06),
+      arma: 'piccone', rar: 1, materiali: 40, livello: 0, granate: Math.random() < 0.5 ? 1 : 0, bersaglio: null, prossimoPensiero: caso(0, 0.5), prossimoSparo: 4 + caso(0, 2), colpiRaffica: 0,
+      inAria: true, atterraA: caso(4, B.bus.durata) + caso(7, 11),
       meta: null, prossimaMeta: 0, forziere: null, apreFino: 0, prossimoPasso: 0, prossimaCura: 20, ultimoAggressore: null, bravura: caso(0.75, 1.1), lato: Math.random() < 0.5 ? -1 : 1,
     };
     posiziona(b.sorgente, x, 0, z, true);
@@ -110,12 +113,141 @@ async function battagliaAvvia(lancio, difficolta) {
   aggiornaAscoltatore(G.x, G.z, G.rotta);
   avviaAmbiente();
   G.stato = 'gioco'; G.pausa = document.pointerLockElement !== tela;
-  // la caduta dal cielo: tre secondi di vento, poi i piedi a terra
-  G.occupatoFino = 3;
-  pianifica(0.05, () => suona('caduta', { gain: 0.9 }));
-  pianifica(3, () => { suona('corpo_cade', { gain: 0.5, rate: 1.3 }); colpoInizio(); parla(`${mio.nome}. ${B.bot.length + 1} in gara.`, 2); });
-  parla(G.pausa ? 'Clicca per lanciarti.' : 'Ti lanci.', 2);
+  avviaBus();
+  parla(`${G.pausa ? 'Clicca per partire. ' : ''}Sei sul bus della battaglia, ${B.bus.verso}. Vuoi atterrare a ${mio.nome}: ti dico io quando saltare. Spazio per saltare.`, 2);
   aggiornaPannello();
+}
+
+// ---------------------------------------------------------------- il bus e la caduta
+// Come in Fortnite: il bus attraversa l'isola in linea retta, si salta con Spazio, si cade in picchiata
+// e poi si apre il deltaplano. Durante la caduta W va avanti, il mouse e le frecce girano.
+// Un segnale sonoro arriva dal luogo scelto, così si sa dove planare.
+const BUS = { quota: 110, velocita: 15, raggio: 118, picchiata: 24, vela: 6, apriA: 35, avantiPicchiata: 22, avantiVela: 12 };
+
+function preparaBus(meta) {
+  // una rotta dritta che passa a non più di 25 metri dal centro
+  const a = caso(-Math.PI, Math.PI), [ux, uz] = avanti(a), [px, pz] = destraDi(a), o = caso(-25, 25);
+  const ax = px * o - ux * BUS.raggio, az = pz * o - uz * BUS.raggio;
+  const durata = 2 * BUS.raggio / BUS.velocita;
+  // il momento migliore per saltare: quando il bus passa più vicino al luogo scelto, un po' prima
+  const tMeglio = lim(((meta.x - ax) * ux + (meta.z - az) * uz) / BUS.velocita - 2.5, 1, durata - 1);
+  B.bus = { ax, az, ux, uz, rotta: a, durata, t: 0, tMeglio, detto: false, prossimoTic: 0, verso: `da ${puntoCardinale(a + Math.PI)} verso ${puntoCardinale(a)}` };
+  B.meta = meta; B.cielo = 'bus'; B.quota = BUS.quota; B.atterratoA = 1e9;
+  G.x = ax; G.z = az; G.rotta = a; G.occupatoFino = Infinity;
+}
+
+function avviaBus() {
+  const ctx = Audio3D.ctx, t = ctx.currentTime, uscita = ctx.createGain();
+  uscita.gain.setValueAtTime(0, t); uscita.gain.linearRampToValueAtTime(0.22, t + 1.5);
+  const filtro = ctx.createBiquadFilter(); filtro.type = 'lowpass'; filtro.frequency.value = 380; filtro.Q.value = 2;
+  filtro.connect(uscita).connect(Audio3D.master);
+  // motore: due onde a dente di sega leggermente stonate, più il rombo dell'aria
+  const osc = [52, 53.3, 104.5].map((f, i) => { const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f; const g = ctx.createGain(); g.gain.value = i === 2 ? 0.25 : 0.5; o.connect(g).connect(filtro); o.start(t); return o; });
+  B.suonoBus = { uscita, osc, vento: ventoContinuo(0.05) };
+  // il clacson del bus
+  clacson(t + 0.6); clacson(t + 1.0);
+}
+function clacson(quando) {
+  const ctx = Audio3D.ctx, g = ctx.createGain(), f = ctx.createBiquadFilter();
+  f.type = 'lowpass'; f.frequency.value = 1800; g.gain.setValueAtTime(0, quando);
+  g.gain.linearRampToValueAtTime(0.12, quando + 0.02); g.gain.setValueAtTime(0.12, quando + 0.28); g.gain.linearRampToValueAtTime(0, quando + 0.34);
+  for (const fr of [349, 440]) { const o = ctx.createOscillator(); o.type = 'square'; o.frequency.value = fr; o.connect(f); o.start(quando); o.stop(quando + 0.36); }
+  f.connect(g).connect(Audio3D.master);
+}
+// il vento durante il volo: rumore filtrato, il volume e il timbro seguono la velocità
+function ventoContinuo(volume) {
+  const ctx = Audio3D.ctx, n = ctx.sampleRate * 2, buf = ctx.createBuffer(1, n, ctx.sampleRate), d = buf.getChannelData(0);
+  for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+  const src = ctx.createBufferSource(); src.buffer = buf; src.loop = true;
+  const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 500; f.Q.value = 0.7;
+  const g = ctx.createGain(); g.gain.value = volume;
+  src.connect(f).connect(g).connect(Audio3D.master); src.start();
+  return { src, f, g };
+}
+function fermaSuonoBus() {
+  const S = B.suonoBus; if (!S) return;
+  const t = Audio3D.ctx.currentTime;
+  S.uscita.gain.setTargetAtTime(0, t, 0.3); S.vento.g.gain.setTargetAtTime(0, t, 0.3);
+  setTimeout(() => { try { S.osc.forEach(o => o.stop()); S.vento.src.stop(); } catch (e) { /* già fermi */ } }, 1500);
+  B.suonoBus = null;
+}
+
+// Spazio sul bus: salto
+function saltaDalBus() {
+  if (B.cielo !== 'bus') return;
+  B.cielo = 'caduta'; B.prossimaGuida = G.tempo + 0.3; B.prossimaFrase = G.tempo + 4;
+  const S = B.suonoBus;
+  if (S) { const t = Audio3D.ctx.currentTime; S.uscita.gain.setTargetAtTime(0, t, 0.4); S.vento.g.gain.setTargetAtTime(0.35, t, 0.2); S.vento.f.frequency.setTargetAtTime(900, t, 0.3); }
+  suona('lancio', { gain: 0.9, rate: 0.7 });
+  parla(`Salto! ${guidaCielo()} Tieni W per andare avanti.`, 1);
+}
+
+function guidaCielo() {
+  const L = B.meta, d = Math.hypot(L.x - G.x, L.z - G.z);
+  if (d < 6) return `${L.nome} sotto di te.`;
+  return `${L.nome} ${direzioneRelativa(avvolgi(rottaVerso(G.x, G.z, L.x, L.z) - G.rotta))}, ${metri(d)}.`;
+}
+// tasto O in volo
+function cieloInfo() {
+  if (B.cielo === 'bus') {
+    const manca = B.bus.tMeglio - B.bus.t;
+    parla(manca > 0.5 ? `Salta tra ${Math.round(manca)} secondi per ${B.meta.nome}.` : `Salta adesso per ${B.meta.nome}!`, 1);
+  } else parla(`${guidaCielo()} Altezza ${Math.round(B.quota)} metri${B.quota < BUS.apriA ? ', deltaplano aperto' : ''}.`, 1);
+}
+
+function aggiornaCielo(dt) {
+  if (B.cielo === 'bus') {
+    const U = B.bus;
+    U.t += dt;
+    G.x = U.ax + U.ux * BUS.velocita * U.t; G.z = U.az + U.uz * BUS.velocita * U.t;
+    // un tic che accelera mentre ci si avvicina al momento giusto, poi l'avviso a voce
+    const manca = U.tMeglio - U.t;
+    if (G.tempo >= U.prossimoTic && manca > 0) { suona('tic', { gain: 0.35, rate: 1 + lim(1 - manca / 10, 0, 1) * 0.6 }); U.prossimoTic = G.tempo + lim(manca / 6, 0.2, 1.2); }
+    if (!U.detto && manca <= 0) { U.detto = true; suona('cassa_ping', { gain: 0.9 }); parla(`Salta adesso per ${B.meta.nome}! Spazio.`, 2); }
+    if (U.t >= U.durata - 0.5) { parla('Fine della corsa, ti butto giù io.', 1); saltaDalBus(); }
+    return;
+  }
+  // caduta: prima in picchiata, poi col deltaplano
+  const vela = B.quota < BUS.apriA;
+  if (vela && !B.velaAperta) {
+    B.velaAperta = true; suona('raccogli', { gain: 0.8, rate: 1.2 }); suona('lancio', { gain: 0.6, rate: 0.5 });
+    const S = B.suonoBus; if (S) { const t = Audio3D.ctx.currentTime; S.vento.g.gain.setTargetAtTime(0.16, t, 0.3); S.vento.f.frequency.setTargetAtTime(420, t, 0.3); }
+    parla('Deltaplano aperto.', 0);
+  }
+  B.quota -= (vela ? BUS.vela : BUS.picchiata) * dt;
+  let f = 0;
+  if (G.tasti.KeyW || G.tasti.ArrowUp) f += 1;
+  if (G.tasti.KeyS || G.tasti.ArrowDown) f -= 0.5;
+  if (f) {
+    const [fx, fz] = avanti(G.rotta), v = (vela ? BUS.avantiVela : BUS.avantiPicchiata) * f * dt;
+    G.x += fx * v; G.z += fz * v;
+    const r = Math.hypot(G.x, G.z), max = RAGGIO_ISOLA - 2;
+    if (r > max) { G.x *= max / r; G.z *= max / r; }
+  }
+  // il segnale dal luogo scelto: sempre più fitto man mano che ci si avvicina
+  if (G.tempo >= B.prossimaGuida) {
+    const L = B.meta, d = Math.hypot(L.x - G.x, L.z - G.z);
+    suonaInPunto('cassa_ping', L.x, L.z, { gain: 1.3, ref: 60, riverbero: 0.1, rate: d < 10 ? 1.3 : 1 });
+    B.prossimaGuida = G.tempo + lim(d / 60, 0.35, 1.2);
+  }
+  if (G.tempo >= B.prossimaFrase) { B.prossimaFrase = G.tempo + 5; parla(`${guidaCielo()} ${Math.round(B.quota)} metri.`, 0); }
+  if (B.quota <= 0) atterra();
+}
+
+function atterra() {
+  B.cielo = null; B.quota = 0; B.velaAperta = false; B.atterratoA = G.tempo;
+  fermaSuonoBus();
+  G.occupatoFino = G.tempo;
+  // se fuori dall'isola (non dovrebbe), dentro
+  const r = Math.hypot(G.x, G.z); if (r > RAGGIO_ISOLA - 2) { G.x *= (RAGGIO_ISOLA - 2) / r; G.z *= (RAGGIO_ISOLA - 2) / r; }
+  // la tempesta e le casse col paracadute partono da adesso
+  B.fine = G.tempo + FASI_TEMPESTA[0].a; B.annunciata = false; B.prossimaCassa = G.tempo + 25;
+  suona('corpo_cade', { gain: 0.6, rate: 1.3 });
+  colpoInizio();
+  let vicino = null;
+  for (const L of Object.values(LUOGHI)) { const d = Math.hypot(L.x - G.x, L.z - G.z); if (!vicino || d < vicino.d) vicino = { L, d }; }
+  const dove = vicino.d < 20 ? vicino.L.nome : `${metri(vicino.d)} da ${vicino.L.nome}`;
+  parla(`A terra. ${dove}. Hai solo il piccone: trova un forziere e prendi un'arma. ${B.bot.length + 1} in gara.`, 2);
 }
 
 // ---------------------------------------------------------------- tempesta
@@ -133,7 +265,7 @@ function dovePerLaZona() {
 
 function aggiornaTempesta() {
   const f = FASI_TEMPESTA[B.fase];
-  if (f && !B.annunciata && G.tempo > 5) { B.annunciata = true; parla(`Tempesta tra ${Math.round(B.fine - G.tempo)} secondi. ${dovePerLaZona()}`, 1); }
+  if (f && !B.annunciata && G.tempo > (B.atterratoA || 0) + 5) { B.annunciata = true; parla(`Tempesta tra ${Math.round(B.fine - G.tempo)} secondi. ${dovePerLaZona()}`, 1); }
   if (f && G.tempo >= B.fine) {
     if (B.stadio === 'attesa') {
       B.stadio = 'chiusura'; B.da = { ...B.zona }; B.fine = G.tempo + f.c;
@@ -192,12 +324,13 @@ function pensa(b) {
   let best = null;
   for (const f of ['io', ...B.bot]) {
     if (f === b || !vivoDi(f)) continue;
-    if (f === 'io' && G.tempo < 8) continue; // i primi secondi dopo l'atterraggio nessuno mi prende di mira
+    if (f === 'io' && (B.cielo || G.tempo < B.atterratoA + 6)) continue; // in volo e nei primi secondi dopo l'atterraggio nessuno mi prende di mira
     if (f === 'io' && nascostoNelVetro() && Math.hypot(G.x - b.x, G.z - b.z) > 4) continue;
     // al massimo due avversari mi prendono di mira insieme: di più non si capirebbe niente
     if (f === 'io' && b.bersaglio !== 'io' && B.bot.filter(o => o.vivo && o !== b && o.bersaglio === 'io').length >= 2) continue;
     const [x, z] = posDi(f), d = Math.hypot(x - b.x, z - b.z);
-    if (d < 38 && (!best || d < best.d)) best = { f, d };
+    if (f !== 'io' && f.inAria) continue;
+    if (d < (b.arma === 'piccone' ? 9 : 38) && (!best || d < best.d)) best = { f, d };
   }
   if (b.allertato) { b.allertato = false; b.allertaFino = G.tempo + 8; }
   const sveglio = best && (best.d < 24 || G.tempo < b.allertaFino);
@@ -210,13 +343,21 @@ function pensa(b) {
   // senza nemici: va al forziere più vicino, se ce n'è uno
   if (!b.bersaglio && !b.forziere) {
     let f = null;
-    for (const c of D.casse) { const d = Math.hypot(c.x - b.x, c.z - b.z); if (d < 55 && (!f || d < f.d)) f = { c, d }; }
+    const cerca = b.arma === 'piccone' ? 150 : 55; // senza armi va a cercarle anche lontano
+    for (const c of D.casse) { const d = Math.hypot(c.x - b.x, c.z - b.z); if (d < cerca && (!f || d < f.d)) f = { c, d }; }
     b.forziere = f ? f.c : null;
   }
 }
 
 function aggiornaBot(b, dt) {
   if (!b.vivo) { b.morteT += dt; return; }
+  if (b.inAria) {
+    // ancora in volo: non si sente e non si vede finché non tocca terra
+    b.udito = false;
+    if (G.tempo < b.atterraA) return;
+    b.inAria = false; b.prossimoSparo = G.tempo + 3;
+    if (!B.cielo && Math.hypot(b.x - G.x, b.z - G.z) < 45) suonoBot(b, 'corpo_cade', { gain: 0.9, rate: 1.2 });
+  }
   b.fase += dt;
   b.udito = G.tempo - b.ultimoSuono < 6; // chi sta zitto e fermo non si sa dov'è
   if (b.stordito > 0) b.stordito -= dt;
@@ -267,9 +408,9 @@ function aggiornaBot(b, dt) {
     if (!muroTra(b.x, b.z, nx, nz, b.livello || 0, b.livello || 0)) { b.x = nx; b.z = nz; }
     else b.lato *= -1; // gira attorno al muro
     const dIo = Math.hypot(b.x - G.x, b.z - G.z);
-    if (dIo < 32 && G.tempo >= b.prossimoPasso) {
+    if (dIo < 50 && G.tempo >= b.prossimoPasso) {
       b.prossimoPasso = G.tempo + (v > 3.5 ? 0.3 : 0.4);
-      suonoBot(b, v > 3.5 ? `corsa${casoInt(1, 6)}` : `io_passo${casoInt(1, 4)}`, { gain: 1.4, rate: caso(0.95, 1.05) });
+      suonoBot(b, v > 3.5 ? `corsa${casoInt(1, 6)}` : `io_passo${casoInt(1, 4)}`, { gain: 2.4, rate: caso(0.95, 1.05) });
       // chi cammina su muri e rampe fa passi di legno: si capisce che è in alto
       if ((b.livello || 0) > 0) suonoBot(b, 'legno_colpito', { gain: 0.55, rate: caso(1.5, 1.8) });
     }
@@ -287,6 +428,15 @@ function aggiornaBot(b, dt) {
 }
 
 function sparaBot(b, T, tx, tz, d, W) {
+  if (W.mischia) {
+    // colpo di piccone: si sente il fendente da dove sta, e se prende il colpo sordo
+    b.prossimoSparo = G.tempo + W.cadenza * caso(0.9, 1.3);
+    suonoBot(b, 'lancio', { gain: 1.0, rate: caso(1.25, 1.45) });
+    if (Math.random() >= W.prob * b.bravura) return;
+    if (T === 'io') pianifica(0.12, () => { if (!B.morto) { B.ultimoAggressore = b; feriscimi(W.danno, true); } });
+    else feritoBot(T, W.danno, b);
+    return;
+  }
   // cadenza, con le raffiche del mitragliatore
   if (W.raffica) { b.colpiRaffica++; b.prossimoSparo = G.tempo + (b.colpiRaffica % W.raffica === 0 ? W.pausa : W.cadenza); }
   else b.prossimoSparo = G.tempo + W.cadenza * caso(0.9, 1.3);
@@ -384,7 +534,7 @@ function elimina(b, da) {
   }
   chiudiSorgente(b.sorgente, 4);
   // lascia a terra il suo bottino
-  const cont = b.arma !== 'pistola' ? { cont: b.arma, rar: b.rar } : { cont: scegli(['pozione', 'bende', 'kit']) };
+  const cont = b.arma !== 'piccone' ? { cont: b.arma, rar: b.rar } : { cont: scegli(['pozione', 'bende', 'kit']) };
   D.casse.push(nuovoForziere(b.x, b.z, { ...cont, materiali: Math.min(80, b.materiali) + 15 }));
   const n = rimasti();
   if (da === 'io') { B.eliminazioni++; parla(n > 1 ? `Eliminato ${b.nome}! ${n} rimasti.` : `Eliminato ${b.nome}!`, 2); }
@@ -415,6 +565,7 @@ function battagliaMorte() {
 
 // ---------------------------------------------------------------- ogni fotogramma
 function aggiornaBattaglia(dt) {
+  if (B.cielo) { aggiornaCielo(dt); for (const b of B.bot) aggiornaBot(b, dt); return; }
   aggiornaAggancio(dt);
   controllaCabina();
   aggiornaCasseParacadute();
@@ -461,7 +612,7 @@ function battagliaRicognizione() {
   if (cassa && cassa.d < 60) f += `Forziere ${direzioneRelativa(avvolgi(rottaVerso(G.x, G.z, cassa.c.x, cassa.c.z) - G.rotta))}, ${metri(cassa.d)}. `;
   f += `${dovePerLaZona()} `;
   const st = armaStato();
-  f += `${armaDef().nome}${st.rarita && st.rarita > 1 ? ' ' + nomeRarita(st.rarita) : ''} ${st.caricatore + st.camera}, riserva ${G.arsenale.riserva[armaDef().munizione]}. Vita ${Math.round(G.vita)}, scudo ${Math.round(G.scudo)}. ${G.inventario.materiali} materiali`;
+  f += `${armaDef().nome}${st.rarita && st.rarita > 1 ? ' ' + nomeRarita(st.rarita) : ''} ${testoColpi(armaDef(), st)}. Vita ${Math.round(G.vita)}, scudo ${Math.round(G.scudo)}. ${G.inventario.materiali} materiali`;
   if (G.inventario.pozioni) f += `, ${plurale(G.inventario.pozioni, 'pozione', 'pozioni')}`;
   if (G.inventario.cibo) f += `, ${G.inventario.cibo} bende`;
   if (G.inventario.kit) f += `, ${plurale(G.inventario.kit, 'kit', 'kit')}`;
@@ -471,6 +622,7 @@ function battagliaRicognizione() {
 
 // ferma i suoni continui della battaglia (chiamata quando si esce o si ricomincia)
 function battagliaFerma() {
+  fermaSuonoBus(); B.cielo = null;
   if (B.sorgTempesta) { fermaLoop(B.sorgTempesta); B.sorgTempesta = null; }
   if (B.fontana) { fermaLoop(B.fontana); B.fontana = null; }
   B.attiva = false;

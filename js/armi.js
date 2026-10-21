@@ -33,6 +33,15 @@ const ARMI = {
     tempi: { caduta: 0.5, inserimento: 1.7, pronta: 2.1, carrello: 2.2, prontaVuota: 2.9 },
   },
 };
+// il piccone: si parte con questo nella battaglia reale, come in Fortnite. Niente munizioni, colpi corti e veloci.
+ARMI.piccone = {
+  nome: 'piccone', tasto: '5', munizione: null, capacita: 0, auto: true, cadenza: 0.5, mischia: true,
+  pallini: 1, dispersione: 0, danno: [20, 20], dannoTesta: [20, 20], portata: 2.6, raggio: 'corpo a corpo, 2 metri e mezzo', rinculo: 0,
+  spari: [], tipoRicarica: 'nessuna',
+};
+// munizioni dell'arma in mano, a parole o per lo schermo; il piccone non ne ha
+function testoColpi(def, st, sep = ', riserva ') { return def.mischia ? '' : `${st.caricatore + st.camera}${sep}${G.arsenale.riserva[def.munizione]}`; }
+
 const NOMI_MUNIZIONI = { '9mm': 'nove millimetri', cal12: 'cartucce calibro 12', '762': 'sette e sessantadue' };
 
 function nuovoArsenale(principale) {
@@ -70,6 +79,7 @@ function aggiornaArmi() {
 function tentaSparo() {
   const A = G.arsenale, def = armaDef(), st = armaStato();
   if (!puoAgire() || A.ricarica || G.tempo < A.prossimoColpo) return;
+  if (def.mischia) { A.prossimoColpo = G.tempo + def.cadenza; colpoDiPiccone(def); return; }
   if (!st.camera) {
     suona('grilletto_vuoto', { gain: 0.8 });
     A.prossimoColpo = G.tempo + 0.25; A.grilletto = false;
@@ -110,6 +120,31 @@ function tentaSparo() {
   }
 }
 
+// piccone: un fendente davanti a me. Prende l'avversario più vicino entro due metri e mezzo,
+// anche un po' di lato; altrimenti picchia sul muro o sulla rampa che ho davanti.
+function colpoDiPiccone(def) {
+  suona('lancio', { gain: 0.7, rate: caso(1.25, 1.45) });
+  G.effetti.lampo = 0.3;
+  let preso = null;
+  for (const n of G.nemici) {
+    if (!n.vivo || n.inAria) continue;
+    const d = Math.hypot(n.x - G.x, n.z - G.z);
+    if (d > def.portata || Math.abs((n.livello || 0) - (G.livello || 0)) > 1) continue;
+    const errore = Math.abs(avvolgi(rottaVerso(G.x, G.z, n.x, n.z) - G.rotta));
+    if (errore < 40 * GRADI && (!preso || d < preso.d)) preso = { n, d };
+  }
+  if (preso) {
+    pianifica(0.12, () => { if (preso.n.vivo) registraDanno(preso.n, caso(...def.danno), false, 0); });
+    return;
+  }
+  if (inArena() && colpoSuCostruzione(G.rotta, def)) {
+    // dal legno spaccato col piccone si recupera un po' di materiale
+    G.inventario.materiali += 3;
+    return;
+  }
+  allertaNemici(G.x, G.z, 8);
+}
+
 // pompa: otturatore indietro (bossolo fuori) e avanti (nuova cartuccia in camera)
 function pompa() {
   const A = G.arsenale, st = G.arsenale.armi.pompa;
@@ -127,7 +162,7 @@ function pompa() {
 // ---------------------------------------------------------------- ricarica
 function ricarica() {
   const A = G.arsenale, def = armaDef(), st = armaStato();
-  if (!puoAgire() || A.ricarica) return;
+  if (!puoAgire() || A.ricarica || def.mischia) return;
   const disponibili = G.arsenale.riserva[def.munizione];
   if (def.tipoRicarica === 'caricatore' && st.caricatore >= def.capacita) return;
   if (def.tipoRicarica === 'cartucce' && st.caricatore >= def.capacita && st.camera) return;
@@ -256,8 +291,8 @@ function colpoSuCostruzione(dir, def) {
   }
   if (!migliore) return false;
   const d = migliore.u * def.portata, x = G.x + fx * d, z = G.z + fz * d;
-  const danno = caso(...def.danno) * (def.pallini > 1 ? 0.6 : 1) * (armaStato().rarita || 1);
-  suonaInPunto('legno_colpito', x, z, { gain: 1.1, rate: caso(1.0, 1.35), quando: d / 360 });
+  const danno = def.mischia ? 50 : caso(...def.danno) * (def.pallini > 1 ? 0.6 : 1) * (armaStato().rarita || 1);
+  suonaInPunto(def.mischia ? 'martello' : 'legno_colpito', x, z, { gain: 1.1, rate: caso(1.0, 1.35), quando: d / 360 });
   if (migliore.c.tipo === 'vetro') { rompiVetro(migliore.c, 'io'); return true; }
   const eraIntera = migliore.c.vita > 0;
   danneggiaCostruzione(migliore.c, danno);

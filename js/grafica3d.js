@@ -379,7 +379,7 @@ function hudBattaglia(W, H, ora) {
     g.fillStyle = coloreRar; g.font = `700 ${Math.round(20 * u)}px -apple-system, Helvetica, sans-serif`;
     g.fillText(def.nome.toUpperCase(), W - pad - 12 * u, H - pad - 44 * u);
     g.fillStyle = '#fff'; g.font = `800 ${Math.round(28 * u)}px -apple-system, Helvetica, sans-serif`;
-    g.fillText(`${st.caricatore + st.camera} / ${G.arsenale.riserva[def.munizione]}`, W - pad - 12 * u, H - pad - 12 * u);
+    g.fillText(def.mischia ? '—' : testoColpi(def, st, ' / '), W - pad - 12 * u, H - pad - 12 * u);
   }
   // in alto a destra: quanti restano, eliminazioni, tempesta
   g.textAlign = 'right'; g.font = `800 ${Math.round(24 * u)}px -apple-system, Helvetica, sans-serif`;

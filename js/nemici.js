@@ -302,7 +302,9 @@ function rafficaNemico(n, d) {
 function conoColpo(n, d) {
   // nella battaglia reale la mira assistita allarga il bersaglio, a seconda della difficoltà
   const aiuto = G.modalita === 'battaglia' && typeof B !== 'undefined' && B.diff ? B.diff.cono : 1;
-  return Math.max(2.5 * GRADI, Math.atan(n.def.raggio / Math.max(d, 0.5))) * aiuto;
+  // da lontano il bersaglio è un po' più largo: col solo orecchio si riesce a colpire anche a 50 metri
+  const minimo = (2.5 + (inArena() ? Math.min(2, d / 30) : 0)) * GRADI;
+  return Math.max(minimo, Math.atan(n.def.raggio / Math.max(d, 0.5))) * aiuto;
 }
 
 function tracciaColpo(x, z, dir, portata) {

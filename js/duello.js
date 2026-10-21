@@ -251,7 +251,7 @@ async function duelloAvvia() {
     const a = {
       remoto: true, cid, tipo: 'soldato', nome: nomeAvversario(cid), livello: 0, def: { nome: nomeAvversario(cid), raggio: 0.35, versi: [] },
       x: 0, z: -10, tx: 0, tz: -10, vita: 100, vivo: false, udito: true, allertato: true, occluso: false, occlusione: 0, alto: false,
-      sorgente: creaSorgente({ ref: 5, riverbero: 0.15 }), sorgenteVoce: creaSorgente({ ref: 6, riverbero: 0.1 }),
+      sorgente: creaSorgente({ ref: 9, rolloff: 0.8, riverbero: 0.15 }), sorgenteVoce: creaSorgente({ ref: 6, riverbero: 0.1 }),
       mov: 0, prossimoPasso: 0, fase: 0, morteT: 99, stordito: 0, carica: false, tono: 1, ultimoMessaggio: performance.now(),
     };
     D.altri.set(cid, a); G.nemici.push(a);
@@ -486,7 +486,11 @@ function duelloApriCassa() {
         A.riserva[def.munizione] += scorta;
         if (A.armi[c.cont] && (A.armi[c.cont].rarita || 1) >= rar) f = `munizioni per ${def.nome}`;
         else if (A.armi[c.cont]) { A.armi[c.cont].rarita = rar; f = `${def.nome}${nomeRar}, migliore del tuo`; }
-        else { A.armi[c.cont] = { caricatore: def.capacita, camera: 1, rarita: rar }; f = `${def.nome}${nomeRar}, tasto ${def.tasto}`; }
+        else {
+          A.armi[c.cont] = { caricatore: def.capacita, camera: 1, rarita: rar }; f = `${def.nome}${nomeRar}, tasto ${def.tasto}`;
+          // se avevo in mano solo il piccone, la prima arma trovata me la metto subito in mano
+          if (A.corrente === 'piccone') { A.corrente = c.cont; suona('arma_estrai', { gain: 0.8 }); f = `${def.nome}${nomeRar}, in mano. Piccone col 5`; }
+        }
       }
     }
     if (c.materiali) { I.materiali += c.materiali; }
@@ -549,7 +553,7 @@ function aggiornaDuello(dt) {
     posiziona(a.sorgente, a.x, y, a.z); posiziona(a.sorgenteVoce, a.x, y + 0.3, a.z);
     if (a.vivo && a.mov && G.tempo >= a.prossimoPasso) {
       a.prossimoPasso = G.tempo + (a.mov === 2 ? 0.33 : 0.55);
-      suonaBase(a.mov === 2 ? `corsa${casoInt(1, 6)}` : `io_passo${casoInt(1, 4)}`, { dest: a.sorgente.ingresso, gain: a.mov === 2 ? 1.6 : 1.4, rate: caso(0.95, 1.05) });
+      suonaBase(a.mov === 2 ? `corsa${casoInt(1, 6)}` : `io_passo${casoInt(1, 4)}`, { dest: a.sorgente.ingresso, gain: a.mov === 2 ? 2.6 : 2.4, rate: caso(0.95, 1.05) });
       // sulle costruzioni i passi sono di legno: si capisce che sta in alto
       if ((a.livello || 0) > 0) suonaBase('legno_colpito', { dest: a.sorgente.ingresso, gain: 0.55, rate: caso(1.5, 1.8) });
     }

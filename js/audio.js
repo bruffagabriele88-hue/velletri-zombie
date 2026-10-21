@@ -122,7 +122,7 @@ async function inizializzaAudio(avanzamento) {
   A.buf.tic2 = creaTic(ctx, 800);
   Object.assign(A.buf, creaSuoniDuello(ctx));
   let fatti = 0;
-  await caricaInGruppi(ELENCO_SUONI.map(nome => [nome, `suoni/${nome}.wav?v=23`]), () => { fatti++; if (avanzamento) avanzamento(fatti / ELENCO_SUONI.length); });
+  await caricaInGruppi(ELENCO_SUONI.map(nome => [nome, `suoni/${nome}.wav?v=24`]), () => { fatti++; if (avanzamento) avanzamento(fatti / ELENCO_SUONI.length); });
   // frasi dei nemici: voce -> categoria -> elenco di suoni
   try {
     A.voci = await (await fetch('suoni/voci/elenco.json')).json();
@@ -161,7 +161,9 @@ function creaSorgente(opz = {}) {
   const mandata = ctx.createGain();
   mandata.gain.value = opz.riverbero ?? 0.5;
   aria.connect(mandata).connect(Audio3D.mandataRiverbero);
-  return { ingresso, aria, panner, mandata, x: 0, y: 0, z: 0, chiara: (opz.ref || 1.5) >= 5 };
+  const ref = opz.ref || 1.5;
+  // quanto l'aria smorza gli acuti con la distanza: chi è lontano nelle arene resta riconoscibile
+  return { ingresso, aria, panner, mandata, x: 0, y: 0, z: 0, chiara: ref >= 5, aria_m: ref >= 8 ? 170 : ref >= 5 ? 90 : 30 };
 }
 function chiudiSorgente(s, dopo = 0) {
   setTimeout(() => { try { s.panner.disconnect(); s.mandata.disconnect(); } catch (e) { /* già chiusa */ } }, dopo * 1000);
@@ -176,7 +178,7 @@ function posiziona(s, x, y, z, subito = false) {
     else { p.positionX.setTargetAtTime(x, t, 0.01); p.positionY.setTargetAtTime(y, t, 0.01); p.positionZ.setTargetAtTime(z, t, 0.01); }
   } else p.setPosition(x, y, z);
   const d = Math.hypot(x - A.ascoltatore.x, y, z - A.ascoltatore.z);
-  s.aria.frequency.setTargetAtTime(20000 * Math.exp(-d / (s.chiara ? 90 : 30)), t, 0.05); // assorbimento dell'aria
+  s.aria.frequency.setTargetAtTime(20000 * Math.exp(-d / (s.aria_m || 30)), t, 0.05); // assorbimento dell'aria
 }
 
 function suona(nome, { dest, gain = 1, rate = 1, quando = 0, riverbero = 0, loop = false, offset = 0 } = {}) {

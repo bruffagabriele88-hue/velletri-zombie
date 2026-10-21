@@ -12,7 +12,7 @@ const G = {
   ondata: null, mappa: null, citta: CENTRO_VELLETRI, pos: null, scorte: [],
   destinazione: null, selezionePoi: -1, elencoPoi: [], annunciati: new Set(),
   effetti: { lampo: 0, fase: '', esplosioni: [], dolore: 0 },
-  sensibilita: 4, graficaAccesa: true, ambienteAcceso: true, tasti: {},
+  sensibilita: 5, graficaAccesa: true, ambienteAcceso: true, tasti: {},
   loopAmbiente: null, fontaneAttive: new Map(), battito: null, testo: '',
 };
 
@@ -34,7 +34,7 @@ function eseguiEventi() {
 const MENU = {
   menu: { titolo: 'Menù', voci: [['battaglia', 'Battaglia reale: tu contro undici'], ['assedio', `Assedio a ${CENTRO_VELLETRI.piazza}, Velletri`], ['esplora', 'Esplorazione di Velletri'], ['altra', 'Esplorazione di un\'altra città'], ['duello', 'Duello uno contro uno in rete']] },
   difficolta: { titolo: 'Difficoltà', voci: [['facile', 'Facile: sette avversari, meno precisi, mira molto assistita'], ['normale', 'Normale: undici avversari'], ['difficile', 'Difficile: avversari più svelti e precisi, poca assistenza']] },
-  lancio: { titolo: 'Dove ti lanci?', voci: [['piazza', 'Piazza, al centro: tanti forzieri, tanta gente'], ['campanile', 'Campanile, a nord'], ['fontana', 'Fontana, a est'], ['canile', 'Canile, a sud'], ['bosco', 'Bosco, a ovest']] },
+  lancio: { titolo: 'Dove vuoi atterrare? Il bus ti avvisa quando saltare.', voci: [['piazza', 'Piazza, al centro: tanti forzieri, tanta gente'], ['campanile', 'Campanile, a nord'], ['fontana', 'Fontana, a est'], ['canile', 'Canile, a sud'], ['bosco', 'Bosco, a ovest']] },
   duello: { titolo: 'Duello', voci: [['crea', 'Crea una stanza'], ['entra', 'Entra in una stanza con un codice']] },
   armi: { titolo: 'Arma principale', voci: [['pompa', 'Fucile a pompa'], ['mitra', 'Mitragliatore'], ['precisione', 'Fucile di precisione']] },
 };
@@ -440,7 +440,8 @@ let prossimoMioPasso = 0, piedeMio = 0;
 function passiMiei(corsa) {
   if (G.tempo < prossimoMioPasso) return;
   prossimoMioPasso = G.tempo + (corsa ? 0.33 : 0.55) * (G.modalita === 'battaglia' ? 0.75 : 1);
-  const k = mixEssenziale() ? 0.5 : 1; // nel duello i miei passi sono più bassi: contano quelli degli altri
+  // nelle arene i miei passi si sentono chiari, come in Fortnite
+  const k = mixEssenziale() ? 2.2 : 1;
   suona(`io_passo${1 + (piedeMio++ % 4)}`, { gain: (corsa ? 0.3 : 0.2) * k, rate: caso(0.95, 1.05) });
 }
 
@@ -646,7 +647,7 @@ function nomeLuogo() {
 
 function descriviArma() {
   const def = armaDef(), st = armaStato();
-  return `${def.nome} ${st.caricatore + st.camera}, riserva ${G.arsenale.riserva[def.munizione]}`;
+  return def.mischia ? def.nome : `${def.nome} ${testoColpi(def, st)}`;
 }
 
 function ricognizione() {
@@ -748,7 +749,9 @@ document.addEventListener('mouseup', e => { if (e.button === 0 && G.arsenale) ri
 
 document.addEventListener('mousemove', e => {
   if (document.pointerLockElement !== tela) return;
-  ruota(e.movementX * G.sensibilita * 0.05 * GRADI);
+  // trackpad: più veloce di prima, e un gesto rapido gira di più di uno lento (accelerazione)
+  const m = e.movementX, acc = 1 + Math.min(1.5, Math.abs(m) / 25);
+  ruota(m * G.sensibilita * 0.09 * acc * GRADI);
 });
 
 document.addEventListener('keydown', e => {
@@ -795,6 +798,13 @@ document.addEventListener('keydown', e => {
   if (e.repeat && !c.startsWith('Arrow') && !['KeyW', 'KeyS', 'KeyA', 'KeyD'].includes(c)) return;
   if (G.modalita === 'battaglia') {
     G.tasti[c] = true;
+    if (B.cielo) {
+      // sul bus e in caduta: Spazio salta, O dice dove sono; il resto aspetta che tocchi terra
+      if (c === 'Space') { if (B.cielo === 'bus') saltaDalBus(); else cieloInfo(); }
+      else if (c === 'KeyO') cieloInfo();
+      else if (c === 'KeyX') G.rotta = avvolgi(G.rotta + Math.PI);
+      return;
+    }
     if (c === 'KeyA') return; // passo laterale
     if (c === 'KeyF') { duelloTrappola(); return; }
     if (c === 'KeyT') { costruisciScatola(); return; }
@@ -829,6 +839,7 @@ document.addEventListener('keydown', e => {
     case 'Digit2': cambiaArma('pompa'); break;
     case 'Digit3': cambiaArma('mitra'); break;
     case 'Digit4': cambiaArma('precisione'); break;
+    case 'Digit5': cambiaArma('piccone'); break;
     case 'KeyN': costruisci('rampa'); break;
     case 'KeyJ': if (G.modalita === 'duello') vocaleMuto(); break;
     case 'KeyP': if (G.modalita === 'battaglia') { bevePozione(); break; } sfogliaLuoghi(e.shiftKey ? -1 : 1); break;
@@ -861,7 +872,7 @@ document.addEventListener('keydown', e => {
       if (G.modalita === 'assedio' && G.ondata.inPausa && G.ondata.numero > 0) G.ondata.fine = G.tempo; break;
     default:
       if (k === '+' || k === '=' || k === '-' || k === '_') {
-        G.sensibilita = lim(G.sensibilita + (k === '+' || k === '=' ? 1 : -1), 1, 9);
+        G.sensibilita = lim(G.sensibilita + (k === '+' || k === '=' ? 1 : -1), 1, 12);
         parla(`Sensibilità ${G.sensibilita}.`, 1);
       }
   }
@@ -907,7 +918,7 @@ function cicloInterno(ora) {
     else if (G.modalita === 'battaglia') aggiornaBattaglia(dt);
     else { muoviLibero(dt, G.cx, G.cz, 22, false); aggiornaAssedio(); }
     if (G.modalita !== 'duello') { controllaTrappole(); aggiornaRadar(); }
-    if (G.modalita === 'battaglia') { aggiornaTurbo(); aggiornaPianoMio(); aggiornaCasse(false); }
+    if (G.modalita === 'battaglia') { if (!B.cielo) { aggiornaTurbo(); aggiornaPianoMio(); aggiornaCasse(false); } }
     else if (G.modalita !== 'duello') { aggiornaAltezza(); aggiornaCasseSolitario(); }
     eseguiEventi();
     aggiornaArmi();
