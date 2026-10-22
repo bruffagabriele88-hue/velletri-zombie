@@ -347,6 +347,7 @@ function tracciaColpo(x, z, dir, portata) {
 // Bersaglio del suono di puntamento: quello sotto il mirino, altrimenti il più vicino alla mira,
 // altrimenti il più vicino in assoluto (la minaccia maggiore). Chi è dietro un palazzo non conta.
 function bersaglioPuntamento() {
+  if (G.modalita === 'battaglia' && (B.morto || B.aTerra || B.cielo)) return null;
   let centrato = null, angolare = null, vicino = null;
   for (const n of G.nemici) {
     if (!n.vivo || !n.udito || n.occluso) continue;

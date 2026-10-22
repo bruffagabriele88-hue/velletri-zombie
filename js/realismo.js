@@ -34,6 +34,12 @@ function creaSuoniRealismo(ctx) {
     // inspirazione ed espirazione dopo una corsa
     inspira: respiro(0.55, 1300, 0.12),
     espira: respiro(0.5, 900, 0.04),
+    // porta di legno che cigola: un tono che sale e scende, ruvido
+    porta: crea(0.7, (t, D) => {
+      const f = 420 + 160 * Math.sin(t * 9) + 90 * Math.sin(t * 23);
+      const v = Math.sin(PI2 * f * t) + 0.5 * Math.sin(PI2 * f * 2.01 * t) + 0.3 * (Math.random() * 2 - 1);
+      return v * 0.18 * Math.min(1, t * 20) * Math.pow(1 - t / D, 1.3) * (0.6 + 0.4 * Math.sin(t * 61));
+    }),
     // battito del cuore: "tu-tum", due colpi bassi
     cuore: crea(0.4, t => {
       const c = (t0, f, a) => t > t0 ? Math.sin(PI2 * f * (t - t0)) * Math.exp(-(t - t0) * 30) * a : 0;
@@ -44,7 +50,7 @@ function creaSuoniRealismo(ctx) {
 
 // i tre ambienti binaurali, in FLAC (stereo, da ascoltare direttamente, senza spazializzazione)
 async function caricaAmbientiReali() {
-  try { await caricaInGruppi(['amb_campagna', 'amb_bosco', 'amb_uccelli'].map(n => [n, `suoni/${n}.flac?v=26`])); } catch (e) { /* senza ambienti si gioca lo stesso */ }
+  try { await caricaInGruppi(['amb_campagna', 'amb_bosco', 'amb_uccelli'].map(n => [n, `suoni/${n}.flac?v=30`])); } catch (e) { /* senza ambienti si gioca lo stesso */ }
   // riverbero lungo e scuro per le code degli spari lontani, come in una valle
   const ctx = Audio3D.ctx, conv = ctx.createConvolver();
   conv.buffer = rispostaRiverbero(ctx, 3.2);
@@ -101,7 +107,7 @@ function echiArena(nome, x, z, forza) {
 // ---------------------------------------------------------------- 4. passi sul terreno
 function superficie(x, z, livello) {
   if (G.modalita !== 'battaglia') return null;
-  if ((livello || 0) > 0) return 'legno';
+  if ((livello || 0) > 0 || (typeof casaDi === 'function' && casaDi(x, z))) return 'legno';
   if (Math.hypot(x - LUOGHI.fontana.x, z - LUOGHI.fontana.z) < 8) return 'acqua';
   if (Math.hypot(x - LUOGHI.bosco.x, z - LUOGHI.bosco.z) < 30) return 'erba';
   if (Math.hypot(x, z) < 20) return 'sassi';
@@ -183,7 +189,9 @@ function aggiornaAmbientiReali(attivo) {
   if (attivo && G.ambienteAcceso && G.modalita === 'battaglia') {
     const dBosco = Math.hypot(G.x - LUOGHI.bosco.x, G.z - LUOGHI.bosco.z);
     bosco = lim(1 - (dBosco - 20) / 50, 0, 1) * 0.5;
-    campagna = 0.3 * (1 - bosco * 0.6) * (B.cielo === 'bus' ? 0.2 : 1);
+    const dentro = typeof casaDi === 'function' && casaDi(G.x, G.z);
+    campagna = 0.3 * (1 - bosco * 0.6) * (B.cielo === 'bus' ? 0.2 : 1) * (dentro ? 0.35 : 1);
+    if (dentro) bosco *= 0.35;
   } else if (attivo && G.ambienteAcceso && G.modalita === 'duello') uccelli = 0.22;
   const t = ctx.currentTime, R = Reale.anelli;
   if (R.amb_campagna) R.amb_campagna.gain.setTargetAtTime(campagna, t, 0.8);

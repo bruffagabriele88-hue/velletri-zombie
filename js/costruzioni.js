@@ -49,7 +49,7 @@ function costruisci(tipo) {
   }
   pianifica(def.durata, () => {
     c.pronta = true; G.costruzioni.push(c);
-    if (G.modalita === 'duello') duelloInvia({ t: 'costruzione', c2: c });
+    if (D.attivo) duelloInvia({ t: 'costruzione', c2: c });
     if (!inArena()) parla( `${def.nome} pronta`.replace('filo spinato pronta', 'filo pronto'), 0);
   });
 }
@@ -60,7 +60,7 @@ function danneggiaCostruzione(c, danno) {
   c.vita -= danno;
   if (c.vita <= 0) {
     c.vita = 0;
-    if (c.tipo === 'barricata' || c.tipo === 'rampa') { suonaInPunto('legno_rotto', c.x, c.z, { gain: 1.2 }); if (G.modalita !== 'duello') parla('barricata distrutta', 1); }
+    if (c.tipo === 'barricata' || c.tipo === 'rampa') { suonaInPunto('legno_rotto', c.x, c.z, { gain: 1.2 }); if (G.modalita !== 'duello' && Math.hypot(c.x - G.x, c.z - G.z) < 15) parla(c.casa ? 'muro della casa distrutto' : 'barricata distrutta', 1); }
   }
 }
 
@@ -88,6 +88,6 @@ function costruisciScatola() {
     const x = G.x + fx * 1.6, z = G.z + fz * 1.6, mezza = 1.7;
     const c = { id: Math.random().toString(36).slice(2), tipo: 'barricata', nome: 'muro', x, z, vita: 160, vitaMax: 160, pronta: true,
       ax: x - rx * mezza, az: z - rz * mezza, bx: x + rx * mezza, bz: z + rz * mezza };
-    pianifica(i * 0.1, () => { G.costruzioni.push(c); suonaInPunto('legno_colpito', x, z, { gain: 1.0, rate: 1.3 + i * 0.05 }); if (G.modalita === 'duello') duelloInvia({ t: 'costruzione', c2: c }); });
+    pianifica(i * 0.1, () => { G.costruzioni.push(c); suonaInPunto('legno_colpito', x, z, { gain: 1.0, rate: 1.3 + i * 0.05 }); if (D.attivo) duelloInvia({ t: 'costruzione', c2: c }); });
   }
 }

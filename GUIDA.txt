@@ -35,14 +35,14 @@ MODALITÀ
   Serve internet: il gioco scarica le strade da OpenStreetMap.
 
 BATTAGLIA REALE: TU CONTRO UNDICI
-È la prima voce del menù. Dodici combattenti su un'isola, ne resta uno solo. Una partita dura due o tre minuti.
+È la prima voce del menù. Dodici combattenti su un'isola, ne resta uno solo (o una squadra sola). Una partita dura cinque minuti circa.
 
 Il bus e il lancio (come in Fortnite)
-Scegli dove vuoi atterrare con le frecce e Invio: Piazza al centro (tanti forzieri e tanta gente), Campanile a nord,
+Scegli prima come giochi (da solo, in coppia, squadre da quattro), poi dove vuoi atterrare con le frecce e Invio: Piazza al centro (tanti forzieri e tanta gente), Campanile a nord,
 Fontana a est, Canile a sud, Bosco a ovest. Ogni luogo ha il suo suono: campane, acqua, cani, civetta.
 Poi parti sul bus della battaglia: senti il motore e il clacson, il bus attraversa l'isola in linea retta.
    Un tic sempre più fitto ti avvisa che si avvicina il momento giusto, poi la voce dice "Salta adesso". Spazio: salti.
-   O: quanti secondi mancano al salto. Se non salti, alla fine della corsa ti butta giù il bus.
+   O: quanti secondi mancano al salto. Da 1 a 5 cambi luogo. Se non salti, alla fine della corsa ti butta giù il bus.
 In caduta: prima la picchiata, poi a 35 metri si apre il deltaplano. Tieni W per andare avanti, giri col mouse o le frecce.
    Un segnale suona dal luogo scelto: giralo davanti a te e tieni W. Più ti avvicini, più è fitto.
    O o Spazio: dove è il luogo e a che altezza sei. Anche gli avversari saltano dal bus e atterrano in momenti diversi.
@@ -66,12 +66,16 @@ O: dov'è la zona sicura, quanto manca alla tempesta, il luogo più vicino e il 
 Spazio: quanti restano, chi senti vicino, forziere più vicino, zona, arma, vita, scudo, materiali.
 X: mezzo giro.
 
-Case di vetro, granate, sangue (novità)
-Case di vetro: otto cabine di vetro sparse per l'isola. Quando ci entri la voce dice "nessuno ti vede finché non spari":
-   gli avversari a più di 4 metri non ti prendono di mira. Ma se qualcuno spara al vetro, il vetro va in mille pezzi
-   (senti lo schianto e i frammenti che cadono) e le schegge feriscono chi sta lì vicino: 15 di vita, e la voce dice "Schegge!".
-   Anche i tuoi colpi rompono il vetro. K ti dice dov'è la casa di vetro più vicina.
-Granate: anche gli avversari te le lanciano, quando sei dietro un muro, in alto o nascosto nel vetro.
+Case, cespugli, granate, sangue
+Case: quindici case sull'isola, quattro intorno alla piazza, una chiesa vicino al campanile, una capanna nel bosco, altre sparse.
+   Hanno quattro muri robusti e una porta. Dentro c'è sempre un forziere e il pavimento è di legno.
+   Entrando senti la porta che cigola e la voce dice "Dentro la casa"; uscendo, "Fuori".
+   I muri fermano i colpi e attutiscono i suoni, e chi sta fuori non ti vede: ti trova solo se ti sente.
+   Non si passa attraverso i muri: se ci sbatti la voce ti dice dov'è la porta, o di girare intorno alla casa.
+Cespugli: tanti nel bosco e altri sparsi. Dentro un cespuglio nessuno ti vede finché non spari o corri,
+   tranne chi ti arriva a tre metri. Muovendoti senti il fruscio delle foglie.
+K: oltre alle costruzioni ti dice la casa più vicina e da che parte è la porta, e il cespuglio più vicino.
+Granate: anche gli avversari te le lanciano, quando sei dietro un muro, in alto, in casa o nascosto.
    Senti il lancio, il rimbalzo dove cade, poi un bip sempre più fitto fino allo scoppio.
    Se cade vicino la voce dice "Granata" e da che parte. Come scappare: hai circa due secondi.
    Gira le spalle al bip e corri con Maiuscolo e W: a 7 metri sei salvo. Oppure metti un muro (B) tra te e la granata:
@@ -118,6 +122,28 @@ Un muro ferma i colpi solo se nessuno dei due che si sparano sta più in alto de
 Se la rampa sotto di te viene distrutta cadi: da due piani in su ti fai male.
 Anche gli avversari costruiscono: un muro verso chi gli spara, una scatola quando sono feriti, rampe per salirti sopra.
 
+
+
+SQUADRE (Battaglia reale)
+Dal menù, Battaglia reale: scegli Da solo, In coppia oppure Squadre da quattro. I compagni sono bot.
+- I compagni atterrano con te, ti seguono, raccolgono armi vicino a te e combattono con te.
+  Quando vedono un nemico te lo dicono: "Rocko: nemico a sinistra, 20 metri".
+- Spazio ti dice anche dove sono i compagni e se qualcuno è a terra. I compagni si vedono sempre sullo schermo, col nome azzurro.
+- I compagni non ti feriscono e tu non ferisci loro.
+- A terra: se ti eliminano ma un compagno è ancora vivo, cadi a terra. Puoi solo strisciare piano e perdi vita.
+  Un compagno corre a rianimarti in quattro secondi: torni con 30 di vita. Se ti colpiscono ancora, sei fuori.
+- Se sei eliminato e la tua squadra è ancora in gara, senti quello che sente un compagno. M per uscire.
+- Vince l'ultima squadra rimasta.
+
+BATTAGLIA REALE IN RETE CON GLI AMICI
+Dal menù: Battaglia reale in rete. Uno crea la stanza (e sceglie tutti contro tutti, a coppie o squadre da quattro),
+   gli altri entrano con il codice di 4 cifre, come nel duello. Da 1 a 4 persone; i posti vuoti, fino a 12, li prendono i bot.
+- Gli amici stanno nella stessa squadra; i bot riempiono le squadre e fanno le altre.
+- Sul bus da 1 a 5 scegli dove atterrare: 1 piazza, 2 campanile, 3 fontana, 4 canile, 5 bosco.
+- Senti gli amici e gli avversari dove sono davvero, con passi, spari e costruzioni.
+- Per rianimare un amico a terra vai vicino a lui e premi E: resta fermo quattro secondi.
+- Chi ha creato la stanza fa muovere i bot: deve tenere il gioco aperto in primo piano, altrimenti i bot si fermano.
+- A fine partita chi ha creato la stanza preme Invio per la prossima. M per uscire.
 
 AUDIO REALISTICO (battaglia reale e duello)
 - Muri: chi sta dietro un muro lo senti ovattato, più basso e scuro. Capisci subito se è coperto o allo scoperto.

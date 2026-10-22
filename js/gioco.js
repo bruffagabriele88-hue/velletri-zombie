@@ -32,9 +32,12 @@ function eseguiEventi() {
 
 // ---------------------------------------------------------------- menù (voce + tastiera)
 const MENU = {
-  menu: { titolo: 'Menù', voci: [['battaglia', 'Battaglia reale: tu contro undici'], ['assedio', `Assedio a ${CENTRO_VELLETRI.piazza}, Velletri`], ['esplora', 'Esplorazione di Velletri'], ['altra', 'Esplorazione di un\'altra città'], ['duello', 'Duello uno contro uno in rete']] },
+  menu: { titolo: 'Menù', voci: [['battaglia', 'Battaglia reale: tu contro undici, da solo o a squadre'], ['brete', 'Battaglia reale in rete con gli amici: i bot prendono i posti vuoti'], ['assedio', `Assedio a ${CENTRO_VELLETRI.piazza}, Velletri`], ['esplora', 'Esplorazione di Velletri'], ['altra', 'Esplorazione di un\'altra città'], ['duello', 'Duello uno contro uno in rete']] },
   difficolta: { titolo: 'Difficoltà', voci: [['facile', 'Facile: sette avversari, meno precisi, mira molto assistita'], ['normale', 'Normale: undici avversari'], ['difficile', 'Difficile: avversari più svelti e precisi, poca assistenza']] },
   lancio: { titolo: 'Dove vuoi atterrare? Il bus ti avvisa quando saltare.', voci: [['piazza', 'Piazza, al centro: tanti forzieri, tanta gente'], ['campanile', 'Campanile, a nord'], ['fontana', 'Fontana, a est'], ['canile', 'Canile, a sud'], ['bosco', 'Bosco, a ovest']] },
+  squadre: { titolo: 'Come giochi?', voci: [['1', 'Da solo, tutti contro tutti'], ['2', 'In coppia: tu e un compagno'], ['4', 'Squadre da quattro: tu e tre compagni']] },
+  brete: { titolo: 'Battaglia reale in rete', voci: [['crea', 'Crea una stanza'], ['entra', 'Entra in una stanza con un codice']] },
+  squadreRete: { titolo: 'Squadre', voci: [['1', 'Tutti contro tutti'], ['2', 'A coppie: gli amici in squadra insieme, i bot riempiono'], ['4', 'Squadre da quattro: gli amici insieme, i bot riempiono']] },
   duello: { titolo: 'Duello', voci: [['crea', 'Crea una stanza'], ['entra', 'Entra in una stanza con un codice']] },
   armi: { titolo: 'Arma principale', voci: [['pompa', 'Fucile a pompa'], ['mitra', 'Mitragliatore'], ['precisione', 'Fucile di precisione']] },
 };
@@ -57,7 +60,8 @@ function confermaMenu() {
   const id = MENU[G.stato].voci[sceltaMenu][0];
   suona('tic2', { gain: 0.5 });
   if (G.stato === 'menu') {
-    if (id === 'battaglia') { apriMenu('lancio'); return; }
+    if (id === 'battaglia') { apriMenu('squadre'); return; }
+    if (id === 'brete') { apriMenu('brete'); return; }
     if (id === 'duello') { apriMenu('duello'); return; }
     if (id === 'altra') { G.stato = 'digitazione'; G.scopoTesto = 'citta'; G.testo = ''; parla('Scrivi il nome della città, poi Invio. Esc per tornare.', 2); aggiornaPannello(); return; }
     sceltaModalita = id === 'assedio' ? 'assedio' : 'esplorazione';
@@ -66,10 +70,17 @@ function confermaMenu() {
   } else if (G.stato === 'armi') {
     G.principale = id;
     avviaPartita();
+  } else if (G.stato === 'squadre') {
+    B.squadre = +id; apriMenu('lancio');
   } else if (G.stato === 'lancio') {
     B.lancio = id; apriMenu('difficolta');
   } else if (G.stato === 'difficolta') {
-    battagliaAvvia(B.lancio, id);
+    battagliaAvvia(B.lancio, id, { squadre: B.squadre });
+  } else if (G.stato === 'brete') {
+    if (id === 'crea') apriMenu('squadreRete');
+    else { G.stato = 'digitazione'; G.scopoTesto = 'codice'; G.testo = ''; parla('Scrivi il codice di 4 cifre, poi Invio. Esc per tornare.', 2); aggiornaPannello(); }
+  } else if (G.stato === 'squadreRete') {
+    duelloCrea('battaglia', +id);
   } else if (G.stato === 'duello') {
     if (id === 'crea') duelloCrea();
     else { G.stato = 'digitazione'; G.scopoTesto = 'codice'; G.testo = ''; parla('Scrivi il codice di 4 cifre, poi Invio. Esc per tornare.', 2); aggiornaPannello(); }
@@ -772,7 +783,7 @@ document.addEventListener('keydown', e => {
     else if (k === 'Escape') { duelloChiudi(); apriMenu('menu'); }
     return;
   }
-  if (G.stato === 'menu' || G.stato === 'armi' || G.stato === 'duello' || G.stato === 'lancio' || G.stato === 'difficolta') {
+  if (MENU[G.stato]) {
     if (c === 'ArrowDown' || c === 'KeyS') muoviMenu(1);
     else if (c === 'ArrowUp' || c === 'KeyW') muoviMenu(-1);
     else if (k === 'Enter') confermaMenu();
@@ -788,21 +799,29 @@ document.addEventListener('keydown', e => {
     return;
   }
   if (G.stato === 'morto') {
-    if (k === 'Enter') { if (G.modalita === 'duello') duelloRivincita(); else if (G.modalita === 'battaglia') battagliaAvvia(B.lancio); else avviaPartita(); if (document.pointerLockElement !== tela) agganciaPuntatore(); }
-    else if (c === 'KeyM') { if (G.modalita === 'duello') duelloChiudi(); pulisciPartita(); apriMenu('menu'); if (document.pointerLockElement) document.exitPointerLock(); }
+    if (k === 'Enter') {
+      if (G.modalita === 'duello') duelloRivincita();
+      else if (G.modalita === 'battaglia' && B.rete) { if (D.ospite) reteBRRivincita(); else parla('La prossima partita la avvia chi ha creato la stanza.', 1); }
+      else if (G.modalita === 'battaglia') battagliaAvvia(B.lancio, null, { squadre: B.squadre });
+      else avviaPartita();
+      if (document.pointerLockElement !== tela) agganciaPuntatore();
+    }
+    else if (c === 'KeyM') { if (D.rete) duelloChiudi(); pulisciPartita(); apriMenu('menu'); if (document.pointerLockElement) document.exitPointerLock(); }
     return;
   }
   // in gioco
   if (G.pausa) {
-    if (c === 'KeyM') { pulisciPartita(); apriMenu('menu'); }
+    if (c === 'KeyM') { if (D.rete) duelloChiudi(); pulisciPartita(); apriMenu('menu'); }
     else if (k === 'Enter') agganciaPuntatore();
     return;
   }
   if (e.repeat && !c.startsWith('Arrow') && !['KeyW', 'KeyS', 'KeyA', 'KeyD'].includes(c)) return;
   if (G.modalita === 'battaglia') {
     G.tasti[c] = true;
+    if (B.morto && c === 'KeyM') { if (D.rete) duelloChiudi(); pulisciPartita(); apriMenu('menu'); if (document.pointerLockElement) document.exitPointerLock(); return; }
     if (B.cielo) {
-      // sul bus e in caduta: Spazio salta, O dice dove sono; il resto aspetta che tocchi terra
+      // sul bus e in caduta: Spazio salta, O dice dove sono, da 1 a 5 scelgo il luogo; il resto aspetta che tocchi terra
+      if (/^Digit[1-5]$/.test(c)) { scegliLuogoInVolo(+c.slice(5)); return; }
       if (c === 'Space') { if (B.cielo === 'bus') saltaDalBus(); else cieloInfo(); }
       else if (c === 'KeyO') cieloInfo();
       else if (c === 'KeyX') G.rotta = avvolgi(G.rotta + Math.PI);
@@ -856,7 +875,7 @@ document.addEventListener('keydown', e => {
     case 'KeyB': costruisci('barricata'); break;
     case 'KeyF': if (e.shiftKey) costruisci('filo'); else duelloTrappola(); break;
     case 'KeyT': if (e.shiftKey) costruisci('mina'); else costruisciScatola(); break;
-    case 'KeyE': if (!duelloApriCassa() && G.modalita === 'esplorazione') raccogli(); break;
+    case 'KeyE': if (G.modalita === 'battaglia' && provaRianimare()) break; if (!duelloApriCassa() && G.modalita === 'esplorazione') raccogli(); break;
     case 'Space': ricognizione(); break;
     case 'KeyI': case 'Tab': inventario(); break;
     case 'KeyC': parla(descriviArma(), 1); break;
@@ -892,7 +911,7 @@ function aggiornaPannello() {
   if (G.stato === 'inizio') m.textContent = 'Clicca o premi Invio per iniziare.';
   else if (G.stato === 'caricamento') m.textContent = 'Caricamento…';
   else if (G.stato === 'attesa') m.textContent = `Stanza ${D.codice}. Giocatori: ${D.giocatori.length}. ${D.ospite ? 'Invio per iniziare, ' : 'Attendi che chi ha creato la stanza dia il via. '}Spazio ripete, Esc annulla.`;
-  else if (G.stato === 'menu' || G.stato === 'armi' || G.stato === 'duello' || G.stato === 'lancio' || G.stato === 'difficolta') {
+  else if (MENU[G.stato]) {
     m.textContent = MENU[G.stato].titolo;
     MENU[G.stato].voci.forEach(([, testo], i) => {
       const li = document.createElement('li'); li.textContent = testo; if (i === sceltaMenu) li.className = 'scelta'; v.appendChild(li);
@@ -909,7 +928,7 @@ function ciclo(ora) {
 }
 let erroriCiclo = 0;
 function cicloInterno(ora) {
-  const dt = Math.min(0.1, (ora - ultimoFrame) / 1000); ultimoFrame = ora;
+  const dt = Math.max(0, Math.min(0.1, (ora - ultimoFrame) / 1000)); ultimoFrame = ora; // mai un passo indietro nel tempo
   if (Audio3D.ctx && G.stato === 'gioco' && !G.pausa) {
     G.tempo += dt;
     let giro = 0;
@@ -921,7 +940,7 @@ function cicloInterno(ora) {
     else if (G.modalita === 'battaglia') aggiornaBattaglia(dt);
     else { muoviLibero(dt, G.cx, G.cz, 22, false); aggiornaAssedio(); }
     if (G.modalita !== 'duello') { controllaTrappole(); aggiornaRadar(); }
-    if (G.modalita === 'battaglia') { if (!B.cielo) { aggiornaTurbo(); aggiornaPianoMio(); aggiornaCasse(false); } }
+    if (G.modalita === 'battaglia') { if (!B.cielo && !B.morto) { aggiornaTurbo(); aggiornaPianoMio(); aggiornaCasse(false); } }
     else if (G.modalita !== 'duello') { aggiornaAltezza(); aggiornaCasseSolitario(); }
     eseguiEventi();
     aggiornaArmi();
@@ -959,11 +978,13 @@ function muoviLibero(dt, cx, cz, limite, bloccato) {
   if (G.tasti.KeyD) l += 1;
   if (G.tasti.KeyA) l -= 1;
   G.inMovimento = false;
-  if (!(f || l) || bloccato || G.tempo < G.occupatoFino) return 0;
+  const strisciando = G.modalita === 'battaglia' && B.aTerra;
+  if (!(f || l) || bloccato || (G.tempo < G.occupatoFino && !strisciando)) return 0;
   const corsa = G.tasti.ShiftLeft || G.tasti.ShiftRight, rapido = G.modalita === 'battaglia';
   const v = (corsa ? (rapido ? 5.4 : 3.4) : (rapido ? 3.3 : 1.7)) * (G.velocitaExtra || 1) / Math.hypot(f, l) * dt;
-  const [fx, fz] = avanti(G.rotta), [rx, rz] = destraDi(G.rotta);
+  const [fx, fz] = avanti(G.rotta), [rx, rz] = destraDi(G.rotta), px = G.x, pz = G.z;
   G.x += (fx * f + rx * l) * v; G.z += (fz * f + rz * l) * v;
+  if (typeof bloccoCase === 'function') bloccoCase(px, pz);
   const r = Math.hypot(G.x - cx, G.z - cz);
   if (r > limite) {
     G.x = cx + (G.x - cx) * limite / r; G.z = cz + (G.z - cz) * limite / r;

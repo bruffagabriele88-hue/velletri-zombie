@@ -191,7 +191,8 @@ function meshBot(b, i) {
   arma.position.set(0.28, 1.15, -0.4); gruppo.add(arma);
   const lampo = new T.Mesh(new T.SphereGeometry(0.18, 8, 6), new T.MeshBasicMaterial({ color: 0xffd36b }));
   lampo.position.set(0.28, 1.15, -0.85); lampo.visible = false; gruppo.add(lampo);
-  const nome = scritta3D(b.nome || b.def.nome, '#ffffff', 0.45, false); // il nome non si vede attraverso i muri nome.position.y = 2.35; gruppo.add(nome);
+  // il nome non si vede attraverso i muri
+  const nome = scritta3D(b.nome || b.def.nome, b.team === B.mioTeam && G.modalita === 'battaglia' ? '#7fd4ff' : '#ffffff', 0.45, false); nome.position.y = 2.35; gruppo.add(nome);
   gruppo.userData = { corpo, lampo, px: b.x, pz: b.z, dir: 0 };
   V3.scena.add(gruppo);
   return gruppo;
@@ -218,6 +219,13 @@ function meshPezzo(c) {
     const dx = c.dirx ?? 0, dz = c.dirz ?? -1;
     m.rotation.order = 'YXZ'; m.rotation.y = Math.atan2(-dx, -dz); m.rotation.x = Math.atan2(2.5, 3.2);
     m.position.set(c.x, (c.livello || 0) * 2.5 + 1.25, c.z);
+  } else if (c.casa) {
+    // muro di casa: intonaco chiaro, più alto di un muro costruito
+    m = ombra(new T.Mesh(new T.BoxGeometry(3.45, 3.0, 0.35), new T.MeshStandardMaterial({ color: 0xe8dcc4, roughness: 0.9 })));
+    m.rotation.y = -Math.atan2(c.bz - c.az, c.bx - c.ax);
+    m.position.set(c.x, 1.5, c.z);
+    V3.scena.add(m);
+    return m;
   } else {
     m = ombra(new T.Mesh(new T.BoxGeometry(3.4, 2.6, 0.25), V3.legno));
     m.rotation.y = -Math.atan2(c.bz - c.az, c.bx - c.ax);
@@ -291,15 +299,15 @@ function disegna3D(ora, dt) {
   const P = prossimaArena();
   V3.prossima.visible = !!P && P.r > 0.5;
   if (P) { V3.prossima.scale.set(P.r, P.r, 1); V3.prossima.position.x = P.cx; V3.prossima.position.z = P.cz; }
-  // avversari: visibili solo se si sentono (o appena abbattuti)
-  const avversari = avversariArena();
+  // avversari: visibili solo se si sentono (o appena abbattuti); i compagni si vedono sempre
+  const avversari = G.modalita === 'battaglia' ? [...B.bot, ...umaniRemoti()] : avversariArena();
   sincronizza(V3.bot, avversari, b => b.nome || b.def.nome, b => meshBot(b, avversari.indexOf(b)), (b, m) => {
     const u = m.userData;
     const vx = b.x - u.px, vz = b.z - u.pz, mosso = Math.hypot(vx, vz);
     if (mosso > 0.002) u.dir = Math.atan2(-vx, -vz);
     if (b.bersaglio) { const [tx, tz] = posDi(b.bersaglio); u.dir = Math.atan2(-(tx - b.x), -(tz - b.z)); }
     u.px = b.x; u.pz = b.z;
-    m.visible = b.vivo ? b.udito !== false : (b.morteT || 0) < 2.5;
+    m.visible = b.vivo ? !b.inAria && (b.udito !== false || (G.modalita === 'battaglia' && b.team === B.mioTeam)) : (b.morteT || 0) < 2.5;
     m.position.set(b.x, (b.livello || 0) * 2.5 + (mosso > 0.002 ? Math.abs(Math.sin(ora / 110)) * 0.06 : 0), b.z);
     m.rotation.y = u.dir;
     m.rotation.x = b.vivo ? 0 : -Math.min(1, b.morteT / 0.5) * Math.PI / 2;
@@ -310,10 +318,19 @@ function disegna3D(ora, dt) {
   sincronizza(V3.costruzioni, G.costruzioni.filter(c => c.vita > 0 && (c.tipo === 'barricata' || c.tipo === 'rampa' || c.tipo === 'vetro')), c => c.id, meshPezzo, (c, m) => {
     const s = Math.min(1, (G.tempo - (c.nato ?? -9)) / 0.12) || 1;
     m.scale.set(s, s, s);
-    if (c.tipo === 'vetro') return;
+    if (c.tipo === 'vetro' || c.casa) return;
     m.material.opacity = 0.45 + 0.55 * c.vita / c.vitaMax;
     m.material.color.setHSL(0.08, 0.35, 0.35 + 0.4 * c.vita / c.vitaMax);
   });
+  // cespugli
+  if (G.modalita === 'battaglia') {
+    V3.cespugli = V3.cespugli || new Map();
+    sincronizza(V3.cespugli, B.cespugli || [], c => c.id, c => {
+      const g = new V3.T.Group(), verde = new V3.T.MeshStandardMaterial({ color: 0x3f7d2c, roughness: 0.95 });
+      for (const [x, y, z, r] of [[0, 0.55, 0, 0.75], [0.45, 0.45, 0.2, 0.5], [-0.4, 0.45, -0.15, 0.55], [0.1, 0.9, -0.1, 0.45]]) { const s = ombra(new V3.T.Mesh(new V3.T.SphereGeometry(r, 10, 8), verde)); s.position.set(x, y, z); g.add(s); }
+      g.position.set(c.x, 0, c.z); V3.scena.add(g); return g;
+    }, () => {});
+  }
   // forzieri
   sincronizza(V3.casse, D.casse, c => c.id, () => meshCassa(), (c, m) => {
     m.visible = c.aTerra !== false;

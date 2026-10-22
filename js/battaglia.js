@@ -54,8 +54,26 @@ const DIFFICOLTA = {
   normale: { nome: 'normale', bot: 11, prec: 1, cono: 1.7, reazione: 1 },
   difficile: { nome: 'difficile', bot: 11, prec: 1.3, cono: 1.25, reazione: 0.75 },
 };
-async function battagliaAvvia(lancio, difficolta) {
+// numeri casuali ripetibili: in rete tutti costruiscono la stessa isola partendo dallo stesso seme
+function generatoreCaso(seme) {
+  let a = seme >>> 0;
+  return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+const reteBR = () => G.modalita === 'battaglia' && !!B.rete;
+const comandoBR = () => !B.rete || D.ospite;          // chi fa muovere i bot, la tempesta e le casse
+function umaniRemoti() { return B.rete ? [...D.altri.values()] : []; }
+function squadraDi(f) { return f === 'io' ? B.mioTeam : f.team; }
+function alleati(a, b) { return a !== b && squadraDi(a) === squadraDi(b); }
+function compagniVivi() { return [...B.bot.filter(b => b.vivo && b.team === B.mioTeam), ...umaniRemoti().filter(a => a.vivo && a.team === B.mioTeam)]; }
+function nomeDi(f) { return f === 'io' ? 'tu' : f ? f.nome || (f.def && f.def.nome) || '' : ''; }
+// identificativo da mandare in rete: il codice del giocatore, oppure "b" più il numero del bot
+function idDi(f) { if (!f) return null; if (f === 'io') return D.cid; if (f.remoto) return f.cid; if (f.bot) return 'b' + B.bot.indexOf(f); return null; }
+function daId(s) { if (!s) return null; if (s === D.cid) return 'io'; if (s[0] === 'b') return B.bot[+s.slice(1)] || null; return D.altri.get(s) || null; }
+
+async function battagliaAvvia(lancio, difficolta, opz = {}) {
   B.diff = DIFFICOLTA[difficolta] || B.diff || DIFFICOLTA.normale;
+  B.squadre = [1, 2, 4].includes(opz.squadre) ? opz.squadre : B.squadre || 1;
+  B.rete = !!opz.rete; B.seme = opz.seme || 0;
   G.stato = 'caricamento'; aggiornaPannello();
   G.citta = CENTRO_VELLETRI; G.osm = null;
   await preparaMappa();
@@ -70,7 +88,14 @@ async function battagliaAvvia(lancio, difficolta) {
   G.inventario = { granate: 0, kit: 0, cibo: 2, materiali: 40, pozioni: 0, radar: 0 };
   G.livello = 0; G.prossimaTurbo = 0;
   D.trappole = []; D.radarFino = 0;
-  B.lancio = lancio; B.attiva = true; B.morto = false; B.eliminazioni = 0; B.ultimoAggressore = null;
+  B.lancio = lancio; B.attiva = true; B.morto = false; B.aTerra = false; B.finita = false; B.eliminazioni = 0; B.ultimoAggressore = null;
+  B.inCasa = null; B.inCespuglio = false; B.vincitrice = null; B.faseAnnunciata = null;
+  // i cronometri della partita prima non valgono più: G.tempo ricomincia da zero
+  for (const k of Object.keys(B)) if (/^(prossim|ultim|avviso)/.test(k) && typeof B[k] === 'number') B[k] = /^ultim/.test(k) ? -99 : 0;
+  // da qui in poi, in rete, il caso è quello del seme comune: isola, forzieri, case, bus e bot uguali per tutti
+  const casoVero = Math.random, mio = LUOGHI[lancio] || LUOGHI.piazza;
+  if (B.seme) Math.random = generatoreCaso(B.seme);
+  try {
   B.zona = { cx: 0, cz: 0, r: RAGGIO_ISOLA }; B.fase = 0; B.stadio = 'attesa'; B.fine = FASI_TEMPESTA[0].a + 4; B.eroFuori = false;
   B.prossima = prossimaZona(); B.annunciata = false; B.granateVive = [];
 
@@ -80,32 +105,42 @@ async function battagliaAvvia(lancio, difficolta) {
   // altri forzieri sparsi per l'isola, lontano dai cinque luoghi
   for (let i = 0; i < 32; i++) { const [x, z] = attorno(0, 0, 88); D.casse.push(nuovoForziere(x, z, contenutoForziere())); }
   B.prossimaCassa = 25;
-  creaCaseDiVetro();
+  creaCaseECespugli();
 
   // io: parto sul bus, sopra l'isola
-  const mio = LUOGHI[lancio] || LUOGHI.piazza;
   preparaBus(mio);
 
-  // gli undici avversari: almeno due atterrano dove atterro io, così c'è subito da fare
+  // squadre: prima le persone, poi i bot riempiono i posti. Da soli, ognuno è una squadra a sé.
+  const umani = B.rete ? D.giocatori.slice() : ['io'];
+  const nBot = B.rete ? Math.max(0, 12 - umani.length) : B.diff.bot;
+  B.mioTeam = B.rete ? Math.floor(D.giocatori.indexOf(D.cid) / B.squadre) : 0;
+  B.squadraUmani = {};
+  umani.forEach((c, i) => { B.squadraUmani[c] = Math.floor(i / B.squadre); });
+
+  // gli avversari: almeno due atterrano dove atterro io, così c'è subito da fare; i compagni atterrano con me
   const chiavi = Object.keys(LUOGHI), voci = Object.keys(Audio3D.voci || {});
   const atterraggi = [lancio, 'piazza', 'piazza', 'piazza', 'campanile', 'campanile', 'fontana', 'fontana', 'canile', 'canile', 'bosco', 'bosco'].filter((k, i) => !(i > 1 && k === lancio && Math.random() < 0.5));
-  B.bot = NOMI_BOT.slice(0, B.diff.bot).map((nome, i) => {
-    const L = LUOGHI[atterraggi[i % atterraggi.length]] || LUOGHI[scegli(chiavi)];
-    let [x, z] = attorno(L.x, L.z, 14);
-    if (Math.hypot(x - mio.x, z - mio.z) < 9) { x += 10; z += 6; }
+  B.bot = NOMI_BOT.slice(0, nBot).map((nome, i) => {
+    const team = Math.floor((umani.length + i) / B.squadre), compagno = !B.rete && team === B.mioTeam;
+    const L = compagno ? mio : LUOGHI[atterraggi[i % atterraggi.length]] || LUOGHI[scegli(chiavi)];
+    let [x, z] = attorno(L.x, L.z, compagno ? 5 : 14);
+    if (!compagno && Math.hypot(x - mio.x, z - mio.z) < 9) { x += 10; z += 6; }
     const b = {
+      team, compagno,
       bot: true, tipo: 'soldato', def: { nome, raggio: 0.35 }, nome, x, z, vita: 100, scudo: 0, vivo: true, udito: false, ultimoSuono: -99,
       allertato: false, allertaFino: 0, occluso: false, occlusione: 0, alto: false, carica: false, stordito: 0, fase: Math.random() * 9, morteT: 0,
       sorgente: creaSorgente({ ref: 9, rolloff: 0.8, riverbero: 0.15 }), voce: voci.length ? voci[i % voci.length] : null, tono: caso(0.94, 1.06),
       arma: 'piccone', rar: 1, materiali: 40, livello: 0, granate: Math.random() < 0.5 ? 1 : 0, bersaglio: null, prossimoPensiero: caso(0, 0.5), prossimoSparo: 4 + caso(0, 2), colpiRaffica: 0,
       colpi: 0, passo: caso(0.88, 1.12), coraggio: caso(0.2, 0.5), sospetto: null, ingaggioT: 0,
-      inAria: true, atterraA: caso(4, B.bus.durata) + caso(7, 11),
+      inAria: true, atterraA: compagno ? B.bus.tMeglio + caso(8, 10) : caso(4, B.bus.durata) + caso(7, 11),
       meta: null, prossimaMeta: 0, forziere: null, apreFino: 0, prossimoPasso: 0, prossimaCura: 20, ultimoAggressore: null, bravura: caso(0.75, 1.1), lato: Math.random() < 0.5 ? -1 : 1,
     };
     posiziona(b.sorgente, x, 0, z, true);
     return b;
   });
-  G.nemici = [...B.bot];
+  } finally { Math.random = casoVero; }
+  G.nemici = B.bot.filter(b => b.team !== B.mioTeam);
+  if (B.rete) preparaUmaniRemoti();
 
   B.fontana = loopInPunto('fontana', LUOGHI.fontana.x, LUOGHI.fontana.z, 0.35, { ref: 5 });
   B.sorgTempesta = creaSorgente({ ref: 3, riverbero: 0.2 });
@@ -114,9 +149,11 @@ async function battagliaAvvia(lancio, difficolta) {
 
   aggiornaAscoltatore(G.x, G.z, G.rotta);
   avviaAmbiente();
-  G.stato = 'gioco'; G.pausa = document.pointerLockElement !== tela;
+  G.stato = 'gioco'; G.pausa = B.rete ? false : document.pointerLockElement !== tela;
   avviaBus();
-  parla(`${G.pausa ? 'Clicca per partire. ' : ''}Sei sul bus della battaglia, ${B.bus.verso}. Vuoi atterrare a ${mio.nome}: ti dico io quando saltare. Spazio per saltare.`, 2);
+  const compagni = compagniVivi().map(c => c.nome);
+  const squadra = B.squadre > 1 ? (compagni.length ? `Sei in squadra con ${compagni.join(' e ')}. ` : 'Sei in squadra. ') : '';
+  parla(`${G.pausa ? 'Clicca per partire. ' : ''}${squadra}Sei sul bus della battaglia, ${B.bus.verso}. Vuoi atterrare a ${mio.nome}: ti dico io quando saltare. Da 1 a 5 cambi luogo. Spazio per saltare.`, 2);
   aggiornaPannello();
 }
 
@@ -172,6 +209,18 @@ function fermaSuonoBus() {
   S.uscita.gain.setTargetAtTime(0, t, 0.3); S.vento.g.gain.setTargetAtTime(0, t, 0.3);
   setTimeout(() => { try { S.osc.forEach(o => o.stop()); S.vento.src.stop(); } catch (e) { /* già fermi */ } }, 1500);
   B.suonoBus = null;
+}
+
+// sul bus o in volo, da 1 a 5: scelgo dove atterrare
+function scegliLuogoInVolo(n) {
+  const k = Object.keys(LUOGHI)[n - 1]; if (!k) return;
+  B.meta = LUOGHI[k]; B.lancio = k;
+  if (B.cielo === 'bus') {
+    const U = B.bus;
+    U.tMeglio = lim(((B.meta.x - U.ax) * U.ux + (B.meta.z - U.az) * U.uz) / BUS.velocita - 2.5, 1, U.durata - 1); U.detto = U.t >= U.tMeglio;
+  }
+  suona('tic', { gain: 0.5 });
+  cieloInfo();
 }
 
 // Spazio sul bus: salto
@@ -268,6 +317,7 @@ function dovePerLaZona() {
 function aggiornaTempesta() {
   const f = FASI_TEMPESTA[B.fase];
   if (B.cielo) return;
+  if (comandoBR()) {
   if (f && !B.annunciata && B.fine - G.tempo < (B.fase === 0 ? 20 : 999) && G.tempo > (B.atterratoA || 0) + 5) { B.annunciata = true; parla(`Tempesta tra ${Math.round(B.fine - G.tempo)} secondi. ${dovePerLaZona()}`, 1); }
   if (f && G.tempo >= B.fine) {
     if (B.stadio === 'attesa') {
@@ -282,6 +332,7 @@ function aggiornaTempesta() {
   if (B.stadio === 'chiusura' && f && B.da) {
     const k = lim(1 - (B.fine - G.tempo) / f.c, 0, 1), P = B.prossima;
     B.zona = { cx: B.da.cx + (P.cx - B.da.cx) * k, cz: B.da.cz + (P.cz - B.da.cz) * k, r: B.da.r + (P.r - B.da.r) * k };
+  }
   }
   // io e la tempesta: ronzio dal bordo quando è vicino, danni se sono fuori (lo scudo non protegge)
   const Z = B.zona, dx = G.x - Z.cx, dz = G.z - Z.cz, c = Math.hypot(dx, dz), fuori = c > Z.r;
@@ -299,17 +350,24 @@ function aggiornaTempesta() {
     }
   }
   B.eroFuori = fuori;
-  for (const b of B.bot) {
-    if (b.vivo && Math.hypot(b.x - Z.cx, b.z - Z.cz) > Z.r && G.tempo >= (b.prossimoDannoT || 0)) { b.prossimoDannoT = G.tempo + 1; b.vita -= danno; if (b.vita <= 0) elimina(b, null); }
+  if (comandoBR()) for (const b of B.bot) {
+    if (b.vivo && !b.inAria && Math.hypot(b.x - Z.cx, b.z - Z.cz) > Z.r && G.tempo >= (b.prossimoDannoT || 0)) { b.prossimoDannoT = G.tempo + 1; b.vita -= danno; if (b.vita <= 0) elimina(b, null); }
   }
   // la tempesta si porta via forzieri e costruzioni
   D.casse = D.casse.filter(k => Math.hypot(k.x - Z.cx, k.z - Z.cz) <= Z.r + 3);
-  for (const k of G.costruzioni) if (Math.hypot(k.x - Z.cx, k.z - Z.cz) > Z.r + 3) k.vita = 0;
+  for (const k of G.costruzioni) if (!k.casa && Math.hypot(k.x - Z.cx, k.z - Z.cz) > Z.r + 3) k.vita = 0;
 }
 
 // ---------------------------------------------------------------- avversari
-function suonoBot(b, nome, opz = {}) { b.ultimoSuono = G.tempo; b.udito = true; return suona(nome, { dest: b.sorgente.ingresso, ...opz }); }
+const PASSI_BOT = /^(io_passo|corsa|erba|acqua|sassi|legno_colpito|corpo_cade)/;
+function suonoBot(b, nome, opz = {}) {
+  b.ultimoSuono = G.tempo; b.udito = true;
+  if (reteBR() && D.ospite && !PASSI_BOT.test(nome) && !opz.locale) duelloInvia({ t: 'bsu', i: B.bot.indexOf(b), n: nome, g: +(opz.gain ?? 1).toFixed(2), r: +(opz.rate ?? 1).toFixed(2) });
+  return suona(nome, { dest: b.sorgente.ingresso, ...opz });
+}
 function fraseBot(b, categoria) {
+  if (reteBR() && D.ospite) duelloInvia({ t: 'bvo', i: B.bot.indexOf(b), k: categoria });
+  if (alleati('io', b)) return; // i compagni non mi insultano
   if (G.tempo < B.prossimaVoce || Math.hypot(b.x - G.x, b.z - G.z) > 30) return; // uno alla volta, e solo se è vicino
   B.prossimaVoce = G.tempo + 3.5;
   b.ultimoSuono = G.tempo;
@@ -320,50 +378,83 @@ function muroTra(ax, az, bx, bz, la = 0, lb = 0) {
   return G.costruzioni.find(c => c.tipo === 'barricata' && c.vita > 0 && (c.livello || 0) >= Math.max(la, lb) && segmentiIncrociati(ax, az, bx, bz, c.ax, c.az, c.bx, c.bz)) || null;
 }
 const posDi = f => f === 'io' ? [G.x, G.z] : [f.x, f.z];
-const vivoDi = f => f === 'io' ? !B.morto : f.vivo;
+const vivoDi = f => f === 'io' ? !B.morto : f.vivo && !f.inAria;
+const eUmano = f => f === 'io' || !!(f && f.remoto);
 
 // Un avversario si accorge di me solo se mi vede da vicino o mi sente: uno sparo, una corsa, un colpo ricevuto.
 // Se poi mi perde, va a controllare l'ultimo punto in cui mi ha sentito, con passo cauto.
 const CAPIENZA_BOT = { pistola: 15, pompa: 6, mitra: 30, precisione: 5, piccone: 0 };
 function miPercepisce(b, d) {
-  if (d < 11) return true;
+  // vista: da vicino, se non c'è un muro in mezzo e non sono nascosto in un cespuglio
+  if (d < 11 && !muroTra(b.x, b.z, G.x, G.z, b.livello || 0, G.livello || 0) && !(nascosto() && d > 3.5)) return true;
   if (G.tempo - (B.ultimoMioSparo || -99) < 2.5 && d < 110) return true;
   if (G.tempo - (G.ultimaCorsa || -99) < 0.8 && d < 24) return true;
   if (b.ultimoAggressore === 'io' && G.tempo < b.allertaFino) return true;
   if (b.bersaglio === 'io' && G.tempo - (b.vistoIo || -99) < 2.5 && d < 60) return true; // mi segue ancora per un attimo
   return false;
 }
+// lo stesso, per un giocatore in rete
+function percepisceRemoto(b, a, d) {
+  if (d < 11 && !muroTra(b.x, b.z, a.x, a.z, b.livello || 0, a.livello || 0) && !(a.nascosto && d > 3.5)) return true;
+  if (G.tempo - (a.ultimoSparoT || -99) < 2.5 && d < 110) return true;
+  if (a.mov === 2 && d < 24) return true;
+  if (b.ultimoAggressore === a && G.tempo < b.allertaFino) return true;
+  if (b.bersaglio === a && G.tempo - (b.vistoT || -99) < 2.5 && d < 60) return true;
+  return false;
+}
+// il compagno umano più vicino che un bot segue (in squadra)
+function capoDi(b) {
+  let c = null;
+  for (const f of ['io', ...umaniRemoti()]) {
+    if (squadraDi(f) !== b.team || (f === 'io' ? B.morto : !f.vivo)) continue;
+    const [x, z] = posDi(f), d = Math.hypot(x - b.x, z - b.z);
+    if (!c || d < c.d) c = { f, d, x, z, aTerra: f === 'io' ? B.aTerra : !!f.aTerra };
+  }
+  return c;
+}
 function pensa(b) {
   // sceglie il bersaglio: il combattente vivo più vicino entro 38 metri
   let best = null;
-  for (const f of ['io', ...B.bot]) {
-    if (f === b || !vivoDi(f)) continue;
+  for (const f of ['io', ...umaniRemoti(), ...B.bot]) {
+    if (f === b || !vivoDi(f) || alleati(b, f)) continue;
     if (f === 'io' && (B.cielo || G.tempo < B.atterratoA + 6)) continue; // in volo e nei primi secondi dopo l'atterraggio nessuno mi prende di mira
-    if (f === 'io' && nascostoNelVetro() && Math.hypot(G.x - b.x, G.z - b.z) > 4) continue;
-    // al massimo due avversari mi prendono di mira insieme: di più non si capirebbe niente
-    if (f === 'io' && b.bersaglio !== 'io' && B.bot.filter(o => o.vivo && o !== b && o.bersaglio === 'io').length >= 2) continue;
+    // al massimo due avversari prendono di mira la stessa persona: di più non si capirebbe niente
+    if (eUmano(f) && b.bersaglio !== f && B.bot.filter(o => o.vivo && o !== b && o.bersaglio === f).length >= 2) continue;
     const [x, z] = posDi(f), d = Math.hypot(x - b.x, z - b.z);
-    if (f !== 'io' && f.inAria) continue;
     if (f === 'io') {
       if (!miPercepisce(b, d)) continue;
-      b.vistoIo = G.tempo; b.sospetto = { x: G.x + caso(-3, 3), z: G.z + caso(-3, 3), t: G.tempo };
+      b.vistoIo = G.tempo; if (!b.compagno) b.sospetto = { x: G.x + caso(-3, 3), z: G.z + caso(-3, 3), t: G.tempo };
+    } else if (f.remoto) {
+      if (!percepisceRemoto(b, f, d)) continue;
+      b.vistoT = G.tempo;
     }
-    if (d < (b.arma === 'piccone' ? 9 : f === 'io' ? 70 : 45) && (!best || d < best.d)) best = { f, d };
+    if (d < (b.arma === 'piccone' ? 9 : eUmano(f) ? 70 : 45) && (!best || d < best.d)) best = { f, d };
   }
   if (b.allertato) { b.allertato = false; b.allertaFino = G.tempo + 8; }
-  const sveglio = best && (best.f === 'io' || best.d < 28 || G.tempo < b.allertaFino);
+  const sveglio = best && (eUmano(best.f) || best.d < 28 || G.tempo < b.allertaFino);
   const prima = b.bersaglio;
   b.bersaglio = sveglio ? best.f : null;
   if (b.bersaglio && b.bersaglio !== prima) {
     b.ingaggioT = G.tempo; // la mira si assesta nei primi secondi, come per una persona
     b.prossimoSparo = Math.max(b.prossimoSparo, G.tempo + (b.bersaglio === 'io' ? caso(1.2, 2.0) * B.diff.reazione : caso(0.5, 1.1)) / b.bravura); // tempo di reazione
     if (b.bersaglio === 'io') fraseBot(b, 'minaccia');
+    // un compagno vede un nemico: me lo dice, con la direzione rispetto a me
+    if (b.team === B.mioTeam && !B.morto && G.tempo - (B.ultimaChiamata || -9) > 6) {
+      B.ultimaChiamata = G.tempo;
+      const [tx, tz] = posDi(b.bersaglio);
+      parla(`${b.nome}: nemico ${direzioneRelativa(avvolgi(rottaVerso(G.x, G.z, tx, tz) - G.rotta))}, ${metri(Math.hypot(tx - G.x, tz - G.z))}.`, 0);
+    }
   }
   // senza nemici: va al forziere più vicino, se ce n'è uno
   if (!b.bersaglio && !b.forziere) {
     let f = null;
     const cerca = b.arma === 'piccone' ? 150 : 55; // senza armi va a cercarle anche lontano
-    for (const c of D.casse) { const d = Math.hypot(c.x - b.x, c.z - b.z); if (d < cerca && (!f || d < f.d)) f = { c, d }; }
+    const capo = capoDi(b);
+    for (const c of D.casse) {
+      const d = Math.hypot(c.x - b.x, c.z - b.z);
+      if (capo && Math.hypot(c.x - capo.x, c.z - capo.z) > 25) continue; // un compagno non si allontana troppo da me
+      if (d < cerca && (!f || d < f.d)) f = { c, d };
+    }
     b.forziere = f ? f.c : null;
   }
 }
@@ -384,7 +475,7 @@ function aggiornaBot(b, dt) {
   const Z = B.zona, P = B.prossima || B.zona;
   const fuoriZona = Math.hypot(b.x - Z.cx, b.z - Z.cz) > Z.r - 2;
   const fuoriProssima = B.stadio === 'chiusura' && Math.hypot(b.x - P.cx, b.z - P.cz) > P.r - 3;
-  let mx = 0, mz = 0, v = 0;
+  let mx = 0, mz = 0, v = 0, capo = null;
   const T = b.bersaglio && vivoDi(b.bersaglio) ? b.bersaglio : null;
   const W = ARMI_BOT[b.arma];
 
@@ -395,6 +486,15 @@ function aggiornaBot(b, dt) {
     const d = Math.hypot(b.x - granata.x, b.z - granata.z) || 1; mx = (b.x - granata.x) / d; mz = (b.z - granata.z) / d; v = 5.2;
     if (!b.urlatoGranata) { b.urlatoGranata = true; if (Math.random() < 0.5) fraseBot(b, 'colpito'); }
   } else if (G.tempo < b.apreFino) { b.urlatoGranata = false; /* sta aprendo un forziere o si cura: fermo */ }
+  else if ((capo = capoDi(b)) && capo.aTerra && capo.d < 60) {
+    // il compagno è a terra: corre a rianimarlo
+    if (capo.d > 1.4) { mx = (capo.x - b.x) / capo.d; mz = (capo.z - b.z) / capo.d; v = 4.4; b.rianima = 0; }
+    else {
+      b.rianima = (b.rianima || 0) + dt;
+      if (!b.dettoRianimo && capo.f === 'io') { b.dettoRianimo = true; parla(`${b.nome} ti sta rianimando.`, 1); }
+      if (b.rianima > 4) { b.rianima = 0; b.dettoRianimo = false; if (capo.f === 'io') rianimami(); else duelloInvia({ t: 'rianima', a: capo.f.cid }); }
+    }
+  }
   else if (G.tempo < (b.fugaFino || 0)) {
     // ferito grave: scappa via da chi lo colpisce, poi si ferma a curarsi
     const [ax, az] = b.fugaDa ? posDi(b.fugaDa) : [G.x, G.z], d = Math.hypot(b.x - ax, b.z - az) || 1;
@@ -408,6 +508,9 @@ function aggiornaBot(b, dt) {
     mx = ux * avanza - uz * b.lato * 0.6; mz = uz * avanza + ux * b.lato * 0.6; v = 2.6;
     if (Math.random() < dt * 0.4) b.lato *= -1;
     if (G.tempo < (b.ricaricaFino || 0)) { mx = -ux * 0.5 - uz * b.lato; mz = -uz * 0.5 + ux * b.lato; v = 3.4; } // ricarica spostandosi di lato
+  } else if ((capo = capoDi(b)) && capo.d > 13) {
+    // un compagno mi segue: se resto indietro di molto, corre a raggiungermi
+    mx = (capo.x - b.x) / capo.d; mz = (capo.z - b.z) / capo.d; v = capo.d > 25 ? 4.4 : 3.2;
   } else if (b.sospetto && G.tempo - b.sospetto.t < 14 && b.arma !== 'piccone') {
     // mi ha sentito e poi perso: va a controllare, piano piano, e si guarda intorno
     const d = Math.hypot(b.sospetto.x - b.x, b.sospetto.z - b.z);
@@ -422,6 +525,7 @@ function aggiornaBot(b, dt) {
         b.apreFino = G.tempo + 1.2;
         const c = b.forziere; b.forziere = null;
         D.casse = D.casse.filter(x => x !== c);
+        if (reteBR()) duelloInvia({ t: 'presa', id: c.id });
         suonoBot(b, 'raccogli', { gain: 0.8 });
         if (ARMI_BOT[c.cont]) { if (ARMI_BOT[c.cont].valore * (c.rar || 1) > ARMI_BOT[b.arma].valore * b.rar) { b.arma = c.cont; b.rar = c.rar || 1; b.colpi = CAPIENZA_BOT[b.arma]; } }
         else if (c.cont === 'pozione') b.scudo = Math.min(100, b.scudo + 50);
@@ -434,8 +538,9 @@ function aggiornaBot(b, dt) {
     const caccia = G.tempo - B.atterratoA > 120;
     if (!b.meta || G.tempo >= b.prossimaMeta || Math.hypot(b.meta[0] - b.x, b.meta[1] - b.z) < 2) {
       let preda = null;
-      if (caccia) for (const f of ['io', ...B.bot]) { if (f === b || !vivoDi(f) || (f !== 'io' && f.inAria)) continue; const [x, z] = posDi(f), d = Math.hypot(x - b.x, z - b.z); if (!preda || d < preda.d) preda = { x, z, d }; }
-      b.meta = preda ? attorno(preda.x, preda.z, 10) : attorno(P.cx, P.cz, Math.max(4, P.r * 0.7));
+      if (caccia) for (const f of ['io', ...umaniRemoti(), ...B.bot]) { if (f === b || !vivoDi(f) || alleati(b, f)) continue; const [x, z] = posDi(f), d = Math.hypot(x - b.x, z - b.z); if (!preda || d < preda.d) preda = { x, z, d }; }
+      const capo2 = capoDi(b);
+      b.meta = capo2 ? attorno(capo2.x, capo2.z, 6) : preda ? attorno(preda.x, preda.z, 10) : attorno(P.cx, P.cz, Math.max(4, P.r * 0.7));
       b.prossimaMeta = G.tempo + caso(6, 12);
     }
     const d = Math.hypot(b.meta[0] - b.x, b.meta[1] - b.z) || 1; mx = (b.meta[0] - b.x) / d; mz = (b.meta[1] - b.z) / d; v = caccia ? 2.6 : 2.2;
@@ -448,11 +553,22 @@ function aggiornaBot(b, dt) {
   // si cura quando può
   if (!T && b.vita < 45 && G.tempo >= b.prossimaCura) { b.prossimaCura = G.tempo + 25; b.apreFino = G.tempo + 3; b.vita = Math.min(100, b.vita + 45); }
 
+  // per entrare o uscire da una casa passa dalla porta
+  if (b.passaggio && b.passaggio.length && v > 0) {
+    const [qx, qz] = b.passaggio[0], d = Math.hypot(qx - b.x, qz - b.z);
+    if (d < 0.8 || G.tempo > b.passaggioFino) b.passaggio.shift();
+    else { mx = (qx - b.x) / d; mz = (qz - b.z) / d; v = Math.max(v, 2.4); }
+  }
   const lung = Math.hypot(mx, mz);
+  b.mov = 0;
   if (v > 0 && lung > 0.01) {
     const nx = b.x + mx / lung * v * dt, nz = b.z + mz / lung * v * dt;
-    if (!muroTra(b.x, b.z, nx, nz, b.livello || 0, b.livello || 0)) { b.x = nx; b.z = nz; }
-    else b.lato *= -1; // gira attorno al muro
+    const muro = muroTra(b.x, b.z, nx, nz, b.livello || 0, b.livello || 0);
+    if (!muro) { b.x = nx; b.z = nz; b.mov = v > 3.5 ? 2 : 1; }
+    else if (muro.casa && !(b.passaggio && b.passaggio.length)) {
+      const casa = B.case.find(k => k.id === muro.casa);
+      if (casa) { b.passaggio = casaDi(b.x, b.z) === casa ? [casa.dentro, casa.fuori] : [casa.fuori, casa.dentro]; b.passaggioFino = G.tempo + 8; }
+    } else b.lato *= -1; // gira attorno al muro
     const dIo = Math.hypot(b.x - G.x, b.z - G.z);
     if (dIo < 50 && G.tempo >= b.prossimoPasso) {
       b.prossimoPasso = G.tempo + (v > 3.5 ? 0.3 : b.cauto ? 0.6 : 0.4) * caso(0.9, 1.12);
@@ -472,7 +588,7 @@ function aggiornaBot(b, dt) {
   posiziona(b.sorgente, b.x, ((b.livello || 0) - (G.livello || 0)) * 2.5, b.z);
   aggiornaPianoBot(b);
   if (T && G.tempo >= (b.prossimaCostruzione || 0)) botCostruisce(b, T);
-  if (T === 'io' && b.granate > 0 && G.tempo >= (b.prossimaGranata || 0)) botGranata(b);
+  if (T && eUmano(T) && b.granate > 0 && G.tempo >= (b.prossimaGranata || 0)) botGranata(b, T);
 }
 
 function sparaBot(b, T, tx, tz, d, W) {
@@ -480,7 +596,9 @@ function sparaBot(b, T, tx, tz, d, W) {
     // colpo di piccone: si sente il fendente da dove sta, e se prende il colpo sordo
     b.prossimoSparo = G.tempo + W.cadenza * caso(0.9, 1.3);
     suonoBot(b, 'lancio', { gain: 1.0, rate: caso(1.25, 1.45) });
-    if (Math.random() >= W.prob * b.bravura) return;
+    const preso = Math.random() < W.prob * b.bravura;
+    if (T.remoto) { duelloInvia({ t: 'bc', a: T.cid, i: B.bot.indexOf(b), d: preso ? W.danno : 0, m: 1 }); return; }
+    if (!preso) return;
     if (T === 'io') pianifica(0.12, () => { if (!B.morto) { B.ultimoAggressore = b; feriscimi(W.danno, true); } });
     else feritoBot(T, W.danno, b);
     return;
@@ -507,10 +625,13 @@ function sparaBot(b, T, tx, tz, d, W) {
       if (T === 'io' && Math.random() < 0.3 && G.tempo - (B.ultimoAvvisoRicarica || -9) > 8) { B.ultimoAvvisoRicarica = G.tempo; parla(`${b.nome} ricarica`, 0); }
     }
   }
+  const nomeSparo = scegli(W.suoni);
+  // in rete gli altri sentono lo sparo: chi è preso di mira lo sente forte
+  if (reteBR() && D.ospite && (T.remoto || G.tempo - (b.ultimoInvioSparo || -9) > 0.3)) { b.ultimoInvioSparo = G.tempo; duelloInvia({ t: 'bsp', i: B.bot.indexOf(b), n: nomeSparo, a: T.remoto ? T.cid : T === 'io' ? D.cid : '' }); }
   if (T === 'io') {
     // spara a me: lo sento bene, dal punto in cui si trova. Gli echi solo sul primo colpo, per non fare un muro di rumore.
     b.ultimoSuono = G.tempo; b.udito = true; b.lampo = 1;
-    sparoLontano(scegli(W.suoni), b.x, b.z, b.sorgente, 1, G.tempo - (b.ultimoEco || -9) > 1.5);
+    sparoLontano(nomeSparo, b.x, b.z, b.sorgente, 1, G.tempo - (b.ultimoEco || -9) > 1.5);
     b.ultimoEco = G.tempo;
     // la prima volta che qualcuno mi prende di mira, la voce mi dice chi e da dove
     if (G.tempo - (b.ultimoAvviso || -99) > 10 && G.tempo - (B.ultimoAvvisoTiro || -9) > 3) {
@@ -522,7 +643,7 @@ function sparaBot(b, T, tx, tz, d, W) {
     // scontri tra altri: solo se sono vicini, bassi, e al massimo un colpo ogni secondo e mezzo
     B.prossimoSparoAltrui = G.tempo + 1.5;
     b.ultimoSuono = G.tempo; b.udito = true; b.lampo = 1;
-    sparoLontano(scegli(W.suoni), b.x, b.z, b.sorgente, 0.3, false);
+    sparoLontano(nomeSparo, b.x, b.z, b.sorgente, 0.3, false);
   }
   if (T === 'io' && Math.random() < 0.12) fraseBot(b, 'spara');
   for (const c of G.costruzioni) if (c.tipo === 'vetro' && c.vita > 0 && segmentiIncrociati(b.x, b.z, tx, tz, c.ax, c.az, c.bx, c.bz)) rompiVetro(c, b);
@@ -532,6 +653,8 @@ function sparaBot(b, T, tx, tz, d, W) {
   if (muro) {
     if (dIo < 60) suonaInPunto('legno_colpito', muro.x, muro.z, { gain: 1.0, rate: caso(0.9, 1.2), quando: d / 500 });
     danneggiaCostruzione(muro, W.danno * 0.6);
+    if (reteBR()) duelloInvia({ t: 'dannoC', id: muro.id, d: W.danno * 0.6 });
+    if (T.remoto) duelloInvia({ t: 'bc', a: T.cid, i: B.bot.indexOf(b), d: 0, w: 1 });
     if (Math.random() < 0.3) b.lato *= -1;
     return;
   }
@@ -546,12 +669,18 @@ function sparaBot(b, T, tx, tz, d, W) {
     stressa(0.2);
     if (Math.random() < p) { schioccoProiettile(b.x, b.z); pianifica(d / 850, () => { if (!B.morto) { B.ultimoAggressore = b; feriscimi(danno, true); } }); }
     else if (Math.random() < 0.6) proiettilePassa(b.x, b.z); // il proiettile mi sfiora: schiocco e fischio che passa
+  } else if (T.remoto) {
+    // un giocatore in rete: decido qui se è colpito, e glielo comunico
+    p *= (rimasti() <= 4 ? 0.5 : 0.36) * (T.mov ? 0.6 : 1) * B.diff.prec;
+    duelloInvia({ t: 'bc', a: T.cid, i: B.bot.indexOf(b), d: Math.random() < p ? danno : 0 });
   } else if (Math.random() < p * (G.tempo - B.atterratoA > 120 ? 0.7 : 0.4)) feritoBot(T, danno, b); // tra di loro si colpiscono meno all'inizio: la partita deve durare, ma non troppo
 }
 
 // un avversario viene colpito (da me o da un altro)
 function feritoBot(b, danno, da) {
   if (!b.vivo) return;
+  if (reteBR() && !D.ospite) { if (da === 'io') duelloInvia({ t: 'cb', i: B.bot.indexOf(b), d: Math.round(danno) }); return; }
+  if (alleati(b, da)) return;
   const assorbito = Math.min(b.scudo, danno); b.scudo -= assorbito; b.vita -= danno - assorbito;
   b.allertaFino = G.tempo + 10; b.ultimoAggressore = da;
   if (b.vita <= 0) { elimina(b, da); return; }
@@ -585,7 +714,40 @@ function battagliaColpito(b, danno, testa, ritardo, esplosivo) {
   pianifica(ARMI[G.arsenale.corrente].auto && !esplosivo ? 0.35 : 0.05, annunciaResoconto, 'resoconto');
 }
 
-function rimasti() { return B.bot.filter(b => b.vivo).length + (B.morto ? 0 : 1); }
+function rimasti() { return B.bot.filter(b => b.vivo).length + umaniRemoti().filter(a => a.vivo).length + (B.morto ? 0 : 1); }
+// le squadre ancora in gara (chi è a terra conta ancora)
+function squadreVive() {
+  const s = new Set();
+  if (!B.morto) s.add(B.mioTeam);
+  for (const a of umaniRemoti()) if (a.vivo) s.add(a.team);
+  for (const b of B.bot) if (b.vivo) s.add(b.team);
+  return s;
+}
+function descriviSquadra(sq) {
+  const membri = [...(B.mioTeam === sq ? ['tu'] : []), ...umaniRemoti().filter(a => a.team === sq).map(a => a.nome), ...B.bot.filter(b => b.team === sq).map(b => b.nome)];
+  return B.squadre > 1 ? `la squadra di ${membri.join(' e ')}` : membri[0] || 'nessuno';
+}
+// chi comanda controlla se è rimasta una squadra sola
+function controllaFine() {
+  if (!comandoBR() || B.finita || !B.attiva) return;
+  const s = squadreVive();
+  if (s.size > 1) return;
+  B.finita = true;
+  const sq = s.size ? [...s][0] : -1;
+  B.vincitrice = sq;
+  if (reteBR()) duelloInvia({ t: 'fineBR', sq });
+  pianifica(1.2, () => fineBR(sq));
+}
+function fineBR(sq) {
+  if (G.stato !== 'gioco') return;
+  if (sq === B.mioTeam) { vittoria(); return; }
+  G.stato = 'morto'; G.eventi = []; B.attiva = false;
+  aggiornaPuntamento(null);
+  if (B.sorgTempesta) B.sorgTempesta.src.guadagno.gain.value = 0;
+  const s = leggiStatBR(); s.partite++; salvaStatBR(s);
+  setTimeout(() => parla(`Partita finita: ha vinto ${descriviSquadra(sq)}. ${plurale(B.eliminazioni, 'eliminazione', 'eliminazioni')}. ${finaleTasti()}`, 2), 900);
+}
+function finaleTasti() { return B.rete ? (D.ospite ? "Invio per un'altra partita, M per il menù." : 'La prossima partita la avvia chi ha creato la stanza. M per il menù.') : 'Invio per rigiocare, M per il menù.'; }
 
 function elimina(b, da) {
   if (!b.vivo) return;
@@ -598,44 +760,100 @@ function elimina(b, da) {
   chiudiSorgente(b.sorgente, 4);
   // lascia a terra il suo bottino
   const cont = b.arma !== 'piccone' ? { cont: b.arma, rar: b.rar } : { cont: scegli(['pozione', 'bende', 'kit']) };
-  D.casse.push(nuovoForziere(b.x, b.z, { ...cont, materiali: Math.min(80, b.materiali) + 15 }));
-  const n = rimasti();
-  if (da === 'io') { B.eliminazioni++; parla(n > 1 ? `Eliminato ${b.nome}! ${n} rimasti.` : `Eliminato ${b.nome}!`, 2); }
+  const bottino = nuovoForziere(b.x, b.z, { ...cont, materiali: Math.min(80, b.materiali) + 15 });
+  D.casse.push(bottino);
+  if (reteBR() && D.ospite) duelloInvia({ t: 'bm', i: B.bot.indexOf(b), da: idDi(da), k: { id: bottino.id, x: bottino.x, z: bottino.z, cont: bottino.cont, rar: bottino.rar || 1, materiali: bottino.materiali } });
+  annunciaEliminazione(b, da);
+  controllaFine();
+}
+function annunciaEliminazione(vittima, da) {
+  const n = rimasti(), nome = nomeDi(vittima);
+  if (da === 'io') { B.eliminazioni++; const s = squadreVive().size; parla(B.squadre > 1 ? `Eliminato ${nome}! ${plurale(s, 'squadra', 'squadre')} in gara.` : n > 1 ? `Eliminato ${nome}! ${n} rimasti.` : `Eliminato ${nome}!`, 2); }
+  else if (vittima.team === B.mioTeam && !B.morto) parla(`${nome}, il tuo compagno, è stato eliminato.`, 1);
+  else if (B.squadre > 1) { const s = squadreVive().size; if (s > 1) parla(s === 2 ? 'Resta una sola squadra, oltre alla tua.' : `${s} squadre in gara.`, s <= 3 ? 1 : 0); }
   else if (n > 1) parla(n === 2 ? 'Ne resta uno solo, oltre a te.' : `${n} rimasti.`, n <= 3 ? 1 : 0);
-  if (n === 1 && !B.morto) pianifica(1.2, vittoria);
 }
 
 function vittoria() {
-  if (B.morto || G.stato !== 'gioco') return;
+  if (G.stato !== 'gioco') return;
   const s = leggiStatBR(); s.vittorie++; s.partite++; salvaStatBR(s);
   G.stato = 'morto'; G.eventi = []; B.attiva = false;
   aggiornaPuntamento(null);
   B.sorgTempesta.src.guadagno.gain.value = 0;
   suona('vittoria', { gain: 0.9 });
-  setTimeout(() => parla(`Vittoria reale! ${plurale(B.eliminazioni, 'eliminazione', 'eliminazioni')}. Vittorie totali: ${s.vittorie}. Invio per rigiocare, M per il menù.`, 2), 1500);
+  setTimeout(() => parla(`Vittoria reale${B.squadre > 1 ? ' della tua squadra' : ''}! ${plurale(B.eliminazioni, 'eliminazione', 'eliminazioni')}. Vittorie totali: ${s.vittorie}. ${finaleTasti()}`, 2), 1500);
+}
+
+// a terra (solo a squadre): si striscia e si perde vita; un compagno può rianimarti
+function vaiATerra() {
+  B.aTerra = true; G.vita = 100; G.scudo = 0; G.occupatoFino = Infinity; G.arsenale.grilletto = false; G.velocitaExtra = 0.3; G.livello = 0;
+  B.prossimoAvvisoTerra = G.tempo + 10;
+  suona('corpo_cade', { gain: 0.8 });
+  parla('Sei a terra! Puoi solo strisciare. Un compagno può rianimarti; intanto perdi vita.', 2);
+}
+function rianimami() {
+  if (!B.aTerra || B.morto) return;
+  B.aTerra = false; G.vita = 30; G.occupatoFino = G.tempo; G.velocitaExtra = 1;
+  suona('scudo_su', { gain: 0.6 });
+  parla('Rianimato! Vita 30.', 2);
+}
+// tasto E vicino a un compagno in rete a terra: lo rianimo in quattro secondi
+function provaRianimare() {
+  if (!reteBR() || !puoAgire()) return false;
+  const a = umaniRemoti().find(x => x.vivo && x.aTerra && x.team === B.mioTeam && Math.hypot(x.x - G.x, x.z - G.z) < 2.2);
+  if (!a) return false;
+  G.occupatoFino = G.tempo + 4;
+  suona('raccogli', { gain: 0.6, rate: 0.8 });
+  parla(`Rianimo ${a.nome}, resta fermo.`, 1);
+  pianifica(4, () => { if (a.vivo && a.aTerra && Math.hypot(a.x - G.x, a.z - G.z) < 3) { duelloInvia({ t: 'rianima', a: a.cid }); parla(`${a.nome} rianimato.`, 1); } });
+  return true;
 }
 
 function battagliaMorte() {
   if (B.morto) return;
-  B.morto = true;
-  const posto = rimasti() + 1, s = leggiStatBR(); s.partite++; salvaStatBR(s);
+  const compagni = compagniVivi();
+  if (!B.aTerra && B.squadre > 1 && compagni.length) { vaiATerra(); return; }
+  B.morto = true; B.aTerra = false; G.velocitaExtra = 1;
+  if (reteBR()) duelloInvia({ t: 'morto', da: idDi(B.ultimoAggressore) });
+  if (B.rete || compagni.length) {
+    // la partita va avanti: in squadra senti quello che sente un compagno, in rete resti ad ascoltare
+    G.arsenale.grilletto = false; G.occupatoFino = Infinity;
+    aggiornaPuntamento(null);
+    if (B.sorgTempesta) B.sorgTempesta.src.guadagno.gain.value = 0;
+    const chi = B.ultimoAggressore ? `Eliminato da ${nomeDi(B.ultimoAggressore)}.` : 'Eliminato dalla tempesta.';
+    parla(`${chi} ${compagni.length ? `Ora senti quello che sente ${compagni[0].nome}.` : 'Resti ad ascoltare la partita fino alla fine.'} M per uscire.`, 2);
+    controllaFine();
+    return;
+  }
+  const posto = (B.squadre > 1 ? squadreVive().size : rimasti()) + 1, s = leggiStatBR(); s.partite++; salvaStatBR(s);
   G.stato = 'morto'; G.eventi = []; G.arsenale.grilletto = false; B.attiva = false;
   aggiornaPuntamento(null);
   B.sorgTempesta.src.guadagno.gain.value = 0;
-  const chi = B.ultimoAggressore ? `Eliminato da ${B.ultimoAggressore.nome}.` : 'Eliminato dalla tempesta.';
-  setTimeout(() => parla(`${chi} ${ORDINALI[posto - 1] || posto} su ${B.bot.length + 1}, ${plurale(B.eliminazioni, 'eliminazione', 'eliminazioni')}. Invio per rigiocare, M per il menù.`, 2), 900);
+  const chi = B.ultimoAggressore ? `Eliminato da ${nomeDi(B.ultimoAggressore)}.` : 'Eliminato dalla tempesta.';
+  const totale = B.squadre > 1 ? new Set([B.mioTeam, ...B.bot.map(b => b.team)]).size : B.bot.length + 1;
+  setTimeout(() => parla(`${chi} ${B.squadre > 1 ? 'La tua squadra è ' : ''}${ORDINALI[posto - 1] || posto} su ${totale}, ${plurale(B.eliminazioni, 'eliminazione', 'eliminazioni')}. Invio per rigiocare, M per il menù.`, 2), 900);
 }
 
 // ---------------------------------------------------------------- ogni fotogramma
 function aggiornaBattaglia(dt) {
-  if (B.cielo) { aggiornaCielo(dt); for (const b of B.bot) aggiornaBot(b, dt); return; }
+  const bot = b => comandoBR() ? aggiornaBot(b, dt) : aggiornaBotSpecchio(b, dt);
+  if (B.rete) reteBRTurno(dt);
+  if (B.cielo) { aggiornaCielo(dt); for (const b of B.bot) bot(b); return; }
   aggiornaAggancio(dt);
-  controllaCabina();
+  controllaRifugi();
   aggiornaCasseParacadute();
   battitoBattaglia();
-  muoviLibero(dt, 0, 0, RAGGIO_ISOLA, false);
+  B.mioMov = muoviLibero(dt, 0, 0, RAGGIO_ISOLA, false);
   aggiornaTempesta();
-  for (const b of B.bot) aggiornaBot(b, dt);
+  for (const b of B.bot) bot(b);
+  if (B.aTerra) {
+    // a terra perdo vita ogni secondo
+    G.vita -= dt * 3.4;
+    if (G.tempo >= B.prossimoAvvisoTerra) { B.prossimoAvvisoTerra = G.tempo + 10; parla(`a terra, vita ${Math.max(0, Math.round(G.vita))}`, 0); }
+    if (G.vita <= 0) { G.vita = 0; morte(); }
+  }
+  // eliminato in squadra: sento quello che sente un compagno
+  if (B.morto) { const c = compagniVivi()[0]; if (c) { G.x = c.x; G.z = c.z; G.livello = c.livello || 0; } }
   // il suono del luogo più vicino, per orientarsi (uno solo alla volta)
   if (G.tempo >= B.prossimoLuogo) {
     let best = null;
@@ -666,8 +884,10 @@ function battagliaZona() {
 
 // Spazio: la situazione
 function battagliaRicognizione() {
-  let f = `${rimasti()} rimasti, ${plurale(B.eliminazioni, 'eliminazione', 'eliminazioni')}. `;
-  const sentiti = B.bot.filter(b => b.vivo && b.udito).map(b => ({ b, d: Math.hypot(b.x - G.x, b.z - G.z) })).sort((a, b) => a.d - b.d);
+  let f = `${rimasti()} rimasti${B.squadre > 1 ? `, ${plurale(squadreVive().size, 'squadra', 'squadre')}` : ''}, ${plurale(B.eliminazioni, 'eliminazione', 'eliminazioni')}. `;
+  const compagni = compagniVivi();
+  if (compagni.length) f += 'Compagni: ' + compagni.map(c => `${c.nome}${c.aTerra ? ' a terra' : ''} ${direzioneRelativa(avvolgi(rottaVerso(G.x, G.z, c.x, c.z) - G.rotta))}, ${metri(Math.hypot(c.x - G.x, c.z - G.z))}`).join('. ') + '. ';
+  const sentiti = G.nemici.filter(b => b.vivo && b.udito).map(b => ({ b, d: Math.hypot(b.x - G.x, b.z - G.z) })).sort((a, b) => a.d - b.d);
   if (sentiti.length) f += sentiti.slice(0, 2).map(({ b, d }) => `${b.nome} ${direzioneRelativa(avvolgi(rottaVerso(G.x, G.z, b.x, b.z) - G.rotta))}, ${metri(d)}`).join('. ') + '. ';
   else f += 'Nessuno vicino che si senta. ';
   let cassa = null;
@@ -706,8 +926,8 @@ function pezzoGiaLi(tipo, x, z, livello) {
 
 // costruzione istantanea (la usa il giocatore: un tasto premuto, o tenuto premuto per costruire a raffica)
 // avversari della modalità in corso: i combattenti del computer, oppure gli amici del duello
-function avversariArena() { return G.modalita === 'duello' ? [...D.altri.values()] : B.bot; }
-function sonoFuori() { return G.modalita === 'duello' ? D.fuori : B.morto; }
+function avversariArena() { return G.modalita === 'duello' ? [...D.altri.values()] : G.nemici; }
+function sonoFuori() { return G.modalita === 'duello' ? D.fuori : B.morto || B.aTerra; }
 
 function costruisciRapido(tipo) {
   if (sonoFuori() || G.stato !== 'gioco' || (G.modalita === 'battaglia' && G.tempo < 3)) return false;
@@ -721,7 +941,7 @@ function costruisciRapido(tipo) {
   G.inventario.materiali -= costo;
   const c = nuovoPezzo(tipo === 'rampa' ? 'rampa' : 'barricata', x, z, fx, fz, liv);
   G.costruzioni.push(c);
-  if (G.modalita === 'duello') duelloInvia({ t: 'costruzione', c2: c });
+  if (D.attivo) duelloInvia({ t: 'costruzione', c2: c });
   suonaInPunto('legno_colpito', x, z, { gain: 0.9, rate: tipo === 'rampa' ? 1.15 : 1.45, y: liv * 2.5 - liv * 2.5 });
   B.ultimaCostruzione = G.tempo;
   return true;
@@ -775,7 +995,9 @@ function botCostruisce(b, T) {
   const piazza = (tipo, x, z, dx, dz, l) => {
     if (b.materiali < 2 || pezzoGiaLi(tipo, x, z, l)) return;
     b.materiali -= 2;
-    G.costruzioni.push(nuovoPezzo(tipo, x, z, dx, dz, l));
+    const pezzo = nuovoPezzo(tipo, x, z, dx, dz, l);
+    G.costruzioni.push(pezzo);
+    if (reteBR()) duelloInvia({ t: 'costruzione', c2: pezzo });
     if (Math.hypot(x - G.x, z - G.z) < 50) { suonaInPunto('legno_colpito', x, z, { gain: 1.0, rate: tipo === 'rampa' ? 1.15 : 1.45, y: (l - (G.livello || 0)) * 2.5 }); b.ultimoSuono = G.tempo; b.udito = true; }
   };
   if (b.vita < 50 && !b.scatolaFatta && b.materiali >= 8) {
@@ -861,22 +1083,31 @@ function battitoBattaglia() {
 
 // casse col paracadute: ogni 25-35 secondi ne cade una dentro la zona sicura, con contenuto migliore dei forzieri
 function aggiornaCasseParacadute() {
-  if (G.tempo < (B.prossimaCassa || 25) || B.morto) return;
+  if (G.tempo < (B.prossimaCassa || 25) || !comandoBR()) return;
   B.prossimaCassa = G.tempo + caso(25, 35);
   const Z = B.prossima || B.zona;
   const [x, z] = attorno(Z.cx, Z.cz, Math.max(5, Z.r * 0.7));
   const c = contenutoForziere();
   if (c.rar) c.rar = Math.max(c.rar, 1.15); // almeno rara
-  duelloArrivaCassa({ id: Math.random().toString(36).slice(2), x, z, ...c, materiali: 25 });
+  const cassa = { id: Math.random().toString(36).slice(2), x, z, ...c, materiali: 25 };
+  duelloArrivaCassa(cassa);
+  if (reteBR()) duelloInvia({ t: 'cassa', cassa });
 }
 
 // K: senti le costruzioni più vicine. Un colpo di legno dal punto di ognuna (dalle più vicine), poi la voce.
 function senteCostruzioni() {
-  const vicine = G.costruzioni.filter(c => c.vita > 0 && (c.tipo === 'barricata' || c.tipo === 'rampa') && !c.cabina)
+  const vicine = G.costruzioni.filter(c => c.vita > 0 && (c.tipo === 'barricata' || c.tipo === 'rampa') && !c.cabina && !c.casa)
     .map(c => ({ c, d: Math.hypot(c.x - G.x, c.z - G.z) })).filter(o => o.d < 25).sort((a, b) => a.d - b.d).slice(0, 4);
-  const cab = (B.cabine || []).map(c => ({ c, d: Math.hypot(c.x - G.x, c.z - G.z) })).filter(o => o.d < 30).sort((a, b) => a.d - b.d)[0];
-  if (cab) suonaInPunto('luccichio', cab.c.x, cab.c.z, { gain: 0.5, rate: 0.6, ref: 6 });
-  const casa = cab ? ` Casa di vetro ${direzioneRelativa(avvolgi(rottaVerso(G.x, G.z, cab.c.x, cab.c.z) - G.rotta))}, ${metri(cab.d)}.` : '';
+  // la casa più vicina (con la sua porta) e il cespuglio più vicino
+  const piuVicino = l => l.map(c => ({ c, d: Math.hypot(c.x - G.x, c.z - G.z) })).sort((a, b) => a.d - b.d)[0];
+  const ca = G.modalita === 'battaglia' ? piuVicino(B.case || []) : null, ce = G.modalita === 'battaglia' ? piuVicino(B.cespugli || []) : null;
+  let casa = '';
+  if (ca && ca.d < 60) {
+    const dentro = casaDi(G.x, G.z) === ca.c, [qx, qz] = dentro ? ca.c.dentro : ca.c.fuori;
+    suonaInPunto('porta', ca.c.portaX, ca.c.portaZ, { gain: 0.6, ref: 6 });
+    casa += dentro ? ` Sei dentro: porta ${direzioneRelativa(avvolgi(rottaVerso(G.x, G.z, qx, qz) - G.rotta))}, ${metri(Math.hypot(qx - G.x, qz - G.z))}.` : ` ${ca.c.nome === 'chiesa' ? 'Chiesa' : 'Casa'} ${direzioneRelativa(avvolgi(rottaVerso(G.x, G.z, ca.c.x, ca.c.z) - G.rotta))}, ${metri(ca.d)}; la porta è ${direzioneRelativa(avvolgi(rottaVerso(G.x, G.z, qx, qz) - G.rotta))}.`;
+  }
+  if (ce && ce.d < 40) { suonaInPunto('erba1', ce.c.x, ce.c.z, { gain: 0.5, ref: 4, quando: 0.3 }); casa += ` Cespuglio ${direzioneRelativa(avvolgi(rottaVerso(G.x, G.z, ce.c.x, ce.c.z) - G.rotta))}, ${metri(ce.d)}.`; }
   if (!vicine.length) { parla(`Nessuna costruzione vicina.${casa}`, 1); return; }
   vicine.forEach(({ c }, i) => suonaInPunto('legno_colpito', c.x, c.z, { gain: 1.1, rate: c.tipo === 'rampa' ? 1.05 : 1.4, quando: 0.1 + i * 0.35, y: ((c.livello || 0) - (G.livello || 0)) * 2.5 }));
   const descrivi = ({ c, d }) => {
@@ -889,27 +1120,94 @@ function senteCostruzioni() {
 // ---------------------------------------------------------------- case di vetro
 // Cabine di vetro sparse per l'isola. Da dentro senti tutto, ma gli avversari a più di 4 metri non ti vedono,
 // finché non spari. Chi spara al vetro lo manda in pezzi, e le schegge feriscono chi sta lì intorno.
-function creaCaseDiVetro() {
-  B.cabine = [];
-  for (let k = 0; k < 8; k++) {
-    let x, z;
-    for (let tent = 0; tent < 30; tent++) { [x, z] = attorno(0, 0, 80); if (Object.values(LUOGHI).every(L => Math.hypot(L.x - x, L.z - z) > 12)) break; }
-    const cab = { x, z, id: 'cab' + k };
-    B.cabine.push(cab);
-    for (let i = 0; i < 4; i++) {
-      const a = i * Math.PI / 2, [fx, fz] = avanti(a), cx = x + fx * 1.5, cz = z + fz * 1.5;
-      G.costruzioni.push({ id: `${cab.id}-${i}`, cabina: cab.id, tipo: 'vetro', nome: 'vetro', x: cx, z: cz, livello: 0, dirx: fx, dirz: fz,
-        vita: 30, vitaMax: 30, pronta: true, ax: cx - fz * 1.5, az: cz + fx * 1.5, bx: cx + fz * 1.5, bz: cz - fx * 1.5, nato: -9 });
+// ---------------------------------------------------------------- case e cespugli
+// Le case hanno quattro muri robusti e una porta: i muri fermano i colpi e attutiscono i suoni,
+// e dentro c'è sempre un forziere. Nei cespugli si resta nascosti finché non si spara o si corre.
+const CASE_FISSE = [[16, 16, 'casa'], [-16, 16, 'casa'], [16, -16, 'casa'], [-16, -16, 'casa'], [0, -55, 'chiesa'], [8, 62, 'casa'], [62, -15, 'casa'], [62, 15, 'casa'], [-62, -12, 'capanna']];
+const MEZZA_CASA = 3.4;
+function creaCaseECespugli() {
+  B.case = []; B.cespugli = []; B.cabine = [];
+  const posti = CASE_FISSE.slice();
+  for (let k = 0; posti.length < 15 && k < 300; k++) {
+    const [x, z] = attorno(0, 0, 80);
+    if (Object.values(LUOGHI).every(L => Math.hypot(L.x - x, L.z - z) > 18) && posti.every(([a, b]) => Math.hypot(a - x, b - z) > 15)) posti.push([x, z, 'casa']);
+  }
+  posti.forEach(([x, z, nome], k) => {
+    // la porta guarda verso il centro dell'isola
+    const lato = ((Math.round(rottaVerso(x, z, 0, 0) / (Math.PI / 2)) % 4) + 4) % 4;
+    const [fx, fz] = avanti(lato * Math.PI / 2), [px, pz] = destraDi(lato * Math.PI / 2);
+    const casa = { id: 'casa' + k, x, z, nome, porta: lato };
+    casa.portaX = x + fx * MEZZA_CASA + px * 1.7; casa.portaZ = z + fz * MEZZA_CASA + pz * 1.7;
+    casa.fuori = [casa.portaX + fx * 1.4, casa.portaZ + fz * 1.4]; casa.dentro = [casa.portaX - fx * 1.4, casa.portaZ - fz * 1.4];
+    for (let s = 0; s < 4; s++) {
+      const [ux, uz] = avanti(s * Math.PI / 2), [rx, rz] = destraDi(s * Math.PI / 2);
+      for (const o of [-1.7, 1.7]) {
+        if (s === lato && o > 0) continue; // qui c'è la porta
+        const p = nuovoPezzo('barricata', x + ux * MEZZA_CASA + rx * o, z + uz * MEZZA_CASA + rz * o, ux, uz, 0);
+        p.id = `${casa.id}-${s}${o > 0 ? 'b' : 'a'}`; p.casa = casa.id; p.nome = nome === 'chiesa' ? 'muro della chiesa' : 'muro di casa';
+        p.vita = p.vitaMax = 500; p.nato = -9;
+        G.costruzioni.push(p);
+      }
     }
+    D.casse.push(nuovoForziere(x + caso(-1.5, 1.5), z + caso(-1.5, 1.5), contenutoForziere())); // un forziere dentro ogni casa
+    B.case.push(casa);
+  });
+  // cespugli: tanti nel bosco, altri sparsi per l'isola
+  for (let k = 0; k < 12; k++) { const [x, z] = attorno(LUOGHI.bosco.x, LUOGHI.bosco.z, 26); B.cespugli.push({ id: 'ces' + k, x, z }); }
+  for (let k = 0; k < 24; k++) {
+    let x = 0, z = 0;
+    for (let t = 0; t < 20; t++) { [x, z] = attorno(0, 0, 88); if (!casaDi(x, z, 1.5)) break; }
+    B.cespugli.push({ id: 'ces' + (k + 12), x, z });
   }
 }
-function cabinaDi(x, z) { return (B.cabine || []).find(c => Math.hypot(c.x - x, c.z - z) < 1.4) || null; }
-// sono nascosto se sono dentro una cabina con almeno tre vetri interi e non ho sparato negli ultimi 3 secondi
-function nascostoNelVetro() {
-  const cab = cabinaDi(G.x, G.z); if (!cab) return false;
-  const interi = G.costruzioni.filter(c => c.cabina === cab.id && c.vita > 0).length;
-  return interi >= 3 && G.tempo - (B.ultimoMioSparo || -99) > 3 && (G.livello || 0) === 0;
+function casaDi(x, z, margine = 0) { return (B.case || []).find(c => Math.abs(x - c.x) < MEZZA_CASA - 0.1 + margine && Math.abs(z - c.z) < MEZZA_CASA - 0.1 + margine) || null; }
+function cespuglioDi(x, z) { return (B.cespugli || []).find(c => Math.hypot(c.x - x, c.z - z) < 1.3) || null; }
+// sono nascosto se sto in un cespuglio, a terra, e non ho sparato negli ultimi 3 secondi
+function nascosto() { return G.modalita === 'battaglia' && !!cespuglioDi(G.x, G.z) && (G.livello || 0) === 0 && G.tempo - (B.ultimoMioSparo || -99) > 3; }
+const nascostoNelVetro = nascosto;
+function cabinaDi() { return null; }
+
+// entro ed esco da case e cespugli: un suono e due parole
+function controllaRifugi() {
+  const casa = casaDi(G.x, G.z), ces = cespuglioDi(G.x, G.z);
+  const id = casa ? casa.id : null;
+  if (id !== B.inCasa) {
+    if (casa) { suonaInPunto('porta', casa.portaX, casa.portaZ, { gain: 0.8, ref: 3 }); parla(`Dentro ${casa.nome === 'chiesa' ? 'la chiesa' : casa.nome === 'capanna' ? 'la capanna' : 'la casa'}. I muri fermano i colpi.`, 1); }
+    else if (B.inCasa) { suona('porta', { gain: 0.45, rate: 1.1 }); parla('Fuori.', 0); }
+    B.inCasa = id;
+  }
+  if (!!ces !== !!B.inCespuglio) {
+    B.inCespuglio = !!ces;
+    if (ces) { suona('erba2', { gain: 0.35 }); parla('Nel cespuglio: nessuno ti vede finché non spari o corri.', 1); }
+    else parla('Fuori dal cespuglio.', 0);
+  }
+  // muovendosi tra le foglie si sente il fruscio
+  if (ces && G.inMovimento && G.tempo >= (B.prossimoFruscio || 0)) { B.prossimoFruscio = G.tempo + 0.45; suona(`erba${casoInt(1, 4)}`, { gain: 0.12, rate: 1.2 }); }
 }
+
+// non si passa attraverso i muri delle case: si scivola lungo il muro, e la voce dice dov'è la porta
+function bloccoCase(px, pz) {
+  if (G.modalita !== 'battaglia') return false;
+  const liv = G.livello || 0, attraversa = (ax, az, bx, bz) => { const m = muroTra(ax, az, bx, bz, liv, liv); return m && m.casa ? m : null; };
+  const m = attraversa(px, pz, G.x, G.z); if (!m) return false;
+  const nx = G.x, nz = G.z;
+  if (!attraversa(px, pz, nx, pz)) { G.z = pz; }
+  else if (!attraversa(px, pz, px, nz)) { G.x = px; }
+  else { G.x = px; G.z = pz; }
+  if (G.tempo - (B.ultimoUrto || -9) > 2.5) {
+    B.ultimoUrto = G.tempo;
+    suona('legno_colpito', { gain: 0.3, rate: 0.55 });
+    const casa = B.case.find(k => k.id === m.casa);
+    if (casa) {
+      const [qx, qz] = casaDi(px, pz) === casa ? casa.dentro : casa.fuori;
+      // se la porta è dietro la casa, conviene girarci intorno
+      const dietro = muroTra(G.x, G.z, qx, qz, 0, 0);
+      parla(dietro ? `Muro. La porta è dall'altra parte: gira intorno alla casa, ${metri(Math.hypot(qx - G.x, qz - G.z))}.` : `Muro. Porta ${direzioneRelativa(avvolgi(rottaVerso(G.x, G.z, qx, qz) - G.rotta))}, ${metri(Math.hypot(qx - G.x, qz - G.z))}.`, 0);
+    }
+  }
+  return true;
+}
+
 function rompiVetro(c, da) {
   if (c.vita <= 0) return;
   c.vita = 0;
@@ -924,31 +1222,29 @@ function rompiVetro(c, da) {
   }
   for (const b of B.bot) if (b.vivo && Math.hypot(b.x - c.x, b.z - c.z) < 2.6) feritoBot(b, 15, da || 'io');
 }
-// entrata e uscita dalla cabina, annunciate
-function controllaCabina() {
-  const dentro = !!cabinaDi(G.x, G.z);
-  if (dentro !== !!B.inCabina) {
-    B.inCabina = dentro;
-    parla(dentro ? (nascostoNelVetro() ? 'Casa di vetro: nessuno ti vede finché non spari.' : 'Casa di vetro, ma i vetri sono rotti.') : 'Fuori dalla casa di vetro.', 1);
-  }
-}
 
 // ---------------------------------------------------------------- granate degli avversari
 // Lanciano una granata quando sei dietro un muro, in alto o nascosto. Dove cade si sente il rimbalzo,
 // poi un bip sempre più fitto, e la voce avvisa se è vicina.
-function botGranata(b) {
+function botGranata(b, T = 'io') {
   b.prossimaGranata = G.tempo + caso(8, 14);
-  const dIo = Math.hypot(G.x - b.x, G.z - b.z);
-  const riparato = muroTra(b.x, b.z, G.x, G.z, b.livello || 0, G.livello || 0) || (G.livello || 0) > (b.livello || 0) || nascostoNelVetro();
-  if (!riparato || dIo > 25 || dIo < 5 || Math.random() < 0.4) return;
+  const [tx, tz] = posDi(T), tLiv = T === 'io' ? G.livello || 0 : T.livello || 0;
+  const dT = Math.hypot(tx - b.x, tz - b.z);
+  const riparato = muroTra(b.x, b.z, tx, tz, b.livello || 0, tLiv) || tLiv > (b.livello || 0) || (T === 'io' ? nascosto() || !!casaDi(G.x, G.z) : T.nascosto);
+  if (!riparato || dT > 25 || dT < 5 || Math.random() < 0.4) return;
   b.granate--;
-  const gx = G.x + caso(-2.5, 2.5), gz = G.z + caso(-2.5, 2.5);
-  suonoBot(b, 'lancio', { gain: 1.0 });
+  const gx = tx + caso(-2.5, 2.5), gz = tz + caso(-2.5, 2.5);
+  if (reteBR()) duelloInvia({ t: 'bg', i: B.bot.indexOf(b), x: +gx.toFixed(2), z: +gz.toFixed(2) });
+  sequenzaGranataBot(b, gx, gz);
+}
+// lancio, volo, rimbalzo, bip sempre più fitti, scoppio: uguale per tutti quelli che la sentono
+function sequenzaGranataBot(b, gx, gz) {
+  suonoBot(b, 'lancio', { gain: 1.0, locale: true });
   volo('granata_rimbalzo', b.x, b.z, gx, gz, 0.85, { gain: 0.25, doppler: 1.08, y: 2, ref: 2 }); // la granata in volo, che si avvicina
   B.granateVive.push({ x: gx, z: gz, boom: G.tempo + 3 });
   pianifica(0.9, () => {
     suonaInPunto('granata_rimbalzo', gx, gz, { gain: 1.0, rate: 0.75 });
-    if (!B.morto && Math.hypot(G.x - gx, G.z - gz) < 8) parla(`Granata ${direzioneRelativa(avvolgi(rottaVerso(G.x, G.z, gx, gz) - G.rotta))}! Corri dall'altra parte.`, 1);
+    if (!B.morto && !alleati('io', b) && Math.hypot(G.x - gx, G.z - gz) < 8) parla(`Granata ${direzioneRelativa(avvolgi(rottaVerso(G.x, G.z, gx, gz) - G.rotta))}! Corri dall'altra parte.`, 1);
   });
   for (let t = 1.4; t < 2.95; t += 0.3 - (t - 1.4) * 0.12) pianifica(t, () => suonaInPunto('bip_granata', gx, gz, { gain: 1.0, ref: 3 }));
   pianifica(3.0, () => esplosioneBot(gx, gz, b));
@@ -960,8 +1256,8 @@ function esplosioneBot(x, z, autore) {
   const dIo = Math.hypot(G.x - x, G.z - z);
   // un muro in mezzo o un piano più in alto riparano dallo scoppio
   const riparo = muroTra(x, z, G.x, G.z, 0, 0) ? 0.3 : (G.livello || 0) > 0 ? 0.5 : 1;
-  if (dIo < raggio && !B.morto) { B.ultimoAggressore = autore; feriscimi(Math.round(70 * (1 - dIo / raggio) * riparo)); }
+  if (dIo < raggio && !B.morto && !alleati('io', autore)) { B.ultimoAggressore = autore; feriscimi(Math.round(70 * (1 - dIo / raggio) * riparo)); }
   B.granateVive = B.granateVive.filter(g => g.boom > G.tempo + 0.1);
-  for (const b of B.bot) { const d = Math.hypot(b.x - x, b.z - z); if (b.vivo && b !== autore && d < raggio) feritoBot(b, Math.round(80 * (1 - d / raggio)), autore); }
-  for (const c of G.costruzioni) if (Math.hypot(c.x - x, c.z - z) < raggio * 0.7) danneggiaCostruzione(c, 80);
+  if (comandoBR()) for (const b of B.bot) { const d = Math.hypot(b.x - x, b.z - z); if (b.vivo && b !== autore && !alleati(b, autore) && d < raggio) feritoBot(b, Math.round(80 * (1 - d / raggio)), autore); }
+  for (const c of G.costruzioni) if (Math.hypot(c.x - x, c.z - z) < raggio * 0.7) danneggiaCostruzione(c, c.casa ? 40 : 80);
 }

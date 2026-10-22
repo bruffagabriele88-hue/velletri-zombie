@@ -234,7 +234,7 @@ function lanciaGranata() {
   const [fx, fz] = avanti(G.rotta), d = 14;
   const gx = G.x + fx * d, gz = G.z + fz * d;
   suona('grilletto_vuoto', { gain: 0.5, rate: 0.7 }); // spoletta
-  if (G.modalita === 'duello') duelloInvia({ t: 'boom', x: gx, z: gz });
+  if (D.attivo) duelloInvia({ t: 'boom', x: gx, z: gz });
   pianifica(0.35, () => suona('lancio', { gain: 0.8 }));
   pianifica(1.1, () => suonaInPunto('granata_rimbalzo', gx, gz, { gain: 0.9, rate: 0.75 }));
   pianifica(1.5, () => suonaInPunto('granata_rimbalzo', gx + 0.6, gz, { gain: 0.5, rate: 0.85 }));
@@ -254,7 +254,7 @@ function esplosione(x, z, raggio, danno) {
   }
   const dg = Math.hypot(G.x - x, G.z - z);
   if (dg < raggio) feriscimi(Math.round(90 * (1 - dg / raggio)));
-  for (const c of G.costruzioni) if (Math.hypot(c.x - x, c.z - z) < raggio * 0.7) { danneggiaCostruzione(c, 80); if (G.modalita === 'duello') duelloInvia({ t: 'dannoC', id: c.id, d: 80 }); }
+  for (const c of G.costruzioni) if (Math.hypot(c.x - x, c.z - z) < raggio * 0.7) { danneggiaCostruzione(c, 80); if (D.attivo) duelloInvia({ t: 'dannoC', id: c.id, d: 80 }); }
 }
 
 // ---------------------------------------------------------------- il suono dello sparo, a strati
@@ -276,7 +276,7 @@ function suonoSparo(def, st) {
   echiStrada(nome, G.x, G.z, def.eco);
   orecchie(def.orecchie);
   if (G.modalita === 'battaglia') B.ultimoMioSparo = G.tempo;
-  if (typeof duelloInvia === 'function' && G.modalita === 'duello') duelloInvia({ t: 'sparo', a: G.arsenale.corrente, n: nome, r: G.rotta });
+  if (typeof duelloInvia === 'function' && D.attivo) duelloInvia({ t: 'sparo', a: G.arsenale.corrente, n: nome, r: G.rotta });
 }
 
 // Il colpo prende il primo muro o la prima rampa sulla sua traiettoria, entro la portata dell'arma.
@@ -299,7 +299,7 @@ function colpoSuCostruzione(dir, def) {
   if (migliore.c.tipo === 'vetro') { rompiVetro(migliore.c, 'io'); return true; }
   const eraIntera = migliore.c.vita > 0;
   danneggiaCostruzione(migliore.c, danno);
-  if (G.modalita === 'duello') duelloInvia({ t: 'dannoC', id: migliore.c.id, d: danno });
+  if (D.attivo) duelloInvia({ t: 'dannoC', id: migliore.c.id, d: danno });
   if (eraIntera && migliore.c.vita <= 0 && G.modalita === 'battaglia') parla(migliore.c.tipo === 'rampa' ? 'rampa distrutta' : 'muro distrutto', 0);
   return true;
 }

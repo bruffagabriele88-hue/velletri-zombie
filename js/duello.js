@@ -6,10 +6,11 @@
 
 const D = {
   rete: null, collegato: false, ospite: false, codice: '', base: '', cid: '', cidOspite: null,
-  giocatori: [], attivo: false, avvio: false, altri: new Map(), punti: {}, traguardo: 5, round: 0,
+  giocatori: [], attivo: false, coda: [], avvio: false, altri: new Map(), punti: {}, traguardo: 5, round: 0,
   fuori: true, prossimoInvio: 0, attesa: null, bussa: null, casse: [], inizioRound: 0, sorgenteZona: null,
   zonaAnnunciata: false, eroFuori: false, prossimoDannoZona: 0, prossimaCassa: 0, 
   ultimoAggressore: null, ultimoColpoSubito: -99, roundChiuso: false, finito: false,
+  tipo: 'duello', squadre: 1,   // tipo di stanza: duello, oppure battaglia reale in rete
 };
 const RAGGIO_ARENA = 24, RAGGIO_FINALE = 5, LIMITE = 32;
 const PREFISSO_STANZA = 'velletri-zombie-1v1-';
@@ -28,10 +29,21 @@ suona = function (nome, opz = {}) { // eslint-disable-line no-global-assign
 // ---------------------------------------------------------------- rete
 // I computer non si collegano direttamente (spesso i router di casa lo impediscono): si scambiano
 // i messaggi attraverso un server di appoggio pubblico (protocollo MQTT su WebSocket).
+// Nella battaglia in rete i messaggi non partono uno per uno: si raccolgono e partono insieme in un "pacco"
+// circa sette volte al secondo. I server pubblici scartano i messaggi se sono troppi.
+const IMMEDIATI = new Set(['ciao', 'addio', 'vivo', 'ok', 'via', 'rtc', 'ripeti']);
+const AFFIDABILI = new Set(['bm', 'cassa', 'costruzione', 'presa', 'morto', 'fineBR', 'rianima', 'colpo', 'cb', 'bc', 'bg']);
 function duelloInvia(m) {
   if (!D.rete || !D.collegato) return;
   m.c = D.cid;
+  if (D.tipo === 'battaglia' && D.attivo && !IMMEDIATI.has(m.t)) { D.coda.push(m); if (D.coda.length > 200) D.coda.splice(0, D.coda.length - 200); return; }
   try { D.rete.publish(D.base + '/t', JSON.stringify(m), { qos: m.t === 's' ? 0 : 1 }); } catch (e) { /* rete persa */ }
+}
+function reteSvuota() {
+  if (!D.rete || !D.collegato || !D.coda.length) return;
+  const ev = D.coda.map(({ c, ...resto }) => resto); D.coda = [];
+  const qos = ev.some(e => AFFIDABILI.has(e.t)) ? 1 : 0;
+  try { D.rete.publish(D.base + '/t', JSON.stringify({ t: 'pacco', c: D.cid, ev }), { qos }); } catch (e) { /* rete persa */ }
 }
 
 function caricaRete() {
@@ -65,11 +77,19 @@ async function duelloApriRete(codice, ospite) {
   D.collegato = true;
   // segnale "ci sono" ogni 2 secondi, anche se il gioco è fermo dietro una finestra del browser o in secondo piano
   clearInterval(D.presenza);
-  D.presenza = setInterval(() => { if (D.attivo) duelloInvia({ t: 'vivo' }); }, 2000);
+  D.presenza = setInterval(() => {
+    if (!D.attivo) return;
+    duelloInvia({ t: 'vivo' });
+    // battaglia finita: lo ripeto, nel caso qualcuno non l'abbia sentito
+    if (D.ospite && typeof B !== 'undefined' && B.rete && B.finita && B.vincitrice !== null) duelloInvia({ t: 'fineBR', sq: B.vincitrice });
+    reteSvuota();
+  }, 2000);
   D.rete.on('message', (topic, dati) => {
     let m; try { m = JSON.parse(dati.toString()); } catch (e) { return; }
-    if (!m || !m.c || m.c === D.cid) return;
-    try { duelloSmista(m); } catch (e) { console.error(e); }
+    if (!m || typeof m.c !== 'string' || m.c === D.cid) return;
+    // un pacco: tanti messaggi dello stesso giocatore insieme
+    const elenco = m.t === 'pacco' ? (Array.isArray(m.ev) ? m.ev.slice(0, 250) : []).map(e => (e && typeof e === 'object' ? { ...e, c: m.c } : null)) : [m];
+    for (const x of elenco) { if (!x) continue; try { duelloSmista(x); } catch (e) { console.error(e); } }
   });
 }
 
@@ -79,7 +99,10 @@ const TIPI_COSTRUZIONE = ['barricata', 'rampa'];
 const CONTENUTI_VALIDI = ['radar', 'scudo', 'pompa', 'mitra', 'precisione', 'pistola', 'granate', 'kit', 'materiali', 'bende', 'pozione'];
 function cassaPulita(c) {
   if (!c || !numOk(c.x) || !numOk(c.z) || typeof c.id !== 'string' || !CONTENUTI_VALIDI.includes(c.cont)) return null;
-  return { id: c.id.slice(0, 20), x: c.x, z: c.z, cont: c.cont };
+  const k = { id: c.id.slice(0, 20), x: c.x, z: c.z, cont: c.cont };
+  if ([1, 1.15, 1.3, 1.5].includes(c.rar)) k.rar = c.rar;
+  if (numOk(c.materiali)) k.materiali = lim(Math.round(c.materiali), 0, 100);
+  return k;
 }
 function listaPulita(l) { return Array.isArray(l) && l.length >= 1 && l.length <= 4 && l.every(c => typeof c === 'string' && c.length <= 12) ? l : null; }
 function puntiPuliti(p) {
@@ -88,13 +111,35 @@ function puntiPuliti(p) {
   return out;
 }
 // restituisce il messaggio ripulito, oppure null se è da scartare
+const intOk = (v, a, b) => Number.isInteger(v) && v >= a && v <= b;
+const testoOk = (v, n = 24) => typeof v === 'string' && v.length <= n;
 function messaggioValido(m) {
   if (!m || typeof m.t !== 'string' || typeof m.c !== 'string' || m.c.length > 12) return null;
+  const L = D.tipo === 'battaglia' ? 150 : LIMITE;
+  const nBot = typeof B !== 'undefined' && B.bot ? B.bot.length : 0;
   switch (m.t) {
+    // battaglia reale in rete
+    case 'bs': return Array.isArray(m.b) && m.b.length === nBot && m.b.every(r => Array.isArray(r) && r.length === 5 && r.every(Number.isFinite)) ? { t: 'bs', c: m.c, b: m.b } : null;
+    case 'bsp': return intOk(m.i, 0, nBot - 1) && testoOk(m.n) && testoOk(m.a, 12) ? { t: 'bsp', c: m.c, i: m.i, n: m.n, a: m.a } : null;
+    case 'bc': return intOk(m.i, 0, nBot - 1) && testoOk(m.a, 12) && numOk(m.d) && m.d >= 0 ? { t: 'bc', c: m.c, i: m.i, a: m.a, d: Math.min(m.d, 200), m: !!m.m, w: !!m.w } : null;
+    case 'bsu': return intOk(m.i, 0, nBot - 1) && testoOk(m.n) && Audio3D.buf[m.n] ? { t: 'bsu', c: m.c, i: m.i, n: m.n, g: numOk(m.g) ? lim(m.g, 0, 3) : 1, r: numOk(m.r) ? lim(m.r, 0.3, 3) : 1 } : null;
+    case 'bvo': return intOk(m.i, 0, nBot - 1) && ['minaccia', 'attacco', 'colpito', 'spara'].includes(m.k) ? m : null;
+    case 'bm': return intOk(m.i, 0, nBot - 1) && (m.da === null || testoOk(m.da, 12)) ? { t: 'bm', c: m.c, i: m.i, da: m.da, k: cassaPulita(m.k) } : null;
+    case 'bg': return intOk(m.i, 0, nBot - 1) && numOk(m.x) && numOk(m.z) ? m : null;
+    case 'cb': return intOk(m.i, 0, nBot - 1) && numOk(m.d) && m.d > 0 ? { t: 'cb', c: m.c, i: m.i, d: Math.min(m.d, 300) } : null;
+    case 'bz': {
+      const z3 = v => Array.isArray(v) && v.length === 3 && v.every(numOk);
+      return z3(m.z) && (m.p === null || z3(m.p)) && intOk(m.f, 0, 9) && numOk(m.r) ? { t: 'bz', c: m.c, z: m.z, p: m.p, f: m.f, s: m.s ? 1 : 0, r: m.r } : null;
+    }
+    case 'fineBR': return Number.isInteger(m.sq) ? m : null;
+    case 'rianima': return testoOk(m.a, 12) ? m : null;
     case 'ciao': case 'addio': case 'vivo': case 'ripeti': case 'presa': case 'rtc': return m;
     case 'prov': return typeof m.n === 'string' && m.n.length < 30 ? { t: 'prov', c: m.c, n: m.n } : null;
-    case 'ok': case 'via': { const l = listaPulita(m.lista); return l ? { ...m, lista: l } : null; }
-    case 's': return numOk(m.x) && numOk(m.z) ? { t: 's', c: m.c, x: lim(m.x, -LIMITE, LIMITE), z: lim(m.z, -LIMITE, LIMITE), m: [0, 1, 2].includes(m.m) ? m.m : 0, v: numOk(m.v) ? m.v : 100, h: Number.isInteger(m.h) ? lim(m.h, 0, 6) : 0, f: m.f ? 1 : 0, rn: numOk(m.rn) ? m.rn : 0 } : null;
+    case 'ok': case 'via': {
+      const l = listaPulita(m.lista); if (!l) return null;
+      return { t: m.t, c: m.c, per: testoOk(m.per, 12) ? m.per : '', lista: l, tipo: m.tipo === 'battaglia' ? 'battaglia' : 'duello', seme: Number.isInteger(m.seme) ? m.seme : 0, sq: [1, 2, 4].includes(m.sq) ? m.sq : 1 };
+    }
+    case 's': return numOk(m.x) && numOk(m.z) ? { t: 's', c: m.c, x: lim(m.x, -L, L), z: lim(m.z, -L, L), m: [0, 1, 2].includes(m.m) ? m.m : 0, v: numOk(m.v) ? m.v : 100, h: Number.isInteger(m.h) ? lim(m.h, 0, 6) : 0, f: m.f ? 1 : 0, q: m.q ? 1 : 0, a: m.a ? 1 : 0, n: m.n ? 1 : 0, rn: numOk(m.rn) ? m.rn : 0 } : null;
     case 'sparo': return { t: 'sparo', c: m.c, n: typeof m.n === 'string' ? m.n : 'sparo', r: numOk(m.r) ? m.r : 0 };
     case 'colpo': return numOk(m.d) && m.d > 0 ? { t: 'colpo', c: m.c, a: m.a, d: Math.min(m.d, 200), testa: !!m.testa } : null;
     case 'suono': return typeof m.n === 'string' ? m : null;
@@ -104,7 +149,7 @@ function messaggioValido(m) {
     case 'costruzione': {
       const k = m.c2;
       if (!k || !TIPI_COSTRUZIONE.includes(k.tipo) || typeof k.id !== 'string' || ![k.x, k.z, k.ax, k.az, k.bx, k.bz].every(numOk)) return null;
-      if (G.costruzioni.length >= 40) return null;
+      if (G.costruzioni.length >= (D.tipo === 'battaglia' ? 700 : 40)) return null;
       const vita = numOk(k.vita) ? lim(k.vita, 1, 200) : 100;
       const livello = Number.isInteger(k.livello) ? lim(k.livello, 0, 6) : 0, dir = (v) => (typeof v === 'number' && Math.abs(v) <= 1.01 ? v : 0);
       return { t: 'costruzione', c: m.c, c2: { id: k.id.slice(0, 20), tipo: k.tipo, nome: k.tipo === 'rampa' ? 'rampa' : 'muro', x: k.x, z: k.z, ax: k.ax, az: k.az, bx: k.bx, bz: k.bz, livello, dirx: dir(k.dirx), dirz: dir(k.dirz), vita, vitaMax: vita, pronta: true, nato: G.tempo } };
@@ -135,32 +180,39 @@ function duelloSmista(m) {
       parla(`Giocatore entrato. Siete in ${D.giocatori.length}. Invio per iniziare.`, 2);
       aggiornaPannello();
     }
-    duelloInvia({ t: 'ok', per: m.c, lista: D.giocatori });
+    duelloInvia({ t: 'ok', per: m.c, lista: D.giocatori, tipo: D.tipo, sq: D.squadre });
     return;
   }
   if (m.t === 'ok') {
     if (D.ospite) return;
     if (m.per === D.cid && !D.cidOspite) {
       D.cidOspite = m.c; clearInterval(D.bussa); clearTimeout(D.attesa);
-      G.stato = 'attesa';
-      parla(`Sei nella stanza. Siete in ${m.lista.length}. Attendi il via.`, 2);
+      G.stato = 'attesa'; D.tipo = m.tipo; D.squadre = m.sq;
+      parla(`Sei nella stanza${m.tipo === 'battaglia' ? ' della battaglia reale' + (m.sq > 1 ? ', a squadre' : '') : ''}. Siete in ${m.lista.length}. Attendi il via.`, 2);
     }
     if (m.c === D.cidOspite) { D.giocatori = m.lista; aggiornaPannello(); }
     return;
   }
   if (m.t === 'via') {
-    if (!D.ospite && m.c === D.cidOspite && m.lista.includes(D.cid) && !D.avvio) { D.giocatori = m.lista; D.avvio = true; duelloAvvia(); }
+    if (D.ospite || m.c !== D.cidOspite || !m.lista.includes(D.cid)) return;
+    if (m.tipo === 'battaglia') {
+      // battaglia reale: anche le partite successive arrivano con un nuovo "via" e un nuovo seme
+      if (D.avvio && typeof B !== 'undefined' && B.seme === m.seme) return;
+      D.giocatori = m.lista; D.avvio = true; D.tipo = 'battaglia'; D.squadre = m.sq;
+      battagliaAvviaRete(m.seme);
+    } else if (!D.avvio) { D.giocatori = m.lista; D.avvio = true; duelloAvvia(); }
     return;
   }
   if (!D.giocatori.includes(m.c)) return;
   if (m.t === 'addio') { duelloUscito(m.c); return; }
   const a = D.altri.get(m.c);
   if (a) a.ultimoMessaggio = performance.now();
-  if (D.attivo) duelloRicevi(m, a);
+  if (D.attivo) (D.tipo === 'battaglia' ? reteBRRicevi(m, a) : duelloRicevi(m, a));
 }
 
 // ---------------------------------------------------------------- stanza
-async function duelloCrea() {
+async function duelloCrea(tipo = 'duello', squadre = 1) {
+  D.tipo = tipo; D.squadre = squadre;
   G.stato = 'caricamento'; aggiornaPannello();
   parla('Creo la stanza.', 2);
   try { await duelloApriRete(String(casoInt(1000, 9999)), true); }
@@ -168,11 +220,12 @@ async function duelloCrea() {
   G.stato = 'attesa'; aggiornaPannello(); duelloDiciCodice();
 }
 function duelloDiciCodice() {
-  if (D.ospite) parla(`Codice stanza: ${D.codice.split('').join(', ')}. Giocatori: ${D.giocatori.length}. Quando siete tutti, premi Invio. Esc per annullare.`, 2);
+  if (D.ospite) parla(`${D.tipo === 'battaglia' ? 'Battaglia reale in rete. ' : ''}Codice stanza: ${D.codice.split('').join(', ')}. Giocatori: ${D.giocatori.length}. Quando siete tutti, premi Invio${D.tipo === 'battaglia' ? ': i posti vuoti li prendono i bot' : ''}. Esc per annullare.`, 2);
   else parla(`Siete in ${D.giocatori.length}. Attendi il via.`, 1);
 }
 function duelloDaiIlVia() {
   if (!D.ospite) return;
+  if (D.tipo === 'battaglia') { reteBRRivincita(); return; }
   if (D.giocatori.length < 2) { parla('Serve almeno un avversario.', 1); return; }
   D.avvio = true;
   duelloInvia({ t: 'via', lista: D.giocatori });
@@ -199,6 +252,15 @@ function duelloUscito(cid) {
     if (D.ospite) { parla(`Un giocatore è uscito. Siete in ${D.giocatori.length}.`, 1); duelloInvia({ t: 'ok', per: '', lista: D.giocatori }); }
     return;
   }
+  if (D.tipo === 'battaglia' && D.attivo && cid !== D.cidOspite) {
+    // battaglia in rete: chi esce viene tolto, la partita continua coi bot
+    const a = D.altri.get(cid);
+    D.giocatori.splice(i, 1);
+    if (a) { a.vivo = false; a.uscito = true; chiudiSorgente(a.sorgente); chiudiSorgente(a.sorgenteVoce); G.nemici = G.nemici.filter(n => n !== a); D.altri.delete(cid); parla(`${a.nome} è uscito.`, 1); }
+    vocaleChiudi(cid);
+    if (D.ospite) controllaFine();
+    return;
+  }
   if (cid === D.cidOspite || D.giocatori.length <= 2) {
     // se esce chi ha creato la stanza, o resto solo, la partita finisce
     if (!D.attivo && G.stato !== 'attesa') return;
@@ -219,16 +281,26 @@ function duelloUscito(cid) {
 function duelloChiudi() {
   clearTimeout(D.attesa); clearInterval(D.bussa); clearInterval(D.presenza);
   if (D.collegato) duelloInvia({ t: 'addio' });
-  D.attivo = false; D.avvio = false; D.collegato = false; D.finito = false;
+  D.attivo = false; D.avvio = false; D.collegato = false; D.finito = false; D.ospite = false; D.cidOspite = null;
+  if (typeof B !== 'undefined') B.rete = false;
   if (D.sorgenteZona) { fermaLoop(D.sorgenteZona); D.sorgenteZona = null; }
   for (const cid of [...Vocale.pc.keys()]) vocaleChiudi(cid);
   if (Vocale.flusso) { Vocale.flusso.getTracks().forEach(t => t.stop()); Vocale.flusso = null; }
   Vocale.pronta = null;
-  D.altri.clear(); D.casse = []; D.giocatori = [];
+  D.altri.clear(); D.casse = []; D.giocatori = []; D.coda = [];
   const r = D.rete; D.rete = null;
   if (r) setTimeout(() => { try { r.end(true); } catch (e) { /* già chiusa */ } }, 300);
 }
 
+// un giocatore in rete, come lo sento e lo colpisco io
+function nuovoRemoto(cid, nome) {
+  return {
+    remoto: true, cid, tipo: 'soldato', nome, livello: 0, def: { nome, raggio: 0.35, versi: [] },
+    x: 0, z: -10, tx: 0, tz: -10, vita: 100, vivo: false, udito: true, allertato: true, occluso: false, occlusione: 0, alto: false,
+    sorgente: creaSorgente({ ref: 9, rolloff: 0.8, riverbero: 0.15 }), sorgenteVoce: creaSorgente({ ref: 6, riverbero: 0.1 }),
+    mov: 0, prossimoPasso: 0, fase: 0, morteT: 99, stordito: 0, carica: false, tono: 1, ultimoMessaggio: performance.now(),
+  };
+}
 function nomeAvversario(cid) {
   const altri = D.giocatori.filter(c => c !== D.cid);
   return altri.length <= 1 ? 'avversario' : `avversario ${altri.indexOf(cid) + 1}`;
@@ -248,12 +320,7 @@ async function duelloAvvia() {
   for (const cid of D.giocatori) {
     D.punti[cid] = 0;
     if (cid === D.cid) continue;
-    const a = {
-      remoto: true, cid, tipo: 'soldato', nome: nomeAvversario(cid), livello: 0, def: { nome: nomeAvversario(cid), raggio: 0.35, versi: [] },
-      x: 0, z: -10, tx: 0, tz: -10, vita: 100, vivo: false, udito: true, allertato: true, occluso: false, occlusione: 0, alto: false,
-      sorgente: creaSorgente({ ref: 9, rolloff: 0.8, riverbero: 0.15 }), sorgenteVoce: creaSorgente({ ref: 6, riverbero: 0.1 }),
-      mov: 0, prossimoPasso: 0, fase: 0, morteT: 99, stordito: 0, carica: false, tono: 1, ultimoMessaggio: performance.now(),
-    };
+    const a = nuovoRemoto(cid, nomeAvversario(cid));
     D.altri.set(cid, a); G.nemici.push(a);
   }
   D.attivo = true; D.round = 0; D.fuori = true; D.finito = false;
@@ -541,22 +608,7 @@ function aggiornaDuello(dt) {
     D.prossimoInvio = G.tempo + 1 / 10;
     duelloInvia({ t: 's', x: +G.x.toFixed(2), z: +G.z.toFixed(2), m: mov, v: Math.round(G.vita), h: G.livello || 0, f: D.fuori ? 1 : 0, rn: D.round });
   }
-  // avversari: posizione ammorbidita, passi e voce che vengono da dove si trovano (anche dall'alto)
-  const k = Math.min(1, dt * 12), ora = performance.now(), mioY = (G.livello || 0) * 2.5;
-  for (const [cid, a] of [...D.altri]) {
-    if (ora - a.ultimoMessaggio > 30000) { duelloUscito(cid); continue; }
-    a.x += (a.tx - a.x) * k; a.z += (a.tz - a.z) * k; a.fase += dt * (a.mov ? 1 : 0);
-    const y = (a.livello || 0) * 2.5 - mioY;
-    const muro = !!muroTra(G.x, G.z, a.x, a.z, G.livello || 0, a.livello || 0);
-    occludi(a.sorgente, muro, dt); occludi(a.sorgenteVoce, muro, dt);
-    posiziona(a.sorgente, a.x, y, a.z); posiziona(a.sorgenteVoce, a.x, y + 0.3, a.z);
-    if (a.vivo && a.mov && G.tempo >= a.prossimoPasso) {
-      a.prossimoPasso = G.tempo + (a.mov === 2 ? 0.33 : 0.55);
-      suonaBase(a.mov === 2 ? `corsa${casoInt(1, 6)}` : `io_passo${casoInt(1, 4)}`, { dest: a.sorgente.ingresso, gain: a.mov === 2 ? 2.6 : 2.4, rate: caso(0.95, 1.05) });
-      // sulle costruzioni i passi sono di legno: si capisce che sta in alto
-      if ((a.livello || 0) > 0) suonaBase('legno_colpito', { dest: a.sorgente.ingresso, gain: 0.55, rate: caso(1.5, 1.8) });
-    }
-  }
+  aggiornaAltri(dt);
   aggiornaCasse(D.fuori);
   // chi ha creato la stanza fa cadere una cassa nuova ogni tanto, dentro la zona
   if (D.ospite && !D.roundChiuso && G.tempo >= D.prossimaCassa) {
@@ -790,4 +842,25 @@ function provocazione(categoria) {
   const n = scegli(frasi);
   suonaBase(n, { gain: 0.5 });
   duelloInvia({ t: 'prov', n });
+}
+
+// gli altri giocatori: posizione ammorbidita, passi e voce che vengono da dove si trovano (anche dall'alto)
+function aggiornaAltri(dt) {
+  const k = Math.min(1, dt * 12), ora = performance.now(), mioY = (G.livello || 0) * 2.5, br = G.modalita === 'battaglia';
+  for (const [cid, a] of [...D.altri]) {
+    if (ora - a.ultimoMessaggio > 30000) { duelloUscito(cid); continue; }
+    a.x += (a.tx - a.x) * k; a.z += (a.tz - a.z) * k; a.fase += dt * (a.mov ? 1 : 0);
+    const y = (a.livello || 0) * 2.5 - mioY;
+    const muro = !!muroTra(G.x, G.z, a.x, a.z, G.livello || 0, a.livello || 0);
+    occludi(a.sorgente, muro, dt); occludi(a.sorgenteVoce, muro, dt);
+    posiziona(a.sorgente, a.x, y, a.z); posiziona(a.sorgenteVoce, a.x, y + 0.3, a.z);
+    if (br) a.udito = !a.inAria && (a.mov > 0 || G.tempo - (a.ultimoSuono || -99) < 6);
+    if (a.vivo && a.mov && !a.inAria && G.tempo >= a.prossimoPasso) {
+      a.prossimoPasso = G.tempo + (a.aTerra ? 0.9 : a.mov === 2 ? 0.33 : 0.55);
+      const P = passoSulTerreno(a.mov === 2 ? `corsa${casoInt(1, 6)}` : `io_passo${casoInt(1, 4)}`, a.x, a.z, a.livello, { gain: a.aTerra ? 0.8 : a.mov === 2 ? 2.6 : 2.4, rate: caso(0.95, 1.05) });
+      suonaBase(P.nome, { dest: a.sorgente.ingresso, ...P.opz });
+      // sulle costruzioni i passi sono di legno: si capisce che sta in alto
+      if (P.legno || (a.livello || 0) > 0) suonaBase('legno_colpito', { dest: a.sorgente.ingresso, gain: 0.55, rate: caso(1.5, 1.8) });
+    }
+  }
 }
