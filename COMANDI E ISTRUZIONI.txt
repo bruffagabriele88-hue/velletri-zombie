@@ -126,7 +126,7 @@ Tasti
 H: ti curi (kit più 50, bende più 20).   P: bevi una pozione scudo (più 50, due secondi).
 B: muro.   N: rampa.   Costano 3 materiali e si costruiscono in mezzo secondo.
    I muri fermano i proiettili, anche quelli degli avversari; dalla rampa spari oltre i muri.
-O: il luogo più vicino e il punto cardinale.
+O: dov'è la zona sicura, quanto manca alla tempesta, il luogo più vicino e il punto cardinale.
 Spazio: quanti restano, chi senti vicino, forziere più vicino, zona, arma, vita, scudo, materiali.
 X: mezzo giro.
 
@@ -197,9 +197,13 @@ AUDIO REALISTICO (battaglia reale e duello)
 - Ambienti registrati in binaurale, da ascoltare in cuffia: campagna con uccelli e vento sull'isola,
   il vento tra gli alberi nel bosco, uccelli nel duello. Y li accende e spegne insieme al vento.
 
-Niente tempesta
-L'isola resta tutta aperta fino alla fine. Dopo due minuti dall'atterraggio gli avversari vanno a caccia:
-   sanno più o meno da che parte sono gli altri, ma non il punto esatto.
+La tempesta
+Per due minuti dopo l'atterraggio l'isola resta tutta aperta. Venti secondi prima che parta la voce ti avvisa.
+Poi la tempesta restringe l'isola a fasi, e ogni volta sposta il centro. La voce ti dice in che direzione
+   e a quanti metri è la zona sicura; O e Spazio te lo ripetono. Vicino al bordo senti un ronzio.
+   Nella tempesta perdi vita ogni secondo, sempre di più, e lo scudo non ti protegge.
+   Si porta via anche i forzieri e le costruzioni che restano fuori.
+Dopo due minuti dall'atterraggio gli avversari vanno anche a caccia: sanno più o meno da che parte sono gli altri.
 
 Gli avversari
 Hanno un nome e una voce. Saccheggiano, si sparano tra loro, ti insultano, alzano un muro quando li colpisci.

@@ -17,7 +17,8 @@ const LUOGHI = {
   canile: { nome: 'Canile', x: 0, z: 62, forzieri: 9, suono: 'cani', ogni: 22, ref: 14, gain: 0.6 },
   bosco: { nome: 'Bosco', x: -62, z: 0, forzieri: 9, suono: 'civetta', ogni: 16, ref: 12, gain: 0.6 },
 };
-const FASI_TEMPESTA = [{ a: 30, c: 30, r: 55, d: 2 }, { a: 20, c: 25, r: 30, d: 4 }, { a: 15, c: 20, r: 12, d: 7 }, { a: 8, c: 20, r: 0, d: 10 }];
+// l'isola resta tutta aperta per due minuti dopo l'atterraggio, poi la tempesta comincia a restringerla
+const FASI_TEMPESTA = [{ a: 120, c: 40, r: 60, d: 2 }, { a: 40, c: 30, r: 32, d: 4 }, { a: 25, c: 25, r: 14, d: 7 }, { a: 12, c: 20, r: 0, d: 10 }];
 const RARITA = [[1, 'comune', 50], [1.15, 'raro', 30], [1.3, 'epico', 15], [1.5, 'leggendario', 5]];
 const NOMI_BOT = ['Rocko', 'Vipera', 'Sandy', 'Lupo', 'Flo', 'Tank', 'Shelley', 'Bruno', 'Eddy', 'Nina', 'Reed'];
 const ORDINALI = ['primo', 'secondo', 'terzo', 'quarto', 'quinto', 'sesto', 'settimo', 'ottavo', 'nono', 'decimo', 'undicesimo', 'dodicesimo'];
@@ -71,7 +72,7 @@ async function battagliaAvvia(lancio, difficolta) {
   D.trappole = []; D.radarFino = 0;
   B.lancio = lancio; B.attiva = true; B.morto = false; B.eliminazioni = 0; B.ultimoAggressore = null;
   B.zona = { cx: 0, cz: 0, r: RAGGIO_ISOLA }; B.fase = 0; B.stadio = 'attesa'; B.fine = FASI_TEMPESTA[0].a + 4; B.eroFuori = false;
-  B.prossima = null; B.annunciata = true; B.granateVive = [];
+  B.prossima = prossimaZona(); B.annunciata = false; B.granateVive = [];
 
   // forzieri nei cinque luoghi
   D.casse = [];
@@ -241,8 +242,8 @@ function atterra() {
   G.occupatoFino = G.tempo;
   // se fuori dall'isola (non dovrebbe), dentro
   const r = Math.hypot(G.x, G.z); if (r > RAGGIO_ISOLA - 2) { G.x *= (RAGGIO_ISOLA - 2) / r; G.z *= (RAGGIO_ISOLA - 2) / r; }
-  // le casse col paracadute partono da adesso
-  B.prossimaCassa = G.tempo + 25;
+  // la tempesta e le casse col paracadute partono da adesso
+  B.fine = G.tempo + FASI_TEMPESTA[0].a; B.annunciata = false; B.prossimaCassa = G.tempo + 25;
   suona('corpo_cade', { gain: 0.6, rate: 1.3 });
   colpoInizio();
   let vicino = null;
@@ -264,9 +265,47 @@ function dovePerLaZona() {
   return `Zona sicura ${direzioneRelativa(avvolgi(rottaVerso(G.x, G.z, P.cx, P.cz) - G.rotta))}, ${metri(Math.max(1, d - P.r))}.`;
 }
 
-// niente più tempesta: l'isola resta tutta aperta fino alla fine. Dopo un paio di minuti
-// gli avversari vanno a caccia, così la partita non si allunga all'infinito.
-function aggiornaTempesta() {}
+function aggiornaTempesta() {
+  const f = FASI_TEMPESTA[B.fase];
+  if (B.cielo) return;
+  if (f && !B.annunciata && B.fine - G.tempo < (B.fase === 0 ? 20 : 999) && G.tempo > (B.atterratoA || 0) + 5) { B.annunciata = true; parla(`Tempesta tra ${Math.round(B.fine - G.tempo)} secondi. ${dovePerLaZona()}`, 1); }
+  if (f && G.tempo >= B.fine) {
+    if (B.stadio === 'attesa') {
+      B.stadio = 'chiusura'; B.da = { ...B.zona }; B.fine = G.tempo + f.c;
+      parla(`La tempesta avanza. ${dovePerLaZona()}`, 1);
+    } else {
+      B.zona = { ...B.prossima }; B.fase++; B.stadio = 'attesa';
+      const n = FASI_TEMPESTA[B.fase];
+      if (n) { B.fine = G.tempo + n.a; B.prossima = prossimaZona(); B.annunciata = false; } else B.prossima = null;
+    }
+  }
+  if (B.stadio === 'chiusura' && f && B.da) {
+    const k = lim(1 - (B.fine - G.tempo) / f.c, 0, 1), P = B.prossima;
+    B.zona = { cx: B.da.cx + (P.cx - B.da.cx) * k, cz: B.da.cz + (P.cz - B.da.cz) * k, r: B.da.r + (P.r - B.da.r) * k };
+  }
+  // io e la tempesta: ronzio dal bordo quando è vicino, danni se sono fuori (lo scudo non protegge)
+  const Z = B.zona, dx = G.x - Z.cx, dz = G.z - Z.cz, c = Math.hypot(dx, dz), fuori = c > Z.r;
+  const [ux, uz] = c > 0.5 ? [dx / c, dz / c] : avanti(G.rotta);
+  if (fuori) posiziona(B.sorgTempesta, G.x, 0.3, G.z); else posiziona(B.sorgTempesta, Z.cx + ux * Z.r, 0, Z.cz + uz * Z.r);
+  B.sorgTempesta.src.guadagno.gain.setTargetAtTime(B.morto ? 0 : fuori ? 1.2 : Z.r - c < 10 ? 0.6 : 0, Audio3D.ctx.currentTime, 0.3);
+  const danno = (FASI_TEMPESTA[Math.min(B.fase, FASI_TEMPESTA.length - 1)] || { d: 10 }).d;
+  if (fuori && !B.morto && G.tempo > 4) {
+    if (!B.eroFuori) { parla(`Sei nella tempesta! ${dovePerLaZona()}`, 1); B.prossimoDanno = G.tempo + 1; }
+    if (G.tempo >= B.prossimoDanno) {
+      B.prossimoDanno = G.tempo + 1;
+      G.vita -= danno; G.effetti.dolore = 0.6; G.ultimaFerita = G.tempo;
+      suona(scegli(['dolore1', 'dolore2', 'dolore3']), { gain: 0.5 });
+      if (G.vita <= 0) { G.vita = 0; B.ultimoAggressore = null; morte(); }
+    }
+  }
+  B.eroFuori = fuori;
+  for (const b of B.bot) {
+    if (b.vivo && Math.hypot(b.x - Z.cx, b.z - Z.cz) > Z.r && G.tempo >= (b.prossimoDannoT || 0)) { b.prossimoDannoT = G.tempo + 1; b.vita -= danno; if (b.vita <= 0) elimina(b, null); }
+  }
+  // la tempesta si porta via forzieri e costruzioni
+  D.casse = D.casse.filter(k => Math.hypot(k.x - Z.cx, k.z - Z.cz) <= Z.r + 3);
+  for (const k of G.costruzioni) if (Math.hypot(k.x - Z.cx, k.z - Z.cz) > Z.r + 3) k.vita = 0;
+}
 
 // ---------------------------------------------------------------- avversari
 function suonoBot(b, nome, opz = {}) { b.ultimoSuono = G.tempo; b.udito = true; return suona(nome, { dest: b.sorgente.ingresso, ...opz }); }
@@ -620,7 +659,9 @@ function bevePozione() {
 function battagliaZona() {
   let vicino = null;
   for (const L of Object.values(LUOGHI)) { const d = Math.hypot(L.x - G.x, L.z - G.z); if (!vicino || d < vicino.d) vicino = { L, d }; }
-  parla(`${vicino.L.nome} ${vicino.d < 8 ? 'qui' : direzioneRelativa(avvolgi(rottaVerso(G.x, G.z, vicino.L.x, vicino.L.z) - G.rotta)) + ', ' + metri(vicino.d)}. Guardi verso ${puntoCardinale(G.rotta)}.`, 1);
+  const f = FASI_TEMPESTA[B.fase];
+  const tempo = !f ? '' : B.stadio === 'attesa' ? ` Tempesta tra ${Math.max(0, Math.round(B.fine - G.tempo))} secondi.` : ' La tempesta sta avanzando.';
+  parla(`${dovePerLaZona()}${tempo} ${vicino.L.nome} ${vicino.d < 8 ? 'qui' : direzioneRelativa(avvolgi(rottaVerso(G.x, G.z, vicino.L.x, vicino.L.z) - G.rotta)) + ', ' + metri(vicino.d)}. Guardi verso ${puntoCardinale(G.rotta)}.`, 1);
 }
 
 // Spazio: la situazione
@@ -632,6 +673,7 @@ function battagliaRicognizione() {
   let cassa = null;
   for (const c of D.casse) { const d = Math.hypot(c.x - G.x, c.z - G.z); if (!cassa || d < cassa.d) cassa = { c, d }; }
   if (cassa && cassa.d < 60) f += `Forziere ${direzioneRelativa(avvolgi(rottaVerso(G.x, G.z, cassa.c.x, cassa.c.z) - G.rotta))}, ${metri(cassa.d)}. `;
+  f += `${dovePerLaZona()} `;
   const st = armaStato();
   f += `${armaDef().nome}${st.rarita && st.rarita > 1 ? ' ' + nomeRarita(st.rarita) : ''} ${testoColpi(armaDef(), st)}. Vita ${Math.round(G.vita)}, scudo ${Math.round(G.scudo)}. ${G.inventario.materiali} materiali`;
   if (G.inventario.pozioni) f += `, ${plurale(G.inventario.pozioni, 'pozione', 'pozioni')}`;

@@ -390,6 +390,9 @@ function hudBattaglia(W, H, ora) {
     g.fillText(raggioZona() < RAGGIO_ARENA ? `Zona ${Math.round(raggioZona())} m` : 'Zona aperta', W - pad - 14 * u, pad + 60 * u);
   } else {
   g.fillStyle = '#fff'; g.fillText(`👤 ${rimasti()}    ✖ ${B.eliminazioni}`, W - pad - 14 * u, pad + 30 * u);
+  const f = FASI_TEMPESTA[B.fase];
+  g.font = `600 ${Math.round(18 * u)}px -apple-system, Helvetica, sans-serif`; g.fillStyle = '#d6b4ff';
+  g.fillText(B.cielo ? 'Sul bus' : !f ? 'Tempesta finale' : B.stadio === 'attesa' ? `Tempesta tra ${Math.max(0, Math.round(B.fine - G.tempo))}s` : 'La tempesta avanza', W - pad - 14 * u, pad + 60 * u);
   }
   // bussola in alto al centro
   const cx = W / 2;
