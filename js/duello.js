@@ -32,7 +32,7 @@ suona = function (nome, opz = {}) { // eslint-disable-line no-global-assign
 // Nella battaglia in rete i messaggi non partono uno per uno: si raccolgono e partono insieme in un "pacco"
 // circa sette volte al secondo. I server pubblici scartano i messaggi se sono troppi.
 const IMMEDIATI = new Set(['ciao', 'addio', 'vivo', 'ok', 'via', 'rtc', 'ripeti']);
-const AFFIDABILI = new Set(['bm', 'cassa', 'costruzione', 'presa', 'morto', 'fineBR', 'rianima', 'colpo', 'cb', 'bc', 'bg']);
+const AFFIDABILI = new Set(['bm', 'cassa', 'costruzione', 'presa', 'morto', 'fineBR', 'rianima', 'colpo', 'cb', 'bc', 'bg', 'br']);
 function duelloInvia(m) {
   if (!D.rete || !D.collegato) return;
   m.c = D.cid;
@@ -96,7 +96,7 @@ async function duelloApriRete(codice, ospite) {
 // --- controllo dei messaggi in arrivo: mai fidarsi di ciò che arriva dalla rete
 const numOk = v => typeof v === 'number' && Number.isFinite(v) && Math.abs(v) <= 500;
 const TIPI_COSTRUZIONE = ['barricata', 'rampa'];
-const CONTENUTI_VALIDI = ['radar', 'scudo', 'pompa', 'mitra', 'precisione', 'pistola', 'granate', 'kit', 'materiali', 'bende', 'pozione'];
+const CONTENUTI_VALIDI = ['radar', 'scudo', 'pompa', 'mitra', 'precisione', 'pistola', 'granate', 'kit', 'materiali', 'bende', 'pozione', 'mitraglietta', 'lanciarazzi'];
 function cassaPulita(c) {
   if (!c || !numOk(c.x) || !numOk(c.z) || typeof c.id !== 'string' || !CONTENUTI_VALIDI.includes(c.cont)) return null;
   const k = { id: c.id.slice(0, 20), x: c.x, z: c.z, cont: c.cont };
@@ -125,7 +125,7 @@ function messaggioValido(m) {
     case 'bsu': return intOk(m.i, 0, nBot - 1) && testoOk(m.n) && Audio3D.buf[m.n] ? { t: 'bsu', c: m.c, i: m.i, n: m.n, g: numOk(m.g) ? lim(m.g, 0, 3) : 1, r: numOk(m.r) ? lim(m.r, 0.3, 3) : 1 } : null;
     case 'bvo': return intOk(m.i, 0, nBot - 1) && ['minaccia', 'attacco', 'colpito', 'spara'].includes(m.k) ? m : null;
     case 'bm': return intOk(m.i, 0, nBot - 1) && (m.da === null || testoOk(m.da, 12)) ? { t: 'bm', c: m.c, i: m.i, da: m.da, k: cassaPulita(m.k) } : null;
-    case 'bg': return intOk(m.i, 0, nBot - 1) && numOk(m.x) && numOk(m.z) ? m : null;
+    case 'bg': case 'br': return intOk(m.i, 0, nBot - 1) && numOk(m.x) && numOk(m.z) ? m : null;
     case 'cb': return intOk(m.i, 0, nBot - 1) && numOk(m.d) && m.d > 0 ? { t: 'cb', c: m.c, i: m.i, d: Math.min(m.d, 300) } : null;
     case 'bz': {
       const z3 = v => Array.isArray(v) && v.length === 3 && v.every(numOk);
@@ -337,7 +337,7 @@ async function duelloAvvia() {
 // si parte leggeri: pistola, pochi materiali. Il resto si trova nelle casse.
 function duelloEquipaggia(mod = 'normale') {
   G.arsenale = nuovoArsenale(null);
-  G.arsenale.riserva = { '9mm': 45, cal12: 0, '762': 0, '308': 0 };
+  G.arsenale.riserva = { '9mm': 45, cal12: 0, '762': 0, '308': 0, razzo: 0 };
   G.inventario = { granate: 0, kit: 0, cibo: 0, materiali: 12, radar: 0 };
   G.scudo = 0; G.alto = false; G.livello = 0; G.rampaSotto = null; G.velocitaExtra = 1;
   D.trappole = [];
@@ -537,15 +537,15 @@ function duelloApriCassa() {
     const A = G.arsenale, I = G.inventario;
     let f;
     switch (c.cont) {
-      case 'scudo': G.scudo = Math.min(100, G.scudo + 50); suonaBase('scudo_su', { gain: 0.6 }); f = `scudo ${G.scudo}`; break;
+      case 'scudo': G.scudo = Math.min(100, G.scudo + 50); suonaBase('scudo_su', { gain: 0.6 }); f = `giubbotto ${G.scudo}`; break;
       case 'granate': I.granate += 2; f = '2 granate, tasto Q'; break;
       case 'kit': I.kit += 1; f = 'kit medico, tasto H'; break;
       case 'materiali': I.materiali += 10; f = '10 materiali'; break;
       case 'bende': I.cibo += 3; f = '3 bende, tasto H'; break;
-      case 'pozione': I.pozioni = (I.pozioni || 0) + 1; f = 'pozione scudo, tasto P'; break;
+      case 'pozione': I.pozioni = (I.pozioni || 0) + 1; f = 'piastra balistica, tasto P'; break;
       case 'radar': I.radar = (I.radar || 0) + 1; f = 'radar, tasto L'; break;
       default: {
-        const def = ARMI[c.cont], scorta = { pistola: 30, pompa: 12, mitra: 60, precisione: 10 }[c.cont];
+        const def = ARMI[c.cont], scorta = { pistola: 30, pompa: 12, mitra: 60, precisione: 10, mitraglietta: 60, lanciarazzi: 3 }[c.cont];
         const rar = c.rar || 1, nomeRar = c.rar ? ' ' + nomeRarita(rar) : '';
         A.riserva[def.munizione] += scorta;
         if (A.armi[c.cont] && (A.armi[c.cont].rarita || 1) >= rar) f = `munizioni per ${def.nome}`;

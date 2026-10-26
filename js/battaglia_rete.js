@@ -4,7 +4,7 @@
 // chi ha creato la stanza fa muovere i bot, la tempesta e le casse col paracadute, e lo racconta agli altri.
 // Ognuno decide da sé dei propri colpi: chi colpisce un bot lo dice a chi comanda, chi colpisce una persona lo dice a lei.
 
-const ARMI_IDX = ['piccone', 'pistola', 'pompa', 'mitra', 'precisione'];
+const ARMI_IDX = ['piccone', 'pistola', 'pompa', 'mitra', 'precisione', 'mitraglietta', 'lanciarazzi'];
 
 // chi ha creato la stanza dà il via (anche per le partite successive): nuovo seme, stesse squadre
 function reteBRRivincita() {
@@ -172,6 +172,7 @@ function reteBRRicevi(m, a) {
     case 'bsu': if (daCapo && bot && (bot.vivo || m.n === 'corpo_cade')) suonoBot(bot, m.n, { gain: m.g, rate: m.r }); break;
     case 'bvo': if (daCapo && bot && bot.vivo) fraseBot(bot, m.k); break;
     case 'bg': if (daCapo && bot) sequenzaGranataBot(bot, m.x, m.z); break;
+    case 'br': if (daCapo && bot) { suonoBot(bot, 'lancio', { gain: 1.2, rate: 0.55 }); razzoBot(bot, m.x, m.z, Math.max(0.2, Math.hypot(m.x - bot.x, m.z - bot.z) / 55)); } break;
     case 'bm':
       if (!daCapo || !bot) break;
       if (bot.vivo) {

@@ -122,8 +122,8 @@ Vai sopra, senti "cassa, E", premi E. Dentro: armi di quattro rarità (comune, r
 pozioni scudo, bende, kit, granate, materiali. Chi viene eliminato lascia a terra il suo bottino.
 
 Tasti
-1 pistola, 2 fucile a pompa, 3 mitragliatore, 4 fucile di precisione, 5 piccone.   R ricarica.   Q granata.
-H: ti curi (kit più 50, bende più 20).   P: bevi una pozione scudo (più 50, due secondi).
+1 pistola, 2 fucile a pompa, 3 mitragliatore, 4 fucile di precisione, 5 piccone, 6 mitraglietta, 7 lanciarazzi.   R ricarica.   Q granata.
+H: ti curi (kit più 50, bende più 20).   P: inserisci una piastra balistica nel giubbotto (più 50, due secondi).
 B: muro.   N: rampa.   Costano 3 materiali e si costruiscono in mezzo secondo.
    I muri fermano i proiettili, anche quelli degli avversari; dalla rampa spari oltre i muri.
 O: dov'è la zona sicura, quanto manca alla tempesta, il luogo più vicino e il punto cardinale.
@@ -187,6 +187,23 @@ Se la rampa sotto di te viene distrutta cadi: da due piani in su ti fai male.
 Anche gli avversari costruiscono: un muro verso chi gli spara, una scatola quando sono feriti, rampe per salirti sopra.
 
 
+
+
+PIÙ SERIO E REALISTICO (Battaglia reale)
+- Si parte in elicottero da trasporto, non sul bus: senti le pale e la turbina, il portellone che si apre.
+  Ci si lancia col paracadute. Spazio per lanciarti, da 1 a 5 scegli il luogo.
+- Armi nuove: 6 mitraglietta (tanti colpi veloci, corto e medio raggio), 7 lanciarazzi (un razzo alla volta:
+  lo senti volare via e scoppiare dove arriva, distrugge muri e rampe; attento a non spararlo troppo vicino).
+  Anche gli avversari le trovano e le usano.
+- Qualità delle armi: standard, migliorato, militare, forze speciali (prima erano comune, raro, epico, leggendario).
+- Il giubbotto antiproiettile al posto dello scudo: P inserisce una piastra balistica (senti il velcro e la piastra),
+  i colpi sul giubbotto fanno un tonfo duro, e quando si rompe senti la ceramica che si spacca.
+- Suoni veri al posto di quelli da cartone animato: il forziere fa il bip secco di un localizzatore militare,
+  vicino a un forziere senti le chiusure di metallo, il colpo a segno è un tonfo sordo e quello alla testa è il proiettile
+  che rimbalza sull'elmetto. A fine partita niente fanfara: un accordo basso, come alla fine di un film.
+- Gli avversari hanno nomi veri: Ferri, Conti, Greco, Marino, Russo e gli altri.
+- Grafica 3D nuova, per chi guarda: cielo vero col sole, mare con le onde, erba alta, pini e alberi, case con le persiane
+  e i tetti di coppi, soldati con la mimetica che camminano, casse militari, esplosioni col fumo e il bagliore.
 
 SQUADRE (Battaglia reale)
 Dal menù, Battaglia reale: scegli Da solo, In coppia oppure Squadre da quattro. I compagni sono bot.

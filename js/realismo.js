@@ -34,6 +34,49 @@ function creaSuoniRealismo(ctx) {
     // inspirazione ed espirazione dopo una corsa
     inspira: respiro(0.55, 1300, 0.12),
     espira: respiro(0.5, 900, 0.04),
+    // ---- suoni seri al posto di quelli da cartone animato (sostituiscono quelli del duello con lo stesso nome)
+    // forziere: non tre note musicali, ma il bip secco di un localizzatore militare, due volte
+    cassa_ping: crea(0.42, t => {
+      const bip = t0 => (t > t0 && t < t0 + 0.05) ? Math.sin(PI2 * 2350 * (t - t0)) * Math.min(1, (t - t0) * 900) * Math.min(1, (t0 + 0.05 - t) * 900) : 0;
+      return (bip(0) + bip(0.16)) * 0.32;
+    }),
+    // forziere vicino: il tintinnio metallico delle chiusure della cassa
+    luccichio: crea(0.9, t => {
+      let v = 0;
+      for (let k = 0; k < 6; k++) { const t0 = 0.05 + k * 0.12 + (k % 2) * 0.03; if (t > t0) v += (Math.random() * 2 - 1) * Math.exp(-(t - t0) * 120) * 0.35 + Math.sin(PI2 * (3100 + k * 370) * (t - t0)) * Math.exp(-(t - t0) * 45) * 0.12; }
+      return v;
+    }),
+    // colpo andato a segno: un tonfo sordo e breve, non un "tic" da videogioco
+    colpito_marker: crea(0.09, t => (Math.sin(PI2 * 180 * t) * 0.6 + (Math.random() * 2 - 1) * 0.4) * Math.exp(-t * 60) * 0.5),
+    // colpo alla testa: il proiettile che rimbalza sull'elmetto, un "tang" metallico
+    testa_marker: crea(0.35, t => {
+      const crack = t < 0.004 ? (Math.random() * 2 - 1) : 0;
+      return (crack * 0.6 + (Math.sin(PI2 * 2840 * t) + 0.6 * Math.sin(PI2 * 4310 * t) + 0.3 * Math.sin(PI2 * 6150 * t)) * Math.exp(-t * 14) * 0.22);
+    }),
+    // colpo sul giubbotto: il proiettile fermato dalla piastra, un tonfo duro
+    scudo_colpo: crea(0.22, t => ((Math.random() * 2 - 1) * Math.exp(-t * 70) * 0.6 + Math.sin(PI2 * 820 * t) * Math.exp(-t * 30) * 0.3)),
+    // piastra del giubbotto che si spacca: ceramica che si rompe
+    scudo_rotto: crea(0.6, t => {
+      let v = (Math.random() * 2 - 1) * Math.exp(-t * 25) * 0.6;
+      for (let k = 0; k < 7; k++) { const t0 = 0.03 + k * 0.05; if (t > t0) v += (Math.random() * 2 - 1) * Math.exp(-(t - t0) * 90) * 0.25; }
+      return v;
+    }),
+    // piastra inserita nel giubbotto: lo strappo del velcro e il colpo della piastra
+    scudo_su: crea(0.75, t => {
+      const velcro = t < 0.45 ? (Math.random() * 2 - 1) * (Math.random() < 0.3 ? 1 : 0.15) * 0.35 * Math.sin(Math.PI * t / 0.45) : 0;
+      const tonfo = t > 0.55 ? (Math.sin(PI2 * 140 * (t - 0.55)) + (Math.random() * 2 - 1) * 0.3) * Math.exp(-(t - 0.55) * 35) * 0.5 : 0;
+      return velcro + tonfo;
+    }),
+    // ultimo in piedi: niente fanfara, un accordo basso e lungo, come la fine di un film
+    vittoria: crea(4, (t, D) => {
+      const env = Math.min(1, t / 1.2) * Math.min(1, (D - t) / 1.5);
+      return env * 0.18 * [65.4, 98, 130.8, 196, 261.6].reduce((s, f, i) => s + Math.sin(PI2 * f * t + i) * (1 - i * 0.15) * (1 + 0.003 * Math.sin(PI2 * 0.3 * t * (i + 1))), 0);
+    }),
+    // razzo in volo: il ruggito del motore, rumore basso e crepitante
+    razzo: crea(2.2, (t, D) => {
+      const r = Math.random() * 2 - 1;
+      return (r * 0.5 + Math.sin(PI2 * 95 * t) * 0.25 + (Math.random() < 0.02 ? (Math.random() * 2 - 1) : 0) * 0.6) * Math.min(1, t * 30) * Math.min(1, (D - t) * 4) * 0.5;
+    }),
     // porta di legno che cigola: un tono che sale e scende, ruvido
     porta: crea(0.7, (t, D) => {
       const f = 420 + 160 * Math.sin(t * 9) + 90 * Math.sin(t * 23);
@@ -50,7 +93,7 @@ function creaSuoniRealismo(ctx) {
 
 // i tre ambienti binaurali, in FLAC (stereo, da ascoltare direttamente, senza spazializzazione)
 async function caricaAmbientiReali() {
-  try { await caricaInGruppi(['amb_campagna', 'amb_bosco', 'amb_uccelli'].map(n => [n, `suoni/${n}.flac?v=30`])); } catch (e) { /* senza ambienti si gioca lo stesso */ }
+  try { await caricaInGruppi(['amb_campagna', 'amb_bosco', 'amb_uccelli'].map(n => [n, `suoni/${n}.flac?v=31`])); } catch (e) { /* senza ambienti si gioca lo stesso */ }
   // riverbero lungo e scuro per le code degli spari lontani, come in una valle
   const ctx = Audio3D.ctx, conv = ctx.createConvolver();
   conv.buffer = rispostaRiverbero(ctx, 3.2);
@@ -162,6 +205,7 @@ function volo(nome, x1, z1, x2, z2, durata, opz = {}) {
   // Doppler: si avvicina (tono più alto) e poi si allontana (più basso)
   const alto = opz.doppler || 1.18;
   src.playbackRate.setValueAtTime(alto, t0); src.playbackRate.linearRampToValueAtTime(2 - alto, t0 + durata);
+  src.stop(t0 + durata + 0.05); // all'arrivo il suono finisce
   src.onended = () => chiudiSorgente(s);
 }
 // un proiettile che mi passa accanto, sparato da (sx, sz)

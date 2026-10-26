@@ -33,6 +33,24 @@ const ARMI = {
     tempi: { caduta: 0.5, inserimento: 1.7, pronta: 2.1, carrello: 2.2, prontaVuota: 2.9 },
   },
 };
+// mitraglietta: tanti colpi in fretta, a corto e medio raggio
+ARMI.mitraglietta = {
+  nome: 'mitraglietta', tasto: '6', munizione: '9mm', capacita: 30, auto: true, cadenza: 0.075,
+  pallini: 1, dispersione: 1.3 * GRADI, danno: [16, 22], dannoTesta: [34, 44], portata: 30, raggio: 'corto e medio raggio, 30 metri', rinculo: 0.6,
+  spari: ['sparo', 'sparo2', 'sparo3'], gainSparo: 0.8, tonoSparo: 1.12, tipoRicarica: 'caricatore',
+  botto: [130, 60, 0.08, 0.35], schiocco: 0.45, eco: 0.45, orecchie: 0.3, meccanica: ['carrello', 0.08, 2.4],
+  fasi: { sgancio: 'sgancio', caduta: 'caricatore_cade', inserimento: 'inserimento', carrello: 'carrello' },
+  tempi: { caduta: 0.35, inserimento: 1.0, pronta: 1.4, carrello: 1.5, prontaVuota: 2.0 },
+};
+// lanciarazzi: un razzo alla volta, che vola e scoppia dove arriva. Distrugge le costruzioni.
+ARMI.lanciarazzi = {
+  nome: 'lanciarazzi', tasto: '7', munizione: 'razzo', capacita: 1, auto: false, cadenza: 1.4, razzo: true,
+  pallini: 1, dispersione: 0, danno: [120, 120], dannoTesta: [120, 120], portata: 90, raggio: 'esplosivo, fino a 90 metri', rinculo: 1.5,
+  spari: ['lancio'], gainSparo: 1, tipoRicarica: 'caricatore',
+  botto: [60, 25, 0.4, 1.2], schiocco: 0.2, eco: 1.0, orecchie: 0.8,
+  fasi: { sgancio: 'ak_sgancio', caduta: 'caricatore_cade', inserimento: 'ak_inserimento', carrello: 'ak_otturatore' },
+  tempi: { caduta: 0.5, inserimento: 1.8, pronta: 2.4, carrello: 2.5, prontaVuota: 2.6 },
+};
 // il piccone: si parte con questo nella battaglia reale, come in Fortnite. Niente munizioni, colpi corti e veloci.
 ARMI.piccone = {
   nome: 'piccone', tasto: '5', munizione: null, capacita: 0, auto: true, cadenza: 0.5, mischia: true,
@@ -42,11 +60,11 @@ ARMI.piccone = {
 // munizioni dell'arma in mano, a parole o per lo schermo; il piccone non ne ha
 function testoColpi(def, st, sep = ', riserva ') { return def.mischia ? '' : `${st.caricatore + st.camera}${sep}${G.arsenale.riserva[def.munizione]}`; }
 
-const NOMI_MUNIZIONI = { '9mm': 'nove millimetri', cal12: 'cartucce calibro 12', '762': 'sette e sessantadue' };
+const NOMI_MUNIZIONI = { '9mm': 'nove millimetri', cal12: 'cartucce calibro 12', '762': 'sette e sessantadue', razzo: 'razzi' };
 
 function nuovoArsenale(principale) {
   const armi = { pistola: { caricatore: 15, camera: 1 } };
-  const riserva = { '9mm': 45, cal12: 0, '762': 0, '308': 0 };
+  const riserva = { '9mm': 45, cal12: 0, '762': 0, '308': 0, razzo: 0 };
   if (principale === 'pompa') { armi.pompa = { caricatore: 6, camera: 1 }; riserva.cal12 = 24; }
   if (principale === 'mitra') { armi.mitra = { caricatore: 30, camera: 1 }; riserva['762'] = 90; }
   if (principale === 'precisione') { armi.precisione = { caricatore: 5, camera: 1 }; riserva['308'] = 20; }
@@ -80,6 +98,7 @@ function tentaSparo() {
   const A = G.arsenale, def = armaDef(), st = armaStato();
   if (!puoAgire() || A.ricarica || G.tempo < A.prossimoColpo) return;
   if (def.mischia) { A.prossimoColpo = G.tempo + def.cadenza; colpoDiPiccone(def); return; }
+  if (def.razzo) { lanciaRazzo(def, st); return; }
   if (!st.camera) {
     suona('grilletto_vuoto', { gain: 0.8 });
     A.prossimoColpo = G.tempo + 0.25; A.grilletto = false;
@@ -145,6 +164,37 @@ function colpoDiPiccone(def) {
     return;
   }
   allertaNemici(G.x, G.z, 8);
+}
+
+// Il razzo parte con un soffio e un ruggito, vola nello spazio (lo senti allontanarsi) e scoppia
+// sul primo avversario o sulla prima costruzione che incontra, oppure a fine corsa.
+function lanciaRazzo(def, st) {
+  const A = G.arsenale;
+  if (!st.camera) { suona('grilletto_vuoto', { gain: 0.8 }); A.prossimoColpo = G.tempo + 0.25; A.grilletto = false; return; }
+  st.camera = 0; A.prossimoColpo = G.tempo + def.cadenza;
+  if (st.caricatore > 0) { st.caricatore--; st.camera = 1; }
+  A.grilletto = false;
+  suona('lancio', { gain: 1.2, rate: 0.55 }); suona('ak_sparo4', { gain: 0.5, rate: 0.5 });
+  bottoBasso(...def.botto); orecchie(def.orecchie);
+  G.effetti.lampo = 1;
+  allertaNemici(G.x, G.z, 80);
+  if (G.modalita === 'battaglia') B.ultimoMioSparo = G.tempo;
+  if (typeof duelloInvia === 'function' && D.attivo) duelloInvia({ t: 'sparo', a: 'lanciarazzi', n: 'lancio', r: G.rotta });
+  // dove arriva: il primo avversario sulla linea, altrimenti la prima costruzione, altrimenti fine corsa
+  const [fx, fz] = avanti(G.rotta);
+  let d = def.portata;
+  const c = tracciaColpo(G.x, G.z, G.rotta, def.portata);
+  if (c) d = c.distanza;
+  else if (inArena()) {
+    for (const k of G.costruzioni) {
+      if (k.vita <= 0 || (k.tipo !== 'barricata' && k.tipo !== 'rampa')) continue;
+      const u = puntoIncrocio(G.x, G.z, G.x + fx * def.portata, G.z + fz * def.portata, k.ax, k.az, k.bx, k.bz);
+      if (u !== null) d = Math.min(d, u * def.portata);
+    }
+  }
+  const x = G.x + fx * d, z = G.z + fz * d, volo_t = Math.max(0.15, d / 55);
+  if (typeof volo === 'function') volo('razzo', G.x + fx, G.z + fz, x, z, volo_t, { gain: 1.0, doppler: 1.05, ref: 3 });
+  pianifica(volo_t, () => esplosione(x, z, 6, 160));
 }
 
 // pompa: otturatore indietro (bossolo fuori) e avanti (nuova cartuccia in camera)

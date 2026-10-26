@@ -221,7 +221,7 @@ function feriscimi(danno, proiettile = false) {
     const assorbito = Math.min(G.scudo, danno);
     G.scudo -= assorbito; danno -= assorbito;
     suona('scudo_colpo', { gain: 0.7 });
-    if (G.scudo <= 0) parla('scudo rotto', 1);
+    if (G.scudo <= 0) parla('giubbotto rotto', 1);
     if (danno <= 0) return;
   }
   const prima = G.vita;
@@ -680,7 +680,7 @@ function ricognizione() {
 
 function inventario() {
   const A = G.arsenale, I = G.inventario, parti = [];
-  for (const k of ['pistola', 'pompa', 'mitra', 'precisione']) {
+  for (const k of ['pistola', 'pompa', 'mitra', 'precisione', 'mitraglietta', 'lanciarazzi']) {
     const st = A.armi[k]; if (!st) continue;
     parti.push(`${ARMI[k].nome} ${st.caricatore + st.camera} più ${A.riserva[ARMI[k].munizione]}`);
   }
@@ -747,6 +747,10 @@ async function primoAvvio() {
   };
   creaPuntamento();
   creaMusica();
+  // la grafica 3D si prepara adesso, durante il caricamento, così la partita parte subito
+  $('messaggio').textContent = 'Preparo la grafica…';
+  await new Promise(r => setTimeout(r, 30));
+  try { if (typeof iniziaGrafica3D === 'function') { iniziaGrafica3D(); nascondi3D(); } } catch (e) { console.error('grafica 3D', e); }
   apriMenu('menu', 'Velletri Zombie. ');
 }
 
@@ -862,6 +866,8 @@ document.addEventListener('keydown', e => {
     case 'Digit3': cambiaArma('mitra'); break;
     case 'Digit4': cambiaArma('precisione'); break;
     case 'Digit5': cambiaArma('piccone'); break;
+    case 'Digit6': cambiaArma('mitraglietta'); break;
+    case 'Digit7': cambiaArma('lanciarazzi'); break;
     case 'KeyN': costruisci('rampa'); break;
     case 'KeyJ': if (G.modalita === 'duello') vocaleMuto(); break;
     case 'KeyP': if (G.modalita === 'battaglia') { bevePozione(); break; } sfogliaLuoghi(e.shiftKey ? -1 : 1); break;

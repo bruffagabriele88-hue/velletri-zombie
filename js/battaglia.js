@@ -19,8 +19,9 @@ const LUOGHI = {
 };
 // l'isola resta tutta aperta per due minuti dopo l'atterraggio, poi la tempesta comincia a restringerla
 const FASI_TEMPESTA = [{ a: 120, c: 40, r: 60, d: 2 }, { a: 40, c: 30, r: 32, d: 4 }, { a: 25, c: 25, r: 14, d: 7 }, { a: 12, c: 20, r: 0, d: 10 }];
-const RARITA = [[1, 'comune', 50], [1.15, 'raro', 30], [1.3, 'epico', 15], [1.5, 'leggendario', 5]];
-const NOMI_BOT = ['Rocko', 'Vipera', 'Sandy', 'Lupo', 'Flo', 'Tank', 'Shelley', 'Bruno', 'Eddy', 'Nina', 'Reed'];
+// qualità delle armi: più è alta, più fanno male
+const RARITA = [[1, 'standard', 50], [1.15, 'migliorato', 30], [1.3, 'militare', 15], [1.5, 'forze speciali', 5]];
+const NOMI_BOT = ['Ferri', 'Conti', 'Greco', 'Marino', 'Russo', 'Galli', 'Testa', 'Moretti', 'Colombo', 'Rinaldi', 'Serra'];
 const ORDINALI = ['primo', 'secondo', 'terzo', 'quarto', 'quinto', 'sesto', 'settimo', 'ottavo', 'nono', 'decimo', 'undicesimo', 'dodicesimo'];
 // come combattono gli avversari con ogni arma
 const ARMI_BOT = {
@@ -28,6 +29,8 @@ const ARMI_BOT = {
   pompa: { suoni: ['pompa_sparo'], danno: 42, cadenza: 1.3, prob: 0.75, portata: 13, distanza: 5, valore: 2 },
   mitra: { suoni: ['ak_sparo', 'ak_sparo2', 'ak_sparo3'], danno: 10, cadenza: 0.16, raffica: 4, pausa: 1.1, prob: 0.4, portata: 45, distanza: 14, valore: 3 },
   piccone: { mischia: true, danno: 20, cadenza: 0.7, prob: 0.6, portata: 2.4, distanza: 1.2, valore: 0 },
+  mitraglietta: { suoni: ['sparo', 'sparo2', 'sparo3'], danno: 9, cadenza: 0.09, raffica: 6, pausa: 1.0, prob: 0.38, portata: 30, distanza: 9, valore: 2 },
+  lanciarazzi: { razzo: true, suoni: ['lancio'], danno: 70, cadenza: 3.2, prob: 0.55, portata: 60, distanza: 25, valore: 3 },
   precisione: { suoni: ['ak_sparo4'], danno: 65, cadenza: 2.4, prob: 0.5, portata: 80, distanza: 30, valore: 3 },
 };
 
@@ -35,8 +38,8 @@ function nomeRarita(m) { return (RARITA.find(r => r[0] === m) || RARITA[0])[1]; 
 function raritaCasuale() { let r = Math.random() * 100; for (const [m, , peso] of RARITA) { if (r < peso) return m; r -= peso; } return 1; }
 function contenutoForziere() {
   const r = Math.random();
-  if (r < 0.62) return { cont: scegli(['pompa', 'mitra', 'mitra', 'precisione', 'pistola', 'pompa']), rar: raritaCasuale(), materiali: 15 };
-  if (r < 0.78) return { cont: 'pozione', materiali: 5 };
+  if (r < 0.62) return { cont: scegli(['pompa', 'mitra', 'mitra', 'precisione', 'pistola', 'pompa', 'mitraglietta', 'mitraglietta', 'lanciarazzi']), rar: raritaCasuale(), materiali: 15 };
+  if (r < 0.78) return { cont: 'pozione', materiali: 5 }; // una piastra balistica per il giubbotto
   if (r < 0.90) return { cont: scegli(['kit', 'bende']), materiali: 5 };
   if (r < 0.93) return { cont: 'granate', materiali: 5 };
   if (r < 0.98) return { cont: 'radar', materiali: 5 };
@@ -84,7 +87,7 @@ async function battagliaAvvia(lancio, difficolta, opz = {}) {
   // come in Fortnite si parte col solo piccone: le armi si trovano nei forzieri
   G.arsenale = nuovoArsenale(null);
   G.arsenale.armi = { piccone: { caricatore: 0, camera: 0 } }; G.arsenale.corrente = 'piccone';
-  G.arsenale.riserva = { '9mm': 0, cal12: 0, '762': 0, '308': 0 };
+  G.arsenale.riserva = { '9mm': 0, cal12: 0, '762': 0, '308': 0, razzo: 0 };
   G.inventario = { granate: 0, kit: 0, cibo: 2, materiali: 40, pozioni: 0, radar: 0 };
   G.livello = 0; G.prossimaTurbo = 0;
   D.trappole = []; D.radarFino = 0;
@@ -153,7 +156,7 @@ async function battagliaAvvia(lancio, difficolta, opz = {}) {
   avviaBus();
   const compagni = compagniVivi().map(c => c.nome);
   const squadra = B.squadre > 1 ? (compagni.length ? `Sei in squadra con ${compagni.join(' e ')}. ` : 'Sei in squadra. ') : '';
-  parla(`${G.pausa ? 'Clicca per partire. ' : ''}${squadra}Sei sul bus della battaglia, ${B.bus.verso}. Vuoi atterrare a ${mio.nome}: ti dico io quando saltare. Da 1 a 5 cambi luogo. Spazio per saltare.`, 2);
+  parla(`${G.pausa ? 'Clicca per partire. ' : ''}${squadra}Sei sull'elicottero, ${B.bus.verso}. Vuoi atterrare a ${mio.nome}: ti dico io quando lanciarti. Da 1 a 5 cambi luogo. Spazio per lanciarti.`, 2);
   aggiornaPannello();
 }
 
@@ -175,16 +178,30 @@ function preparaBus(meta) {
   G.x = ax; G.z = az; G.rotta = a; G.occupatoFino = Infinity;
 }
 
+// L'elicottero da trasporto: le pale che battono l'aria (un rombo che pulsa quattro volte e mezzo al secondo)
+// e il fischio della turbina. Al posto del bus dei cartoni animati.
 function avviaBus() {
   const ctx = Audio3D.ctx, t = ctx.currentTime, uscita = ctx.createGain();
-  uscita.gain.setValueAtTime(0, t); uscita.gain.linearRampToValueAtTime(0.22, t + 1.5);
-  const filtro = ctx.createBiquadFilter(); filtro.type = 'lowpass'; filtro.frequency.value = 380; filtro.Q.value = 2;
-  filtro.connect(uscita).connect(Audio3D.master);
-  // motore: due onde a dente di sega leggermente stonate, più il rombo dell'aria
-  const osc = [52, 53.3, 104.5].map((f, i) => { const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f; const g = ctx.createGain(); g.gain.value = i === 2 ? 0.25 : 0.5; o.connect(g).connect(filtro); o.start(t); return o; });
-  B.suonoBus = { uscita, osc, vento: ventoContinuo(0.05) };
-  // il clacson del bus
-  clacson(t + 0.6); clacson(t + 1.0);
+  uscita.gain.setValueAtTime(0, t); uscita.gain.linearRampToValueAtTime(0.5, t + 2);
+  uscita.connect(Audio3D.master);
+  const n = ctx.sampleRate * 2, buf = ctx.createBuffer(1, n, ctx.sampleRate), d = buf.getChannelData(0);
+  for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+  const rumore = ctx.createBufferSource(); rumore.buffer = buf; rumore.loop = true;
+  const basso = ctx.createBiquadFilter(); basso.type = 'lowpass'; basso.frequency.value = 260; basso.Q.value = 1.2;
+  const pale = ctx.createGain(); pale.gain.value = 0.25;
+  // il battito delle pale: un oscillatore lento che apre e chiude il rumore
+  const lfo = ctx.createOscillator(); lfo.type = 'sawtooth'; lfo.frequency.value = 4.6;
+  const prof = ctx.createGain(); prof.gain.value = 0.9; lfo.connect(prof).connect(pale.gain);
+  rumore.connect(basso).connect(pale).connect(uscita);
+  const motore = ctx.createOscillator(); motore.type = 'sawtooth'; motore.frequency.value = 38;
+  const gm = ctx.createGain(); gm.gain.value = 0.08; const fm = ctx.createBiquadFilter(); fm.type = 'lowpass'; fm.frequency.value = 180;
+  motore.connect(fm).connect(gm).connect(uscita);
+  const turbina = ctx.createOscillator(); turbina.frequency.value = 2280;
+  const gt = ctx.createGain(); gt.gain.value = 0.006; turbina.connect(gt).connect(uscita);
+  for (const o of [rumore, lfo, motore, turbina]) o.start(t);
+  B.suonoBus = { uscita, osc: [rumore, lfo, motore, turbina], vento: ventoContinuo(0.04) };
+  // il portellone che si apre
+  suona('carrello', { gain: 0.6, rate: 0.45, quando: 1.2 }); suona('ak_otturatore', { gain: 0.4, rate: 0.5, quando: 1.6 });
 }
 function clacson(quando) {
   const ctx = Audio3D.ctx, g = ctx.createGain(), f = ctx.createBiquadFilter();
@@ -230,7 +247,7 @@ function saltaDalBus() {
   const S = B.suonoBus;
   if (S) { const t = Audio3D.ctx.currentTime; S.uscita.gain.setTargetAtTime(0, t, 0.4); S.vento.g.gain.setTargetAtTime(0.35, t, 0.2); S.vento.f.frequency.setTargetAtTime(900, t, 0.3); }
   suona('lancio', { gain: 0.9, rate: 0.7 });
-  parla(`Salto! ${guidaCielo()} Tieni W per andare avanti.`, 1);
+  parla(`Lanciato! ${guidaCielo()} Tieni W per andare avanti.`, 1);
 }
 
 function guidaCielo() {
@@ -242,8 +259,8 @@ function guidaCielo() {
 function cieloInfo() {
   if (B.cielo === 'bus') {
     const manca = B.bus.tMeglio - B.bus.t;
-    parla(manca > 0.5 ? `Salta tra ${Math.round(manca)} secondi per ${B.meta.nome}.` : `Salta adesso per ${B.meta.nome}!`, 1);
-  } else parla(`${guidaCielo()} Altezza ${Math.round(B.quota)} metri${B.quota < BUS.apriA ? ', deltaplano aperto' : ''}.`, 1);
+    parla(manca > 0.5 ? `Lanciati tra ${Math.round(manca)} secondi per ${B.meta.nome}.` : `Lanciati adesso per ${B.meta.nome}!`, 1);
+  } else parla(`${guidaCielo()} Altezza ${Math.round(B.quota)} metri${B.quota < BUS.apriA ? ', paracadute aperto' : ''}.`, 1);
 }
 
 function aggiornaCielo(dt) {
@@ -254,8 +271,8 @@ function aggiornaCielo(dt) {
     // un tic che accelera mentre ci si avvicina al momento giusto, poi l'avviso a voce
     const manca = U.tMeglio - U.t;
     if (G.tempo >= U.prossimoTic && manca > 0) { suona('tic', { gain: 0.35, rate: 1 + lim(1 - manca / 10, 0, 1) * 0.6 }); U.prossimoTic = G.tempo + lim(manca / 6, 0.2, 1.2); }
-    if (!U.detto && manca <= 0) { U.detto = true; suona('cassa_ping', { gain: 0.9 }); parla(`Salta adesso per ${B.meta.nome}! Spazio.`, 2); }
-    if (U.t >= U.durata - 0.5) { parla('Fine della corsa, ti butto giù io.', 1); saltaDalBus(); }
+    if (!U.detto && manca <= 0) { U.detto = true; suona('cassa_ping', { gain: 0.9 }); parla(`Lanciati adesso per ${B.meta.nome}! Spazio.`, 2); }
+    if (U.t >= U.durata - 0.5) { parla("Fine del volo: il pilota ti fa scendere.", 1); saltaDalBus(); }
     return;
   }
   // caduta: prima in picchiata, poi col deltaplano
@@ -263,7 +280,7 @@ function aggiornaCielo(dt) {
   if (vela && !B.velaAperta) {
     B.velaAperta = true; suona('raccogli', { gain: 0.8, rate: 1.2 }); suona('lancio', { gain: 0.6, rate: 0.5 });
     const S = B.suonoBus; if (S) { const t = Audio3D.ctx.currentTime; S.vento.g.gain.setTargetAtTime(0.16, t, 0.3); S.vento.f.frequency.setTargetAtTime(420, t, 0.3); }
-    parla('Deltaplano aperto.', 0);
+    parla('Paracadute aperto.', 0);
   }
   B.quota -= (vela ? BUS.vela : BUS.picchiata) * dt;
   let f = 0;
@@ -298,7 +315,7 @@ function atterra() {
   let vicino = null;
   for (const L of Object.values(LUOGHI)) { const d = Math.hypot(L.x - G.x, L.z - G.z); if (!vicino || d < vicino.d) vicino = { L, d }; }
   const dove = vicino.d < 20 ? vicino.L.nome : `${metri(vicino.d)} da ${vicino.L.nome}`;
-  parla(`A terra. ${dove}. Hai solo il piccone: trova un forziere e prendi un'arma. ${B.bot.length + 1} in gara.`, 2);
+  parla(`A terra. ${dove}. Hai solo il piccone: trova un forziere e prendi un'arma. ${rimasti()} in gara.`, 2);
 }
 
 // ---------------------------------------------------------------- tempesta
@@ -383,7 +400,7 @@ const eUmano = f => f === 'io' || !!(f && f.remoto);
 
 // Un avversario si accorge di me solo se mi vede da vicino o mi sente: uno sparo, una corsa, un colpo ricevuto.
 // Se poi mi perde, va a controllare l'ultimo punto in cui mi ha sentito, con passo cauto.
-const CAPIENZA_BOT = { pistola: 15, pompa: 6, mitra: 30, precisione: 5, piccone: 0 };
+const CAPIENZA_BOT = { pistola: 15, pompa: 6, mitra: 30, precisione: 5, piccone: 0, mitraglietta: 30, lanciarazzi: 1 };
 function miPercepisce(b, d) {
   // vista: da vicino, se non c'è un muro in mezzo e non sono nascosto in un cespuglio
   if (d < 11 && !muroTra(b.x, b.z, G.x, G.z, b.livello || 0, G.livello || 0) && !(nascosto() && d > 3.5)) return true;
@@ -603,6 +620,15 @@ function sparaBot(b, T, tx, tz, d, W) {
     else feritoBot(T, W.danno, b);
     return;
   }
+  if (W.razzo) {
+    b.prossimoSparo = G.tempo + W.cadenza * caso(0.9, 1.3);
+    const err = (1 - Math.min(0.9, W.prob * b.bravura)) * 6, ex = tx + caso(-err, err), ez = tz + caso(-err, err);
+    const t = Math.max(0.2, d / 55);
+    suonoBot(b, 'lancio', { gain: 1.2, rate: 0.55 });
+    if (reteBR() && D.ospite) duelloInvia({ t: 'br', i: B.bot.indexOf(b), x: +ex.toFixed(2), z: +ez.toFixed(2) });
+    razzoBot(b, ex, ez, t);
+    return;
+  }
   // cadenza, con le raffiche del mitragliatore
   if (W.raffica) { b.colpiRaffica++; b.prossimoSparo = G.tempo + (b.colpiRaffica % W.raffica === 0 ? W.pausa : W.cadenza); }
   else b.prossimoSparo = G.tempo + W.cadenza * caso(0.9, 1.3);
@@ -674,6 +700,12 @@ function sparaBot(b, T, tx, tz, d, W) {
     p *= (rimasti() <= 4 ? 0.5 : 0.36) * (T.mov ? 0.6 : 1) * B.diff.prec;
     duelloInvia({ t: 'bc', a: T.cid, i: B.bot.indexOf(b), d: Math.random() < p ? danno : 0 });
   } else if (Math.random() < p * (G.tempo - B.atterratoA > 120 ? 0.7 : 0.4)) feritoBot(T, danno, b); // tra di loro si colpiscono meno all'inizio: la partita deve durare, ma non troppo
+}
+
+// il razzo di un bot: vola dal bot al punto e scoppia (uguale per tutti quelli che lo sentono)
+function razzoBot(b, x, z, t) {
+  if (typeof volo === 'function') volo('razzo', b.x, b.z, x, z, t, { gain: 1.0, doppler: 1.05, ref: 3 });
+  pianifica(t, () => esplosioneBot(x, z, b));
 }
 
 // un avversario viene colpito (da me o da un altro)
@@ -781,7 +813,7 @@ function vittoria() {
   aggiornaPuntamento(null);
   B.sorgTempesta.src.guadagno.gain.value = 0;
   suona('vittoria', { gain: 0.9 });
-  setTimeout(() => parla(`Vittoria reale${B.squadre > 1 ? ' della tua squadra' : ''}! ${plurale(B.eliminazioni, 'eliminazione', 'eliminazioni')}. Vittorie totali: ${s.vittorie}. ${finaleTasti()}`, 2), 1500);
+  setTimeout(() => parla(`${B.squadre > 1 ? 'La tua squadra è l\'ultima in piedi' : 'Sei l\'ultimo in piedi'}. Vittoria! ${plurale(B.eliminazioni, 'eliminazione', 'eliminazioni')}. Vittorie totali: ${s.vittorie}. ${finaleTasti()}`, 2), 1500);
 }
 
 // a terra (solo a squadre): si striscia e si perde vita; un compagno può rianimarti
@@ -865,12 +897,12 @@ function aggiornaBattaglia(dt) {
 
 function bevePozione() {
   if (!puoAgire()) return;
-  if (!G.inventario.pozioni) { parla('Niente pozioni.', 1); return; }
-  if (G.scudo >= 100) { parla('Scudo pieno.', 1); return; }
+  if (!G.inventario.pozioni) { parla('Niente piastre.', 1); return; }
+  if (G.scudo >= 100) { parla('Giubbotto pieno.', 1); return; }
   G.inventario.pozioni--;
   G.occupatoFino = G.tempo + 2;   // mentre bevo sono scoperto
   suona('raccogli', { gain: 0.5, rate: 0.8 });
-  pianifica(2, () => { G.scudo = Math.min(100, G.scudo + 50); suona('scudo_su', { gain: 0.6 }); parla(`scudo ${G.scudo}`, 1); });
+  pianifica(2, () => { G.scudo = Math.min(100, G.scudo + 50); suona('scudo_su', { gain: 0.6 }); parla(`giubbotto ${G.scudo}`, 1); });
 }
 
 // tasto O: dove andare
@@ -895,8 +927,8 @@ function battagliaRicognizione() {
   if (cassa && cassa.d < 60) f += `Forziere ${direzioneRelativa(avvolgi(rottaVerso(G.x, G.z, cassa.c.x, cassa.c.z) - G.rotta))}, ${metri(cassa.d)}. `;
   f += `${dovePerLaZona()} `;
   const st = armaStato();
-  f += `${armaDef().nome}${st.rarita && st.rarita > 1 ? ' ' + nomeRarita(st.rarita) : ''} ${testoColpi(armaDef(), st)}. Vita ${Math.round(G.vita)}, scudo ${Math.round(G.scudo)}. ${G.inventario.materiali} materiali`;
-  if (G.inventario.pozioni) f += `, ${plurale(G.inventario.pozioni, 'pozione', 'pozioni')}`;
+  f += `${armaDef().nome}${st.rarita && st.rarita > 1 ? ' ' + nomeRarita(st.rarita) : ''} ${testoColpi(armaDef(), st)}. Vita ${Math.round(G.vita)}, giubbotto ${Math.round(G.scudo)}. ${G.inventario.materiali} materiali`;
+  if (G.inventario.pozioni) f += `, ${plurale(G.inventario.pozioni, 'piastra', 'piastre')}`;
   if (G.inventario.cibo) f += `, ${G.inventario.cibo} bende`;
   if (G.inventario.kit) f += `, ${plurale(G.inventario.kit, 'kit', 'kit')}`;
   if (G.inventario.radar) f += `, ${plurale(G.inventario.radar, 'radar', 'radar')}`;
@@ -1130,7 +1162,8 @@ function creaCaseECespugli() {
   const posti = CASE_FISSE.slice();
   for (let k = 0; posti.length < 15 && k < 300; k++) {
     const [x, z] = attorno(0, 0, 80);
-    if (Object.values(LUOGHI).every(L => Math.hypot(L.x - x, L.z - z) > 18) && posti.every(([a, b]) => Math.hypot(a - x, b - z) > 15)) posti.push([x, z, 'casa']);
+    // lontano dai luoghi, dalle altre case e dai palazzi intorno alla piazza (tra 32 e 50 metri dal centro)
+    if (Object.values(LUOGHI).every(L => Math.hypot(L.x - x, L.z - z) > 18) && posti.every(([a, b]) => Math.hypot(a - x, b - z) > 15) && Math.hypot(x, z) > 52) posti.push([x, z, 'casa']);
   }
   posti.forEach(([x, z, nome], k) => {
     // la porta guarda verso il centro dell'isola
@@ -1156,7 +1189,7 @@ function creaCaseECespugli() {
   for (let k = 0; k < 12; k++) { const [x, z] = attorno(LUOGHI.bosco.x, LUOGHI.bosco.z, 26); B.cespugli.push({ id: 'ces' + k, x, z }); }
   for (let k = 0; k < 24; k++) {
     let x = 0, z = 0;
-    for (let t = 0; t < 20; t++) { [x, z] = attorno(0, 0, 88); if (!casaDi(x, z, 1.5)) break; }
+    for (let t = 0; t < 20; t++) { [x, z] = attorno(0, 0, 88); const r = Math.hypot(x, z); if (!casaDi(x, z, 1.5) && (r < 30 || r > 50)) break; }
     B.cespugli.push({ id: 'ces' + (k + 12), x, z });
   }
 }
