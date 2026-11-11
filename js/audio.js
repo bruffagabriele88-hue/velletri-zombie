@@ -125,12 +125,12 @@ async function inizializzaAudio(avanzamento) {
   Object.assign(A.buf, creaSuoniDuello(ctx));
   if (typeof creaSuoniRealismo === 'function') Object.assign(A.buf, creaSuoniRealismo(ctx));
   let fatti = 0;
-  await caricaInGruppi(ELENCO_SUONI.map(nome => [nome, `suoni/${nome}.wav?v=35`]), () => { fatti++; if (avanzamento) avanzamento(fatti / ELENCO_SUONI.length); });
+  await caricaInGruppi(ELENCO_SUONI.map(nome => [nome, `suoni/${nome}.wav?v=36`]), () => { fatti++; if (avanzamento) avanzamento(fatti / ELENCO_SUONI.length); });
   // frasi dei nemici: voce -> categoria -> elenco di suoni
   try {
-    A.voci = await (await fetch('suoni/voci/elenco.json?v=35')).json();
+    A.voci = await (await fetch('suoni/voci/elenco.json?v=36')).json();
     const nomi = Object.values(A.voci).flatMap(c => Object.values(c).flat());
-    await caricaInGruppi(nomi.map(nome => [nome, `suoni/voci/${nome}.wav?v=35`]));
+    await caricaInGruppi(nomi.map(nome => [nome, `suoni/voci/${nome}.wav?v=36`]));
   } catch (e) { console.error('voci non caricate', e); A.voci = {}; }
   if (typeof caricaAmbientiReali === 'function') await caricaAmbientiReali();
   console.log('Audio pronto a', ctx.sampleRate, 'Hz, HRTF');
@@ -139,6 +139,7 @@ async function inizializzaAudio(avanzamento) {
 function aggiornaAscoltatore(x, z, rotta) {
   const A = Audio3D, L = A.ctx.listener, t = A.ctx.currentTime;
   A.ascoltatore = { x, z, rotta };
+  if (A.fisse) for (const s of A.fisse) indiziDalVivo(s);
   const [fx, fz] = avanti(rotta);
   if (L.forwardX) {
     L.positionX.setTargetAtTime(x, t, 0.01); L.positionZ.setTargetAtTime(z, t, 0.01);
@@ -161,16 +162,26 @@ function creaSorgente(opz = {}) {
   panner.refDistance = opz.ref || 1.5;
   panner.rolloffFactor = opz.rolloff || 1;
   panner.maxDistance = 200;
-  ingresso.connect(aria).connect(panner).connect(opz.diretto ? Audio3D.master : Audio3D.mondo);
+  // Precisione "dal vivo": l'orecchio vero distingue davanti da dietro perché il padiglione colora il suono.
+  // Le cuffie non lo fanno abbastanza, quindi lo rinforzo: dietro meno acuti e più "corpo" a 1000 Hz, davanti più presenza a 3500 Hz.
+  const ombra = ctx.createBiquadFilter(); ombra.type = 'highshelf'; ombra.frequency.value = 4500; ombra.gain.value = 0;
+  const banda = ctx.createBiquadFilter(); banda.type = 'peaking'; banda.frequency.value = 3500; banda.Q.value = 1.1; banda.gain.value = 0;
+  ingresso.connect(aria).connect(ombra).connect(banda).connect(panner).connect(opz.diretto ? Audio3D.master : Audio3D.mondo);
+  // Il riflesso del terreno: all'aperto ogni suono arriva due volte, diretto e rimbalzato a terra un attimo dopo.
+  // Il ritardo dipende dalla distanza: è così che dal vivo si capisce quanto è lontana una cosa.
+  const ritardoTerra = ctx.createDelay(0.03); ritardoTerra.delayTime.value = 0.002;
+  const terra = ctx.createBiquadFilter(); terra.type = 'lowpass'; terra.frequency.value = 5000;
+  const gTerra = ctx.createGain(); gTerra.gain.value = 0;
+  banda.connect(ritardoTerra).connect(terra).connect(gTerra).connect(panner);
   const mandata = ctx.createGain();
   mandata.gain.value = opz.riverbero ?? 0.5;
   aria.connect(mandata).connect(Audio3D.mandataRiverbero);
   const ref = opz.ref || 1.5;
   // quanto l'aria smorza gli acuti con la distanza: chi è lontano nelle arene resta riconoscibile
-  return { ingresso, aria, panner, mandata, x: 0, y: 0, z: 0, chiara: ref >= 5, aria_m: ref >= 8 ? 170 : ref >= 5 ? 90 : 30 };
+  return { ingresso, aria, panner, mandata, ombra, banda, ritardoTerra, gTerra, x: 0, y: 0, z: 0, chiara: ref >= 5, aria_m: ref >= 8 ? 170 : ref >= 5 ? 90 : 30 };
 }
 function chiudiSorgente(s, dopo = 0) {
-  setTimeout(() => { try { s.panner.disconnect(); s.mandata.disconnect(); } catch (e) { /* già chiusa */ } }, dopo * 1000);
+  setTimeout(() => { try { s.panner.disconnect(); s.mandata.disconnect(); if (s.gTerra) s.gTerra.disconnect(); } catch (e) { /* già chiusa */ } }, dopo * 1000);
 }
 
 function posiziona(s, x, y, z, subito = false) {
@@ -185,6 +196,26 @@ function posiziona(s, x, y, z, subito = false) {
   let f = 20000 * Math.exp(-d / (s.aria_m || 30)); // assorbimento dell'aria
   if (s.occl) f = f * (1 - s.occl) + Math.min(f, 650) * s.occl; // dietro un muro: ovattato
   s.aria.frequency.setTargetAtTime(f, t, 0.05);
+  indiziDalVivo(s, subito);
+}
+// davanti o dietro, e quanto lontano: aggiorna i filtri della sorgente rispetto a dove guardo
+const ALTEZZA_ORECCHIE = 1.6;
+function indiziDalVivo(s, subito = false) {
+  if (!s.ombra) return;
+  const A = Audio3D, t = A.ctx.currentTime, L = A.ascoltatore;
+  const dx = s.x - L.x, dz = s.z - L.z, d = Math.hypot(dx, dz);
+  const [fx, fz] = avanti(L.rotta || 0);
+  // c = 1 davanti, 0 di lato, -1 dietro; vicino a me (un metro) non coloro niente
+  const c = d < 0.3 ? 0 : (dx * fx + dz * fz) / d, peso = Math.min(1, d / 1.5);
+  const dietro = Math.max(0, -c), davanti = Math.max(0, c);
+  const gOmbra = -9 * dietro * dietro * peso, gBanda = (dietro > 0 ? 3 * dietro * dietro : 2.5 * davanti * davanti) * peso, fBanda = dietro > 0 ? 1000 : 3500;
+  // riflesso a terra: la strada in più del suono che rimbalza, tra una sorgente e un ascoltatore alti un metro e sessanta
+  const strada = Math.sqrt(d * d + 4 * ALTEZZA_ORECCHIE * ALTEZZA_ORECCHIE) - d;
+  const rit = lim(strada / 343, 0.0002, 0.028), gT = d < 0.5 || Math.abs(s.y) > 1 ? 0 : 0.28 * Math.min(1, d / 3);
+  if (subito) { s.ombra.gain.value = gOmbra; s.banda.gain.value = gBanda; s.banda.frequency.value = fBanda; s.ritardoTerra.delayTime.value = rit; s.gTerra.gain.value = gT; return; }
+  s.ombra.gain.setTargetAtTime(gOmbra, t, 0.04); s.banda.gain.setTargetAtTime(gBanda, t, 0.04);
+  s.banda.frequency.setTargetAtTime(fBanda, t, 0.02);
+  s.ritardoTerra.delayTime.setTargetAtTime(rit, t, 0.05); s.gTerra.gain.setTargetAtTime(gT, t, 0.05);
 }
 
 function suona(nome, { dest, gain = 1, rate = 1, quando = 0, riverbero = 0, loop = false, offset = 0 } = {}) {
@@ -218,9 +249,10 @@ function loopInPunto(nome, x, z, gain, opz = {}) {
   const s = creaSorgente({ ref: opz.ref || 3, riverbero: 0.3 });
   posiziona(s, x, 0, z, true);
   s.src = suona(nome, { dest: s.ingresso, gain, loop: true, offset: Math.random() * (Audio3D.buf[nome]?.duration || 0) });
+  (Audio3D.fisse = Audio3D.fisse || new Set()).add(s);
   return s;
 }
-function fermaLoop(s) { if (!s) return; try { s.src.stop(); } catch (e) { /* ferma */ } chiudiSorgente(s, 0.1); }
+function fermaLoop(s) { if (!s) return; if (Audio3D.fisse) Audio3D.fisse.delete(s); try { s.src.stop(); } catch (e) { /* ferma */ } chiudiSorgente(s, 0.1); }
 
 // ---------------------------------------------------------------- suono di puntamento
 // Altezza: sale man mano che mi avvicino alla direzione del bersaglio; centrato = tono pieno e fisso.

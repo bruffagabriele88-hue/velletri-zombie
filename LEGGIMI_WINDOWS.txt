@@ -18,3 +18,12 @@ Il gioco online è sempre l'ultima versione: basta ricaricare la pagina.
 5. Usa le cuffie. Il gioco parla da solo: se usi uno screen reader (NVDA, JAWS), mettilo in pausa mentre giochi.
    La voce del gioco usa la voce italiana di Windows: se non c'e', installala da Impostazioni, Data/ora e lingua, Riconoscimento vocale.
 Tutti i comandi sono in GUIDA.txt.
+
+NOTE PER WINDOWS (aggiornate)
+- Dove le istruzioni dicono "trackpad" vale anche il mouse; "Opzione" è il tasto Alt; "Cancella" è Backspace; "Comando R" è F5.
+- Per l'ascolto usa il tasto zero invece di Controllo: su Windows Controllo insieme a W chiude la scheda del browser.
+  Se succede per sbaglio, il browser chiede conferma prima di chiudere: rispondi di restare.
+- NVDA e JAWS: la pagina si presenta come applicazione, quindi i tasti arrivano al gioco. Se senti lo screen reader
+  parlare sopra il gioco, mettilo in pausa (con NVDA: Insert più S) o passa in modalità focus (Insert più Spazio).
+- Browser consigliati: Edge o Chrome. Con Edge la voce del computer è migliore (voci "naturali").
+- La prima volta parte l'allenamento, con la voce registrata del narratore.

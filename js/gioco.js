@@ -754,7 +754,7 @@ async function primoAvvio() {
   await new Promise(r => setTimeout(r, 30));
   try { if (typeof iniziaGrafica3D === 'function') { iniziaGrafica3D(); nascondi3D(); } } catch (e) { console.error('grafica 3D', e); }
   // la prima volta l'allenamento è obbligatorio: si entra nel menù solo dopo averlo finito
-  if (!tutorialFatto()) { parla('Velletri Zombie. È la prima volta: si comincia con l\'allenamento.', 2); tutorialAvvia(); return; }
+  if (!tutorialFatto()) { tutorialAvvia(); return; }
   apriMenu('menu', 'Velletri Zombie. ');
 }
 
@@ -783,7 +783,9 @@ document.addEventListener('keydown', e => {
   if (Audio3D.ctx && Audio3D.ctx.state !== 'running') Audio3D.ctx.resume().catch(() => {});
   // Maiuscolo più D: leggo gli ultimi problemi annotati
   if (c === 'KeyD' && e.shiftKey && e.altKey) { leggiRegistro(); return; }
-  if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(c)) e.preventDefault();
+  if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Tab', 'Backspace'].includes(c)) e.preventDefault();
+  // su Windows Ctrl e Alt insieme a un altro tasto sono comandi del browser (salva, segnalibro, pagina indietro): in partita li fermo
+  if (G.stato === 'gioco' && (e.ctrlKey || e.altKey) && !e.metaKey) e.preventDefault();
   if (G.stato === 'inizio') { if (k === 'Enter') primoAvvio(); return; }
   if (G.stato === 'caricamento') return;
 
@@ -821,7 +823,7 @@ document.addEventListener('keydown', e => {
   }
   // in gioco
   if (G.pausa) {
-    if (c === 'KeyM' && G.modalita === 'battaglia' && B.tutorial && TUT.obbligatorio) { parla('La prima volta l\'allenamento va finito. Clicca per riprendere.', 2); return; }
+    if (c === 'KeyM' && G.modalita === 'battaglia' && B.tutorial && TUT.obbligatorio) { annuncio('tut_obbligo', 'La prima volta l\'allenamento va finito. Clicca per riprendere.', 2); return; }
     if (c === 'KeyM') { if (D.rete) duelloChiudi(); pulisciPartita(); apriMenu('menu'); }
     else if (k === 'Enter') agganciaPuntatore();
     return;
@@ -846,7 +848,7 @@ document.addEventListener('keydown', e => {
     if (c === 'KeyB' || c === 'KeyN') { costruisciRapido(c === 'KeyB' ? 'barricata' : 'rampa'); G.prossimaTurbo = G.tempo + 0.3; return; }
     if (c === 'KeyZ') { giratiVerso(e.shiftKey); return; }
     if (c === 'KeyK') { senteCostruzioni(); return; }
-    if (c === 'ControlLeft' || c === 'ControlRight') { ascolta(); return; }
+    if (c === 'ControlLeft' || c === 'ControlRight' || c === 'Digit0') { ascolta(); return; }
     if (c === 'AltLeft' || c === 'AltRight') { e.preventDefault(); return; }
     if (c === 'Space') { G.tasti[c] = true; battagliaRicognizione(); return; }
   }
@@ -862,7 +864,7 @@ document.addEventListener('keydown', e => {
     if (c === 'KeyB' || c === 'KeyN') { costruisciRapido(c === 'KeyB' ? 'barricata' : 'rampa'); G.prossimaTurbo = G.tempo + 0.3; return; }
     if (c === 'KeyZ') { giratiVerso(e.shiftKey); return; }
     if (c === 'KeyK') { senteCostruzioni(); return; }
-    if (c === 'ControlLeft' || c === 'ControlRight') { ascolta(); return; }
+    if (c === 'ControlLeft' || c === 'ControlRight' || c === 'Digit0') { ascolta(); return; }
     if (c === 'AltLeft' || c === 'AltRight') { e.preventDefault(); return; }
     if (e.shiftKey && (c === 'Digit1' || c === 'Digit2' || c === 'Digit3')) { provocazione({ Digit1: 'minaccia', Digit2: 'attacco', Digit3: 'colpito' }[c]); return; }
   }
@@ -913,7 +915,14 @@ document.addEventListener('keydown', e => {
       }
   }
 });
-document.addEventListener('keyup', e => { delete G.tasti[e.code]; });
+document.addEventListener('keyup', e => {
+  delete G.tasti[e.code];
+  // su Windows, Alt rilasciato da solo sposterebbe il fuoco sul menù del browser
+  if (G.stato === 'gioco' && (e.code === 'AltLeft' || e.code === 'AltRight')) e.preventDefault();
+});
+// Ctrl+W su Windows chiude la scheda e non si può fermare: almeno il browser chiede conferma prima di buttare via la partita
+const SU_MAC = /Mac|iPhone|iPad/.test(navigator.platform || '');
+window.addEventListener('beforeunload', e => { if (!SU_MAC && G.stato === 'gioco' && !G.pausa) { e.preventDefault(); e.returnValue = ''; } });
 window.addEventListener('blur', () => { G.tasti = {}; if (G.arsenale) G.arsenale.grilletto = false; });
 
 // ---------------------------------------------------------------- pannello (per chi vede)

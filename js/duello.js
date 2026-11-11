@@ -50,7 +50,7 @@ function caricaRete() {
   return new Promise((ok, ko) => {
     if (window.mqtt) return ok();
     const s = document.createElement('script');
-    s.src = 'https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js';
+    s.src = 'js/vendor/mqtt.min.js'; // copia locale (versione 5.10.1): niente codice caricato da siti esterni
     s.onload = ok; s.onerror = () => ko(new Error('rete'));
     document.head.appendChild(s);
   });

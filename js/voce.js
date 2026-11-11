@@ -6,7 +6,7 @@ const Voce = { it: null, velocita: 1.35, prioritaCorrente: 0, fineStimata: 0, so
 function trovaVoce() {
   if (!('speechSynthesis' in window)) return;
   const voci = speechSynthesis.getVoices().filter(v => v.lang && v.lang.toLowerCase().startsWith('it'));
-  const pref = ['premium', 'enhanced', 'avanzata', 'siri', 'federica', 'alice', 'luca', 'paola'];
+  const pref = ['premium', 'enhanced', 'avanzata', 'natural', 'siri', 'federica', 'alice', 'luca', 'paola', 'elsa', 'isabella', 'cosimo', 'microsoft'];
   voci.sort((a, b) => {
     const pa = pref.findIndex(p => a.name.toLowerCase().includes(p));
     const pb = pref.findIndex(p => b.name.toLowerCase().includes(p));
@@ -25,6 +25,7 @@ function parla(testo, priorita = 1) {
   Voce.fineStimata = ora + 400 + testo.length * 55 / Voce.velocita;
   Voce.sottotitolo = testo;
   Voce.sottotitoloFino = ora + Math.max(2200, testo.length * 70);
+  fermaClipVoce();
   if (!('speechSynthesis' in window)) return;
   speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(testo);
@@ -45,8 +46,11 @@ function annuncio(nome, testo, priorita = 1) {
   const durata = Audio3D.buf[clip[0]].duration * 1000;
   Voce.prioritaCorrente = priorita; Voce.fineStimata = ora + durata;
   Voce.sottotitolo = testo; Voce.sottotitoloFino = ora + Math.max(2200, durata + 800);
-  suona(clip[0], { gain: 1.1 });
+  fermaClipVoce();
+  Voce.clip = suona(clip[0], { gain: 1.1 });
 }
+// una voce registrata lunga (le spiegazioni dell'allenamento) si deve poter interrompere
+function fermaClipVoce() { if (Voce.clip) { try { Voce.clip.stop(); } catch (e) { /* già finita */ } Voce.clip = null; } }
 // Il compagno parla alla radio: il clic e il fruscio prima e dopo, la voce stretta della radio, nell'orecchio.
 let prossimaRadio = 0;
 function radio(categoria, testo, voce = 'radio') {
@@ -66,4 +70,4 @@ function fruscioRadio(quando) {
   s.connect(f).connect(g).connect(Audio3D.master); s.start(t); s.stop(t + 0.14);
   suona('tic2', { gain: 0.25, rate: 1.6, quando });
 }
-function taci() { if ('speechSynthesis' in window) speechSynthesis.cancel(); Voce.fineStimata = 0; }
+function taci() { fermaClipVoce(); if ('speechSynthesis' in window) speechSynthesis.cancel(); Voce.fineStimata = 0; }

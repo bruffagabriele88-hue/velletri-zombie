@@ -438,3 +438,14 @@ muro e rampa, scatola, ascolto, radar. Poi quattro spiegazioni da ascoltare: cas
 tempesta, squadre e rete.
 Finito l'allenamento si apre il menù. Lo puoi rifare quando vuoi: è l'ultima voce del menù, "Allenamento".
 Nella battaglia reale adesso ci sono molti più forzieri, sia nei luoghi sia sparsi per l'isola.
+
+Le spiegazioni dell'allenamento adesso le dice la voce registrata del narratore, non più la voce del computer.
+
+AUDIO ANCORA PIÙ PRECISO
+- Davanti o dietro: un suono alle tue spalle è più cupo e chiuso, uno davanti è più presente e brillante. Girando la testa lo senti cambiare.
+- Riflesso del terreno: ogni suono arriva anche rimbalzato a terra, un attimo dopo. Aiuta a capire quanto è lontano.
+Si sentono solo in cuffia.
+
+SICUREZZA E WINDOWS
+- Il gioco non carica più codice da siti esterni, e la pagina accetta collegamenti solo ai server che servono.
+- Tasto zero: ascolto, come Controllo (per Windows).

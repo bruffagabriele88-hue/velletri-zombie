@@ -8,8 +8,22 @@ const TUT = { passo: -1, stadio: 'attesa', avanti: 0, liberoDa: 0, tasti: {}, gi
 function tutorialFatto() { try { return localStorage.getItem('vz_tutorial') === '1' || TUT.fattoInMemoria; } catch (e) { return TUT.fattoInMemoria; } }
 function tutorialSegnaFatto() { TUT.fattoInMemoria = true; try { localStorage.setItem('vz_tutorial', '1'); } catch (e) { /* non disponibile */ } }
 
-function tutorialAvvia() {
+// le spiegazioni con la voce vera del narratore: si scaricano solo quando parte l'allenamento
+async function caricaVociAllenamento() {
+  if (TUT.vociPronte) return;
+  try {
+    const nomi = await (await fetch('suoni/voci/allenamento/elenco.json?v=36')).json();
+    await caricaInGruppi(nomi.map(n => ['tut_' + n, `suoni/voci/allenamento/tut_${n}.mp3?v=36`]));
+    Audio3D.voci.narratore = Audio3D.voci.narratore || {};
+    for (const n of nomi) if (Audio3D.buf['tut_' + n]) Audio3D.voci.narratore['tut_' + n] = ['tut_' + n];
+    TUT.vociPronte = true;
+  } catch (e) { console.error('voci dell\'allenamento non caricate', e); }
+}
+async function tutorialAvvia() {
   TUT.obbligatorio = !tutorialFatto();
+  G.stato = 'caricamento'; aggiornaPannello();
+  if (!TUT.vociPronte) parla('Carico l\'allenamento.', 1);
+  await caricaVociAllenamento();
   battagliaAvvia('piazza', 'facile', { squadre: 1, tutorial: true });
 }
 
@@ -95,9 +109,9 @@ const LEZIONI = [
     prepara: () => { tutorialArma(); if (!tutorialFantoccioVivo()) tutorialFantoccio(15, 100000); },
     testo: 'Colpito. Adesso il mirino: premi C, oppure fai clic con due dita. Nel mirino sei molto più preciso, ma cammini piano. Con C esci dal mirino. Ricorda: se tieni premuto il grilletto a lungo il rinculo cresce e i colpi si allargano, quindi meglio raffiche corte. Entra nel mirino e colpiscilo ancora.',
     fatto: () => TUT.colpiMira > 0 },
-  { id: 'aggancio',
+  { id: 'aggancio', windows: true,
     prepara: () => { tutorialArma(); if (!tutorialFantoccioVivo()) tutorialFantoccio(15, 60); else B.bot[0].vita = 60; },
-    testo: 'Un altro aiuto: tenendo premuto il tasto Opzione, lo sguardo si aggancia al nemico più vicino che senti e lo segue. Tieni premuto Opzione, spara, ed elimina il fantoccio.',
+    testo: 'Un altro aiuto: tenendo premuto il tasto Opzione, che su Windows si chiama Alt, lo sguardo si aggancia al nemico più vicino che senti e lo segue. Tienilo premuto, spara, ed elimina il fantoccio.',
     fatto: () => !tutorialFantoccioVivo(), salta: () => { const b = B.bot[0]; if (b && b.vivo) elimina(b, 'io'); } },
   { id: 'ricarica',
     testo: 'Il tasto R ricarica. Fallo quando sei al riparo, perché mentre ricarichi non puoi sparare. Premi R.',
@@ -126,10 +140,10 @@ const LEZIONI = [
     prepara: () => { G.inventario.materiali = Math.max(G.inventario.materiali, 40); },
     testo: 'T costruisce una scatola: quattro muri tutto intorno a te. È il riparo più veloce quando ti sparano, per curarti o ricaricare. Costa dieci materiali. K ti dice le costruzioni vicine. Premi T.',
     fatto: () => TUT.tasti.KeyT },
-  { id: 'ascolto', pausa: 5,
+  { id: 'ascolto', pausa: 5, windows: true,
     prepara: () => { if (!tutorialFantoccioVivo()) tutorialFantoccio(20, 100); },
-    testo: 'Il tasto Controllo è l\'ascolto: senti un sonar da ogni avversario entro sessanta metri, dal più vicino. È più acuto se sta sopra di te, più grave se sta sotto. Si può usare ogni sei secondi. Premi Controllo.',
-    fatto: () => TUT.tasti.ControlLeft || TUT.tasti.ControlRight },
+    testo: 'Il tasto Controllo è l\'ascolto: senti un sonar da ogni avversario entro sessanta metri, dal più vicino. È più acuto se sta sopra di te, più grave se sta sotto. Si può usare ogni sei secondi. Su Windows usa il tasto zero, che fa la stessa cosa, perché lì Controllo insieme a W chiuderebbe la pagina. Premi Controllo, oppure zero.',
+    fatto: () => TUT.tasti.ControlLeft || TUT.tasti.ControlRight || TUT.tasti.Digit0 },
   { id: 'radar', pausa: 5,
     prepara: () => { G.inventario.radar = Math.max(G.inventario.radar || 0, 1); if (!tutorialFantoccioVivo()) tutorialFantoccio(20, 100); },
     testo: 'L usa il radar, se ne hai trovato uno: per cinque secondi ti segnala dove stanno gli avversari. F invece piazza una trappola a terra, che costa cinque materiali. Premi L.',
@@ -154,13 +168,19 @@ function tutorialInizia() {
   D.casse = [];
   const b = B.bot[0];
   if (b) { b.fantoccio = true; b.nome = 'Fantoccio'; b.def.nome = 'Fantoccio'; b.vivo = false; b.morteT = 99; b.inAria = false; chiudiSorgente(b.sorgente); }
-  if (G.pausa) parla('Allenamento. Clicca sul trackpad per cominciare.', 2);
+  if (G.pausa) {
+    const clicca = () => { if (B.tutorial && G.pausa && TUT.passo < 0) annuncio('tut_clicca', 'Allenamento. Clicca sul trackpad per cominciare.', 2); };
+    if (TUT.obbligatorio) { annuncio('tut_prima', 'Velletri Zombie. È la prima volta: si comincia con l\'allenamento.', 2); setTimeout(clicca, 4800); } else clicca();
+  }
 }
 
 function tutorialDici() {
   const L = LEZIONI[TUT.passo]; if (!L) return;
-  parla(L.testo, 2);
-  TUT.ricorda = G.tempo + 25 + L.testo.length * 0.07;
+  // due spiegazioni hanno una nota in più per Windows che nella registrazione non c'è: lì le legge la voce del computer
+  const letta = L.windows && !SU_MAC;
+  if (letta) parla(L.testo, 2); else annuncio('tut_' + L.id, L.testo, 2);
+  const clip = letta ? null : Audio3D.buf['tut_' + L.id];
+  TUT.ricorda = G.tempo + 25 + (clip ? clip.duration : L.testo.length * 0.07);
 }
 function tutorialEntra(i) {
   TUT.passo = i; TUT.stadio = 'lezione'; TUT.tasti = {}; TUT.giro = 0; TUT.strada = 0; TUT.corsa = 0; TUT.colpi = 0; TUT.colpiMira = 0;
@@ -201,13 +221,13 @@ function aggiornaTutorial() {
 // i tasti dell'allenamento. Restituisce true se il tasto è stato usato qui e non deve fare altro.
 function tutorialTasto(c, e) {
   if (TUT.finito) return true;
-  if (c === 'Backspace') { if (TUT.stadio === 'lezione') tutorialDici(); return true; }
+  if (c === 'Backspace') { if (TUT.stadio === 'lezione') { taci(); tutorialDici(); } return true; }
   if (c === 'Enter' || c === 'NumpadEnter') {
     if (TUT.stadio !== 'lezione') return true;
     const L = LEZIONI[TUT.passo];
     if (L.invio) { tutorialSuperato(); TUT.avanti = G.tempo + 0.3; taci(); }
-    else if (e.shiftKey) { try { if (L.salta) L.salta(); } catch (err) { console.error('allenamento', err); } parla('Saltato.', 2); tutorialSuperato(); }
-    else parla('Qui devi provare il comando. Cancella ripete la spiegazione, Maiuscolo più Invio salta.', 1);
+    else if (e.shiftKey) { try { if (L.salta) L.salta(); } catch (err) { console.error('allenamento', err); } annuncio('tut_saltato', 'Saltato.', 2); tutorialSuperato(); }
+    else annuncio('tut_prova', 'Qui devi provare il comando. Cancella ripete la spiegazione, Maiuscolo più Invio salta.', 2);
     return true;
   }
   if (TUT.stadio === 'lezione') TUT.tasti[(e.shiftKey && !c.startsWith('Shift') ? 'Maiusc+' : '') + c] = true;
@@ -218,7 +238,7 @@ function tutorialFine() {
   TUT.finito = true; TUT.obbligatorio = false;
   tutorialSegnaFatto();
   suona('vittoria', { gain: 0.7 });
-  parla('Allenamento completato. Sei pronto per la battaglia. Lo puoi rifare quando vuoi dal menù, alla voce Allenamento.', 2);
+  annuncio('tut_fine', 'Allenamento completato. Sei pronto per la battaglia. Lo puoi rifare quando vuoi dal menù, alla voce Allenamento.', 2);
   setTimeout(() => {
     if (!B.tutorial || G.stato !== 'gioco') return;
     pulisciPartita(); B.tutorial = false;
