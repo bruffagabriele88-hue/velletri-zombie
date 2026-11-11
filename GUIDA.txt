@@ -58,7 +58,7 @@ Vai sopra, senti "cassa, E", premi E. Dentro: armi di quattro rarità (comune, r
 pozioni scudo, bende, kit, granate, materiali. Chi viene eliminato lascia a terra il suo bottino.
 
 Tasti
-1 pistola, 2 fucile a pompa, 3 mitragliatore, 4 fucile di precisione, 5 piccone, 6 mitraglietta, 7 lanciarazzi.   R ricarica.   Q granata.
+1 Beretta 92, 2 Benelli M3, 3 ARX 160, 4 Sako TRG, 5 piccone, 6 Beretta PMX, 7 Panzerfaust 3.   R ricarica.   Q granata.
 H: ti curi (kit più 50, bende più 20).   P: inserisci una piastra balistica nel giubbotto (più 50, due secondi).
 B: muro.   N: rampa.   Costano 3 materiali e si costruiscono in mezzo secondo.
    I muri fermano i proiettili, anche quelli degli avversari; dalla rampa spari oltre i muri.
@@ -124,6 +124,21 @@ Anche gli avversari costruiscono: un muro verso chi gli spara, una scatola quand
 
 
 
+
+
+ARMI VERE (Battaglia reale e duello)
+- Le armi hanno i nomi di quelle vere dell'esercito italiano, e ognuna ha il suo suono, così le riconosci a orecchio
+  anche quando spara qualcun altro:
+  1 Beretta 92, pistola. 2 Benelli M3, fucile a pompa. 3 ARX 160, fucile d'assalto. 4 Sako TRG, fucile di precisione.
+  5 piccone. 6 Beretta PMX, mitraglietta. 7 Panzerfaust 3, lanciarazzi (senti il razzo partire e il caricamento del razzo).
+- Mirare nel mirino: C, oppure clic con due dita sul trackpad (si accende e si spegne). Porti l'arma all'occhio e trattieni il respiro:
+  i colpi vanno molto più dritti, il rinculo si tiene meglio e prendi la testa più spesso, ma cammini piano e giri più fine.
+  Col Sako guardi nel cannocchiale. Se corri, il mirino si abbassa da solo.
+- Rinculo: se tieni premuto a lungo, l'arma sale e tira da un lato, sempre di più. Conviene sparare a raffiche brevi.
+- Silenziatore: si trova raramente nei forzieri. Si monta da solo sull'arma che hai in mano (pistola, ARX, Sako o PMX),
+  oppure sulla prima adatta che trovi. Lo sparo diventa un colpo sordo, senza echi: gli avversari ti sentono solo da vicino,
+  meno di venti metri, e da lontano non capiscono da dove spari.
+- Maiuscolo più C: ti dice l'arma che hai in mano, che tipo è, se ha il silenziatore e quanti colpi ti restano.
 
 PIÙ SERIO E REALISTICO (Battaglia reale)
 - Si parte in elicottero da trasporto, non sul bus: senti le pale e la turbina, il portellone che si apre.

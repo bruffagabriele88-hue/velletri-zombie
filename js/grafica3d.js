@@ -562,8 +562,9 @@ function sincronizza(mappa, elenco, chiave, crea, aggiorna) {
 // ---------------------------------------------------------------- arma in mano
 function armaInMano() {
   const T = V3.T, A = V3.arma, tipo = G.arsenale ? G.arsenale.corrente : 'pistola';
-  if (A.userData.tipo === tipo) return;
-  A.userData.tipo = tipo;
+  const sil = !!(G.arsenale && armaStato() && armaStato().silenziatore), chiave = tipo + (sil ? '+s' : '');
+  if (A.userData.tipo === chiave) return;
+  A.userData.tipo = chiave;
   while (A.children.length) A.remove(A.children[0]);
   const nero = new T.MeshStandardMaterial({ color: 0x1c1d20, metalness: 0.75, roughness: 0.32 });
   const polimero = new T.MeshStandardMaterial({ color: 0x2b2c2a, roughness: 0.6 });
@@ -585,6 +586,8 @@ function armaInMano() {
     const manico = p(cil(0.018, 0.55, 8), legno, 0.02, 0.06, -0.12, -0.9); manico.rotation.z = -0.25;
     const testa = p(box(0.32, 0.045, 0.045), nero, 0.08, 0.22, -0.35); testa.rotation.z = -0.25;
   }
+  // il silenziatore: un cilindro opaco in fondo alla canna
+  if (sil) { const lung = { pistola: -0.42, mitra: -0.8, precisione: -1.12, mitraglietta: -0.52 }[tipo] ?? -0.6; p(cil(0.03, 0.22, 14), polimero, 0, tipo === 'precisione' ? 0.01 : 0.015, lung, Math.PI / 2); }
   A.position.set(0.26, -0.25, -0.52); A.scale.set(0.72, 0.72, 0.72);
 }
 
@@ -625,9 +628,14 @@ function disegna3D(ora, dt) {
   // arma in mano, con il rinculo e l'ondeggiare del passo
   armaInMano();
   const rinculo = G.effetti.lampo || 0;
-  V3.arma.position.set(0.26 + ondeggia * 0.6, -0.25 + oscilla * 0.4, -0.52 + rinculo * 0.06);
+  // mirando, l'arma va al centro davanti all'occhio e la visuale si stringe (col cannocchiale molto di più)
+  const mirando = !!G.mira, cannocchiale = mirando && G.arsenale && armaDef().mirino;
+  V3.miraT = lim((V3.miraT || 0) + (mirando ? dt : -dt) * 6, 0, 1);
+  const fov = 72 - V3.miraT * (cannocchiale ? 50 : 20);
+  if (Math.abs(cam.fov - fov) > 0.05) { cam.fov = fov; cam.updateProjectionMatrix(); }
+  V3.arma.position.set(mescola(0.26, 0, V3.miraT) + ondeggia * 0.6 * (1 - V3.miraT), mescola(-0.25, -0.17, V3.miraT) + oscilla * 0.4 * (1 - V3.miraT * 0.7), -0.52 + rinculo * 0.06);
   V3.arma.rotation.set(rinculo * 0.22, 0, 0);
-  V3.arma.visible = G.stato === 'gioco' && !inCielo && !(G.modalita === 'battaglia' && (B.aTerra || B.morto));
+  V3.arma.visible = G.stato === 'gioco' && !inCielo && !(G.modalita === 'battaglia' && (B.aTerra || B.morto)) && !(cannocchiale && V3.miraT > 0.8);
   if (rinculo > 0.9 && !(G.arsenale && armaDef().mischia)) { const [fx, fz] = avanti(G.rotta); lampoLuce(G.x + fx * 0.8, occhi - 0.15, G.z + fz * 0.8, 3, 0.07); }
   // acqua e tempesta che si muovono
   if (V3.getto) V3.getto.scale.y = 1 + Math.sin(ora / 180) * 0.08;
@@ -801,6 +809,13 @@ function hudBattaglia(W, H, ora) {
     if (Math.abs(rel) > 1.2) continue;
     g.fillStyle = nome.length === 1 ? '#f2f2ee' : '#8a949c';
     g.fillText(nome, cx + rel / 1.2 * 210 * u, pad + 20 * u);
+  }
+  // cannocchiale del fucile di precisione: cerchio nero col reticolo
+  if (G.mira && G.arsenale && armaDef().mirino && (V3.miraT || 0) > 0.8) {
+    const r = H * 0.42;
+    g.fillStyle = '#000'; g.beginPath(); g.rect(0, 0, W, H); g.arc(cx, H / 2, r, 0, PI2, true); g.fill();
+    g.strokeStyle = 'rgba(0,0,0,0.85)'; g.lineWidth = Math.max(1, 1.2 * u);
+    g.beginPath(); g.moveTo(cx - r, H / 2); g.lineTo(cx + r, H / 2); g.moveTo(cx, H / 2 - r); g.lineTo(cx, H / 2 + r); g.stroke();
   }
   // mirino sottile
   g.strokeStyle = 'rgba(240,240,230,0.75)'; g.lineWidth = Math.max(1, 1.5 * u);

@@ -19,6 +19,7 @@ const ELENCO_SUONI = [
   'dolore1', 'dolore2', 'dolore3', 'battito', 'io_passo1', 'io_passo2', 'io_passo3', 'io_passo4', 'raccogli',
   'martello', 'legno_colpito', 'legno_rotto', 'filo_spinato',
   'fontana', 'campane', 'cani', 'civetta', 'sirena', 'orda',
+  'arx_sparo', 'arx_sparo2', 'cecchino_sparo', 'razzo_parte', 'razzo_carica', 'sil_pistola', 'sil_pistola2', 'sil_fucile',
   'erba1', 'erba2', 'erba3', 'erba4', 'acqua1', 'acqua2', 'acqua3', 'acqua4', 'sassi1', 'sassi2', 'sassi3', 'sassi4',
 ];
 
@@ -124,7 +125,7 @@ async function inizializzaAudio(avanzamento) {
   Object.assign(A.buf, creaSuoniDuello(ctx));
   if (typeof creaSuoniRealismo === 'function') Object.assign(A.buf, creaSuoniRealismo(ctx));
   let fatti = 0;
-  await caricaInGruppi(ELENCO_SUONI.map(nome => [nome, `suoni/${nome}.wav?v=31`]), () => { fatti++; if (avanzamento) avanzamento(fatti / ELENCO_SUONI.length); });
+  await caricaInGruppi(ELENCO_SUONI.map(nome => [nome, `suoni/${nome}.wav?v=32`]), () => { fatti++; if (avanzamento) avanzamento(fatti / ELENCO_SUONI.length); });
   // frasi dei nemici: voce -> categoria -> elenco di suoni
   try {
     A.voci = await (await fetch('suoni/voci/elenco.json')).json();

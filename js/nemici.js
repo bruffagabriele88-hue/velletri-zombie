@@ -317,7 +317,8 @@ function tracciaColpo(x, z, dir, portata) {
     const errore = Math.abs(avvolgi(rottaVerso(x, z, n.x, n.z) - dir)), cono = conoColpo(n, d);
     if (errore > cono) continue;
     // chi spara dall'alto verso chi è a terra colpisce la testa più facilmente
-    const quotaTesta = (G.livello || (G.alto ? 1 : 0)) > (n.livello || (n.alto ? 1 : 0)) ? 0.55 : 0.35;
+    // dall'alto, o mirando nel mirino, si prende la testa più facilmente
+    const quotaTesta = ((G.livello || (G.alto ? 1 : 0)) > (n.livello || (n.alto ? 1 : 0)) ? 0.55 : 0.35) + (G.mira ? 0.12 : 0);
     if (!migliore || d < migliore.distanza) migliore = { nemico: n, distanza: d, testa: errore <= cono * quotaTesta };
   }
   // nel duello le barricate fermano i proiettili: fanno da riparo, come si costruisce un muro per coprirsi

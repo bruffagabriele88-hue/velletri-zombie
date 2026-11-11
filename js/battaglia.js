@@ -27,11 +27,11 @@ const ORDINALI = ['primo', 'secondo', 'terzo', 'quarto', 'quinto', 'sesto', 'set
 const ARMI_BOT = {
   pistola: { suoni: ['sparo', 'sparo2', 'sparo3'], danno: 15, cadenza: 0.65, prob: 0.5, portata: 35, distanza: 10, valore: 1 },
   pompa: { suoni: ['pompa_sparo'], danno: 42, cadenza: 1.3, prob: 0.75, portata: 13, distanza: 5, valore: 2 },
-  mitra: { suoni: ['ak_sparo', 'ak_sparo2', 'ak_sparo3'], danno: 10, cadenza: 0.16, raffica: 4, pausa: 1.1, prob: 0.4, portata: 45, distanza: 14, valore: 3 },
+  mitra: { suoni: ['arx_sparo', 'arx_sparo2'], danno: 10, cadenza: 0.16, raffica: 4, pausa: 1.1, prob: 0.4, portata: 45, distanza: 14, valore: 3 },
   piccone: { mischia: true, danno: 20, cadenza: 0.7, prob: 0.6, portata: 2.4, distanza: 1.2, valore: 0 },
   mitraglietta: { suoni: ['sparo', 'sparo2', 'sparo3'], danno: 9, cadenza: 0.09, raffica: 6, pausa: 1.0, prob: 0.38, portata: 30, distanza: 9, valore: 2 },
   lanciarazzi: { razzo: true, suoni: ['lancio'], danno: 70, cadenza: 3.2, prob: 0.55, portata: 60, distanza: 25, valore: 3 },
-  precisione: { suoni: ['ak_sparo4'], danno: 65, cadenza: 2.4, prob: 0.5, portata: 80, distanza: 30, valore: 3 },
+  precisione: { suoni: ['cecchino_sparo'], danno: 65, cadenza: 2.4, prob: 0.5, portata: 80, distanza: 30, valore: 3 },
 };
 
 function nomeRarita(m) { return (RARITA.find(r => r[0] === m) || RARITA[0])[1]; }
@@ -42,7 +42,8 @@ function contenutoForziere() {
   if (r < 0.78) return { cont: 'pozione', materiali: 5 }; // una piastra balistica per il giubbotto
   if (r < 0.90) return { cont: scegli(['kit', 'bende']), materiali: 5 };
   if (r < 0.93) return { cont: 'granate', materiali: 5 };
-  if (r < 0.98) return { cont: 'radar', materiali: 5 };
+  if (r < 0.965) return { cont: 'radar', materiali: 5 };
+  if (r < 0.995) return { cont: 'silenziatore', materiali: 5 };
   return { cont: 'materiali', materiali: 0 };
 }
 function nuovoForziere(x, z, c) { return { id: Math.random().toString(36).slice(2), x, z, ...c, aTerra: true, prossimoPing: 0, detta: false }; }
@@ -89,7 +90,7 @@ async function battagliaAvvia(lancio, difficolta, opz = {}) {
   G.arsenale.armi = { piccone: { caricatore: 0, camera: 0 } }; G.arsenale.corrente = 'piccone';
   G.arsenale.riserva = { '9mm': 0, cal12: 0, '762': 0, '308': 0, razzo: 0 };
   G.inventario = { granate: 0, kit: 0, cibo: 2, materiali: 40, pozioni: 0, radar: 0 };
-  G.livello = 0; G.prossimaTurbo = 0;
+  G.livello = 0; G.prossimaTurbo = 0; G.mira = false;
   D.trappole = []; D.radarFino = 0;
   B.lancio = lancio; B.attiva = true; B.morto = false; B.aTerra = false; B.finita = false; B.eliminazioni = 0; B.ultimoAggressore = null;
   B.inCasa = null; B.inCespuglio = false; B.vincitrice = null; B.faseAnnunciata = null;
@@ -405,6 +406,7 @@ function miPercepisce(b, d) {
   // vista: da vicino, se non c'è un muro in mezzo e non sono nascosto in un cespuglio
   if (d < 11 && !muroTra(b.x, b.z, G.x, G.z, b.livello || 0, G.livello || 0) && !(nascosto() && d > 3.5)) return true;
   if (G.tempo - (B.ultimoMioSparo || -99) < 2.5 && d < 110) return true;
+  if (G.tempo - (B.ultimoMioSparoSilenziato || -99) < 2.5 && d < 18) return true; // col silenziatore mi sentono solo da vicino
   if (G.tempo - (G.ultimaCorsa || -99) < 0.8 && d < 24) return true;
   if (b.ultimoAggressore === 'io' && G.tempo < b.allertaFino) return true;
   if (b.bersaglio === 'io' && G.tempo - (b.vistoIo || -99) < 2.5 && d < 60) return true; // mi segue ancora per un attimo
@@ -624,7 +626,7 @@ function sparaBot(b, T, tx, tz, d, W) {
     b.prossimoSparo = G.tempo + W.cadenza * caso(0.9, 1.3);
     const err = (1 - Math.min(0.9, W.prob * b.bravura)) * 6, ex = tx + caso(-err, err), ez = tz + caso(-err, err);
     const t = Math.max(0.2, d / 55);
-    suonoBot(b, 'lancio', { gain: 1.2, rate: 0.55 });
+    suonoBot(b, 'razzo_parte', { gain: 1.1, locale: true });
     if (reteBR() && D.ospite) duelloInvia({ t: 'br', i: B.bot.indexOf(b), x: +ex.toFixed(2), z: +ez.toFixed(2) });
     razzoBot(b, ex, ez, t);
     return;
@@ -818,7 +820,7 @@ function vittoria() {
 
 // a terra (solo a squadre): si striscia e si perde vita; un compagno può rianimarti
 function vaiATerra() {
-  B.aTerra = true; G.vita = 100; G.scudo = 0; G.occupatoFino = Infinity; G.arsenale.grilletto = false; G.velocitaExtra = 0.3; G.livello = 0;
+  G.mira = false; B.aTerra = true; G.vita = 100; G.scudo = 0; G.occupatoFino = Infinity; G.arsenale.grilletto = false; G.velocitaExtra = 0.3; G.livello = 0;
   B.prossimoAvvisoTerra = G.tempo + 10;
   suona('corpo_cade', { gain: 0.8 });
   parla('Sei a terra! Puoi solo strisciare. Un compagno può rianimarti; intanto perdi vita.', 2);

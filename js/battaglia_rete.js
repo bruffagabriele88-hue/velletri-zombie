@@ -92,7 +92,8 @@ function reteBRRicevi(m, a) {
       if (!a) break;
       a.ultimoSparoT = G.tempo; a.ultimoSuono = G.tempo; a.lampo = 1;
       const nome = Audio3D.buf[m.n] ? m.n : 'sparo';
-      sparoLontano(nome, a.x, a.z, a.sorgente, a.team === B.mioTeam ? 0.6 : 1);
+      if (m.s) suonaBase(nome, { dest: a.sorgente.ingresso, gain: 0.6 }); // col silenziatore: sordo, senza echi
+      else sparoLontano(nome, a.x, a.z, a.sorgente, a.team === B.mioTeam ? 0.6 : 1);
       const d = Math.hypot(G.x - a.x, G.z - a.z), errore = avvolgi(rottaVerso(a.x, a.z, G.x, G.z) - m.r);
       if (a.team !== B.mioTeam && Math.abs(errore) < 12 * GRADI && d > 3 && !B.morto) proiettilePassa(a.x, a.z);
       if (D.ospite) allertaNemici(a.x, a.z, 70);
@@ -172,7 +173,7 @@ function reteBRRicevi(m, a) {
     case 'bsu': if (daCapo && bot && (bot.vivo || m.n === 'corpo_cade')) suonoBot(bot, m.n, { gain: m.g, rate: m.r }); break;
     case 'bvo': if (daCapo && bot && bot.vivo) fraseBot(bot, m.k); break;
     case 'bg': if (daCapo && bot) sequenzaGranataBot(bot, m.x, m.z); break;
-    case 'br': if (daCapo && bot) { suonoBot(bot, 'lancio', { gain: 1.2, rate: 0.55 }); razzoBot(bot, m.x, m.z, Math.max(0.2, Math.hypot(m.x - bot.x, m.z - bot.z) / 55)); } break;
+    case 'br': if (daCapo && bot) { suonoBot(bot, 'razzo_parte', { gain: 1.1 }); razzoBot(bot, m.x, m.z, Math.max(0.2, Math.hypot(m.x - bot.x, m.z - bot.z) / 55)); } break;
     case 'bm':
       if (!daCapo || !bot) break;
       if (bot.vivo) {

@@ -3,7 +3,7 @@
 
 const ARMI = {
   pistola: {
-    nome: 'pistola', tasto: '1', munizione: '9mm', capacita: 15, auto: false, cadenza: 0.13,
+    nome: 'Beretta 92', categoria: 'pistola', silenziabile: true, tasto: '1', munizione: '9mm', capacita: 15, auto: false, cadenza: 0.13,
     pallini: 1, dispersione: 0, danno: [30, 45], dannoTesta: [70, 90], portata: 40, raggio: 'medio raggio, 40 metri', rinculo: 0.3,
     spari: ['sparo', 'sparo2', 'sparo3'], gainSparo: 0.95, tipoRicarica: 'caricatore',
     botto: [120, 55, 0.11, 0.45], schiocco: 0.5, eco: 0.5, orecchie: 0.4, meccanica: ['carrello', 0.13, 1.9],
@@ -11,23 +11,23 @@ const ARMI = {
     tempi: { caduta: 0.38, inserimento: 1.15, pronta: 1.55, carrello: 1.65, prontaVuota: 2.25 },
   },
   pompa: {
-    nome: 'fucile a pompa', tasto: '2', munizione: 'cal12', capacita: 6, auto: false, cadenza: 0.72,
+    nome: 'Benelli M3', categoria: 'fucile a pompa', tasto: '2', munizione: 'cal12', capacita: 6, auto: false, cadenza: 0.72,
     pallini: 9, dispersione: 4.5 * GRADI, danno: [13, 19], dannoTesta: [28, 40], portata: 15, raggio: 'corto raggio, 15 metri', rinculo: 1.5,
     spari: ['pompa_sparo'], gainSparo: 1.0, tipoRicarica: 'cartucce',
     botto: [85, 32, 0.24, 1.0], schiocco: 0.6, eco: 0.9, orecchie: 1.0,
   },
   mitra: {
-    nome: 'mitragliatore', tasto: '3', munizione: '762', capacita: 30, auto: true, cadenza: 0.1,
+    nome: 'ARX 160', categoria: "fucile d'assalto", silenziabile: true, tasto: '3', munizione: '762', capacita: 30, auto: true, cadenza: 0.1,
     pallini: 1, dispersione: 0.6 * GRADI, danno: [28, 38], dannoTesta: [85, 110], portata: 55, raggio: 'medio lungo raggio, 55 metri', rinculo: 0.9,
-    spari: ['ak_sparo', 'ak_sparo2', 'ak_sparo3', 'ak_sparo4'], gainSparo: 0.9, tipoRicarica: 'caricatore',
+    spari: ['arx_sparo', 'arx_sparo2'], gainSparo: 1.0, tipoRicarica: 'caricatore',
     botto: [100, 42, 0.14, 0.65], schiocco: 0.6, eco: 0.7, orecchie: 0.6, meccanica: ['ak_otturatore', 0.10, 1.7],
     fasi: { sgancio: 'ak_sgancio', caduta: 'caricatore_cade', inserimento: 'ak_inserimento', carrello: 'ak_otturatore' },
     tempi: { caduta: 0.45, inserimento: 1.5, pronta: 1.9, carrello: 2.0, prontaVuota: 2.7 },
   },
   precisione: {
-    nome: 'fucile di precisione', tasto: '4', munizione: '308', capacita: 5, auto: false, cadenza: 1.3,
+    nome: 'Sako TRG', categoria: 'fucile di precisione', silenziabile: true, mirino: true, tasto: '4', munizione: '308', capacita: 5, auto: false, cadenza: 1.3,
     pallini: 1, dispersione: 0, danno: [85, 95], dannoTesta: [150, 150], portata: 120, raggio: 'lungo raggio, 120 metri', rinculo: 2.5,
-    spari: ['ak_sparo', 'ak_sparo3'], gainSparo: 1.0, tonoSparo: 0.82, tipoRicarica: 'caricatore',
+    spari: ['cecchino_sparo'], gainSparo: 1.1, tipoRicarica: 'caricatore',
     botto: [75, 30, 0.3, 1.1], schiocco: 0.8, eco: 1.0, orecchie: 0.9, otturatoreManuale: true,
     fasi: { sgancio: 'ak_sgancio', caduta: 'caricatore_cade', inserimento: 'ak_inserimento', carrello: 'ak_otturatore' },
     tempi: { caduta: 0.5, inserimento: 1.7, pronta: 2.1, carrello: 2.2, prontaVuota: 2.9 },
@@ -35,7 +35,7 @@ const ARMI = {
 };
 // mitraglietta: tanti colpi in fretta, a corto e medio raggio
 ARMI.mitraglietta = {
-  nome: 'mitraglietta', tasto: '6', munizione: '9mm', capacita: 30, auto: true, cadenza: 0.075,
+  nome: 'Beretta PMX', categoria: 'mitraglietta', silenziabile: true, tasto: '6', munizione: '9mm', capacita: 30, auto: true, cadenza: 0.075,
   pallini: 1, dispersione: 1.3 * GRADI, danno: [16, 22], dannoTesta: [34, 44], portata: 30, raggio: 'corto e medio raggio, 30 metri', rinculo: 0.6,
   spari: ['sparo', 'sparo2', 'sparo3'], gainSparo: 0.8, tonoSparo: 1.12, tipoRicarica: 'caricatore',
   botto: [130, 60, 0.08, 0.35], schiocco: 0.45, eco: 0.45, orecchie: 0.3, meccanica: ['carrello', 0.08, 2.4],
@@ -44,16 +44,16 @@ ARMI.mitraglietta = {
 };
 // lanciarazzi: un razzo alla volta, che vola e scoppia dove arriva. Distrugge le costruzioni.
 ARMI.lanciarazzi = {
-  nome: 'lanciarazzi', tasto: '7', munizione: 'razzo', capacita: 1, auto: false, cadenza: 1.4, razzo: true,
+  nome: 'Panzerfaust 3', categoria: 'lanciarazzi', tasto: '7', munizione: 'razzo', capacita: 1, auto: false, cadenza: 1.4, razzo: true,
   pallini: 1, dispersione: 0, danno: [120, 120], dannoTesta: [120, 120], portata: 90, raggio: 'esplosivo, fino a 90 metri', rinculo: 1.5,
   spari: ['lancio'], gainSparo: 1, tipoRicarica: 'caricatore',
   botto: [60, 25, 0.4, 1.2], schiocco: 0.2, eco: 1.0, orecchie: 0.8,
-  fasi: { sgancio: 'ak_sgancio', caduta: 'caricatore_cade', inserimento: 'ak_inserimento', carrello: 'ak_otturatore' },
-  tempi: { caduta: 0.5, inserimento: 1.8, pronta: 2.4, carrello: 2.5, prontaVuota: 2.6 },
+  fasi: { sgancio: 'razzo_carica', caduta: 'caricatore_cade', inserimento: 'ak_inserimento', carrello: 'ak_otturatore' },
+  tempi: { caduta: 0.6, inserimento: 2.9, pronta: 3.4, carrello: 3.5, prontaVuota: 3.6 },
 };
 // il piccone: si parte con questo nella battaglia reale, come in Fortnite. Niente munizioni, colpi corti e veloci.
 ARMI.piccone = {
-  nome: 'piccone', tasto: '5', munizione: null, capacita: 0, auto: true, cadenza: 0.5, mischia: true,
+  nome: 'piccone', categoria: 'piccone', tasto: '5', munizione: null, capacita: 0, auto: true, cadenza: 0.5, mischia: true,
   pallini: 1, dispersione: 0, danno: [20, 20], dannoTesta: [20, 20], portata: 2.6, raggio: 'corpo a corpo, 2 metri e mezzo', rinculo: 0,
   spari: [], tipoRicarica: 'nessuna',
 };
@@ -108,16 +108,22 @@ function tentaSparo() {
   A.prossimoColpo = G.tempo + def.cadenza;
   if (def.tipoRicarica === 'caricatore' && st.caricatore > 0) { st.caricatore--; st.camera = 1; }
   suonoSparo(def, st);
-  G.effetti.lampo = 1;
+  G.effetti.lampo = st.silenziatore ? 0.4 : 1;
   // bossolo espulso a destra
   if (def.tipoRicarica === 'caricatore') suonaVicino('bossolo', 0.9, 0.2, -1.3, { quando: caso(0.35, 0.5), gain: 0.4, rate: caso(0.9, 1.1) });
-  // rinculo orizzontale: la mira si sposta di poco, e il suono di puntamento lo segnala
-  ruota((Math.random() - 0.5) * 2 * def.rinculo * GRADI * (def.auto ? 1 : 0.3));
-  allertaNemici(G.x, G.z, 70);
+  // rinculo: sparando a lungo l'arma sale e tira di lato, sempre di più; mirando nel mirino la tengo meglio.
+  // Conviene sparare a raffiche brevi.
+  A.raffica = G.tempo - (A.ultimoColpoT || -9) < def.cadenza * 2.2 ? (A.raffica || 0) + 1 : 0;
+  A.ultimoColpoT = G.tempo;
+  if (A.raffica % 8 === 0) A.latoRinculo = Math.random() < 0.6 ? 1 : -1;
+  const tieni = G.mira ? 0.45 : 1, accumulo = def.auto ? 0.35 + Math.min(A.raffica, 14) * 0.11 : 0.3;
+  ruota((A.latoRinculo || 1) * def.rinculo * GRADI * accumulo * tieni * caso(0.6, 1.2) + (Math.random() - 0.5) * def.rinculo * GRADI * 0.4 * tieni);
+  allertaNemici(G.x, G.z, st.silenziatore ? 15 : 70);
 
   const colpi = [];
+  const sparpaglio = def.dispersione * (G.mira && def.pallini === 1 ? 0.3 : 1) * (def.auto ? 1 + Math.min(A.raffica, 15) * 0.07 : 1);
   for (let p = 0; p < def.pallini; p++) {
-    const dir = G.rotta + (Math.random() - 0.5) * 2 * def.dispersione;
+    const dir = G.rotta + (Math.random() - 0.5) * 2 * sparpaglio;
     G.colpoSuMuro = false;
     const c = tracciaColpo(G.x, G.z, dir, inArena() ? Math.max(def.portata, PORTATA_ARENA) : def.portata);
     if (c) colpi.push(c);
@@ -174,7 +180,7 @@ function lanciaRazzo(def, st) {
   st.camera = 0; A.prossimoColpo = G.tempo + def.cadenza;
   if (st.caricatore > 0) { st.caricatore--; st.camera = 1; }
   A.grilletto = false;
-  suona('lancio', { gain: 1.2, rate: 0.55 }); suona('ak_sparo4', { gain: 0.5, rate: 0.5 });
+  suona('razzo_parte', { gain: 1.1, riverbero: 0.9 });
   bottoBasso(...def.botto); orecchie(def.orecchie);
   G.effetti.lampo = 1;
   allertaNemici(G.x, G.z, 80);
@@ -257,13 +263,37 @@ function caricaCartuccia(dopo) {
   }, 'ricarica');
 }
 
+// ---------------------------------------------------------------- mirare nel mirino
+// Clic con due dita sul trackpad (o C): porto l'arma all'occhio. Più preciso e più rinculo tenuto,
+// ma mi muovo piano e giro più fine. Col fucile di precisione guardo nel cannocchiale.
+function mira(accesa = !G.mira) {
+  if (!G.arsenale || G.stato !== 'gioco') return;
+  const def = armaDef();
+  if (accesa && def.mischia) { G.mira = false; return; }
+  if (accesa === !!G.mira) return;
+  G.mira = accesa;
+  suona('arma_estrai', { gain: 0.25, rate: accesa ? 1.7 : 1.4 });
+  if (accesa) suona('inspira', { gain: 0.08, rate: 0.9 }); // trattengo il respiro
+  if (G.tempo - (G.ultimoAvvisoMira || -99) > 20) { G.ultimoAvvisoMira = G.tempo; parla(accesa ? (def.mirino ? 'nel cannocchiale' : 'mirino') : 'mirino giù', 0); }
+}
+
+// silenziatore trovato: lo monto sull'arma che ho in mano, se si può, altrimenti sulla prima che lo accetta
+function montaSilenziatore() {
+  const A = G.arsenale, ordine = [A.corrente, ...Object.keys(A.armi)];
+  const k = ordine.find(n => ARMI[n] && ARMI[n].silenziabile && A.armi[n] && !A.armi[n].silenziatore);
+  if (!k) { G.inventario.silenziatori = (G.inventario.silenziatori || 0) + 1; return 'silenziatore: lo monto sulla prima arma adatta che trovi'; }
+  A.armi[k].silenziatore = true;
+  suona('carrello', { gain: 0.5, rate: 1.6, quando: 0.3 });
+  return `silenziatore montato sulla ${ARMI[k].nome}`;
+}
+
 // ---------------------------------------------------------------- cambio arma
 function cambiaArma(chiave) {
   const A = G.arsenale;
   if (!puoAgire() || A.corrente === chiave) return;
   if (!A.armi[chiave]) { parla(`Non hai: ${ARMI[chiave].nome}.`, 1); return; }
   annullaEventi('ricarica'); annullaEventi('pompa');
-  A.ricarica = false; A.grilletto = false; G.effetti.fase = '';
+  A.ricarica = false; A.grilletto = false; G.effetti.fase = ''; G.mira = false;
   if (A.pompaDaFare && A.corrente === 'pompa') { A.pompaDaFare = false; } // la pompa si farà dopo
   suona('arma_riponi', { gain: 0.8 });
   G.occupatoFino = G.tempo + 0.8;
@@ -272,7 +302,8 @@ function cambiaArma(chiave) {
     suona('arma_estrai', { gain: 0.8 });
     if (chiave === 'pompa' && !A.armi.pompa.camera && A.armi.pompa.caricatore > 0) { A.pompaDaFare = true; pianifica(0.35, pompa, 'pompa'); }
   });
-  parla(inArena() ? `${ARMI[chiave].nome}, ${ARMI[chiave].raggio}` : ARMI[chiave].nome, 0);
+  const st2 = A.armi[chiave];
+  parla(`${ARMI[chiave].nome}${st2 && st2.silenziatore ? ' col silenziatore' : ''}${inArena() ? ', ' + ARMI[chiave].raggio : ''}`, 0);
 }
 
 // ---------------------------------------------------------------- granate
@@ -310,6 +341,17 @@ function esplosione(x, z, raggio, danno) {
 // ---------------------------------------------------------------- il suono dello sparo, a strati
 let ultimoSparoNome = '';
 function suonoSparo(def, st) {
+  // col silenziatore: un colpo sordo e secco, niente botto, niente echi, e da lontano non si capisce da dove viene
+  if (st.silenziatore) {
+    const nome = def.categoria === 'pistola' || def.categoria === 'mitraglietta' ? scegli(['sil_pistola', 'sil_pistola2']) : 'sil_fucile';
+    suona(nome, { gain: 0.75, rate: caso(0.96, 1.04) * (def.categoria === 'fucile di precisione' ? 0.85 : 1), riverbero: 0.2 });
+    if (def.otturatoreManuale) suona('ak_otturatore', { gain: 0.8, rate: 0.9, quando: 0.45 });
+    if (def.meccanica) suona(def.meccanica[0], { gain: def.meccanica[1] * 1.3, rate: def.meccanica[2], quando: 0.02 });
+    if (def.tipoRicarica === 'caricatore' && st.caricatore < 3) suona('grilletto_vuoto', { gain: 0.25 + 0.15 * (3 - st.caricatore), rate: 1.5, quando: 0.02 });
+    if (G.modalita === 'battaglia') B.ultimoMioSparoSilenziato = G.tempo;
+    if (typeof duelloInvia === 'function' && D.attivo) duelloInvia({ t: 'sparo', a: G.arsenale.corrente, n: nome, r: G.rotta, s: 1 });
+    return;
+  }
   // registrazione vera, mai la stessa due volte di fila
   let nome = scegli(def.spari);
   if (def.spari.length > 1) while (nome === ultimoSparoNome) nome = scegli(def.spari);

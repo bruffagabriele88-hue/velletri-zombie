@@ -106,6 +106,15 @@ TAGLI = {
     'orda':             ('orda', 9.80, 22.30, True),
     # Ambiente notturno (stereo, non spazializzato)
     'ambiente':         ('ambiente_notte', 20.0, 110.0, False),
+    # armi vere: fucile d'assalto, fucile di precisione, razzo, spari col silenziatore
+    'arx_sparo':        ('arx_m4a1', 0.02, 1.0, False),
+    'arx_sparo2':       ('arx_m4carbine', 0.0, 0.7, False),
+    'cecchino_sparo':   ('cecchino_m2010', 0.0, 1.44, True),
+    'razzo_parte':      ('razzo_lancio', 0.55, 3.0, False),
+    'razzo_carica':     ('razzo_carica', 3.6, 6.9, True),
+    'sil_pistola':      ('silenziato_1911', 0.0, 0.4, False),
+    'sil_pistola2':     ('silenziato_3', 0.0, 0.54, False),
+    'sil_fucile':       ('silenziato_smg', 0.01, 0.11, False),
     # passi su superfici diverse (battaglia reale): erba nel bosco, acqua alla fontana, ciottoli in piazza
     'erba1':            ('passi_erba', 0.06, 0.50, True),
     'erba2':            ('passi_erba', 0.77, 1.20, True),

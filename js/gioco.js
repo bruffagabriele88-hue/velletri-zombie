@@ -661,7 +661,7 @@ function nomeLuogo() {
 
 function descriviArma() {
   const def = armaDef(), st = armaStato();
-  return def.mischia ? def.nome : `${def.nome} ${testoColpi(def, st)}`;
+  return def.mischia ? def.nome : `${def.nome}, ${def.categoria}${st.silenziatore ? ', col silenziatore' : ''}, ${testoColpi(def, st)}`;
 }
 
 function ricognizione() {
@@ -764,12 +764,14 @@ document.addEventListener('mousedown', e => {
   }
 });
 document.addEventListener('mouseup', e => { if (e.button === 0 && G.arsenale) rilasciaGrilletto(); });
+// clic con due dita sul trackpad (tasto destro): mirare nel mirino
+document.addEventListener('contextmenu', e => { if (G.stato === 'gioco') { e.preventDefault(); if (inArena()) mira(); } });
 
 document.addEventListener('mousemove', e => {
   if (document.pointerLockElement !== tela) return;
   // trackpad: più veloce di prima, e un gesto rapido gira di più di uno lento (accelerazione)
   const m = e.movementX, acc = 1 + Math.min(1.5, Math.abs(m) / 25);
-  ruota(m * G.sensibilita * 0.09 * acc * GRADI);
+  ruota(m * G.sensibilita * 0.09 * acc * GRADI * (G.mira ? (G.arsenale && armaDef().mirino ? 0.35 : 0.6) : 1));
 });
 
 document.addEventListener('keydown', e => {
@@ -884,7 +886,7 @@ document.addEventListener('keydown', e => {
     case 'KeyE': if (G.modalita === 'battaglia' && provaRianimare()) break; if (!duelloApriCassa() && G.modalita === 'esplorazione') raccogli(); break;
     case 'Space': ricognizione(); break;
     case 'KeyI': case 'Tab': inventario(); break;
-    case 'KeyC': parla(descriviArma(), 1); break;
+    case 'KeyC': if (e.shiftKey || !inArena()) parla(descriviArma(), 1); else mira(); break;
     case 'KeyV': parla(`vita ${Math.round(G.vita)}`, 1); break;
     case 'KeyK': parla(descriviCostruzioni(), 1); break;
     case 'KeyL': if (G.modalita === 'esplorazione' && !e.shiftKey) impostaDestinazione(); else duelloRadar(); break;
@@ -986,8 +988,9 @@ function muoviLibero(dt, cx, cz, limite, bloccato) {
   G.inMovimento = false;
   const strisciando = G.modalita === 'battaglia' && B.aTerra;
   if (!(f || l) || bloccato || (G.tempo < G.occupatoFino && !strisciando)) return 0;
-  const corsa = G.tasti.ShiftLeft || G.tasti.ShiftRight, rapido = G.modalita === 'battaglia';
-  const v = (corsa ? (rapido ? 5.4 : 3.4) : (rapido ? 3.3 : 1.7)) * (G.velocitaExtra || 1) / Math.hypot(f, l) * dt;
+  let corsa = G.tasti.ShiftLeft || G.tasti.ShiftRight; const rapido = G.modalita === 'battaglia';
+  if (corsa && G.mira) mira(false);
+  const v = (corsa ? (rapido ? 5.4 : 3.4) : (rapido ? 3.3 : 1.7)) * (G.velocitaExtra || 1) * (G.mira ? 0.5 : 1) / Math.hypot(f, l) * dt;
   const [fx, fz] = avanti(G.rotta), [rx, rz] = destraDi(G.rotta), px = G.x, pz = G.z;
   G.x += (fx * f + rx * l) * v; G.z += (fz * f + rz * l) * v;
   if (typeof bloccoCase === 'function') bloccoCase(px, pz);

@@ -96,7 +96,7 @@ async function duelloApriRete(codice, ospite) {
 // --- controllo dei messaggi in arrivo: mai fidarsi di ciò che arriva dalla rete
 const numOk = v => typeof v === 'number' && Number.isFinite(v) && Math.abs(v) <= 500;
 const TIPI_COSTRUZIONE = ['barricata', 'rampa'];
-const CONTENUTI_VALIDI = ['radar', 'scudo', 'pompa', 'mitra', 'precisione', 'pistola', 'granate', 'kit', 'materiali', 'bende', 'pozione', 'mitraglietta', 'lanciarazzi'];
+const CONTENUTI_VALIDI = ['silenziatore', 'radar', 'scudo', 'pompa', 'mitra', 'precisione', 'pistola', 'granate', 'kit', 'materiali', 'bende', 'pozione', 'mitraglietta', 'lanciarazzi'];
 function cassaPulita(c) {
   if (!c || !numOk(c.x) || !numOk(c.z) || typeof c.id !== 'string' || !CONTENUTI_VALIDI.includes(c.cont)) return null;
   const k = { id: c.id.slice(0, 20), x: c.x, z: c.z, cont: c.cont };
@@ -140,7 +140,7 @@ function messaggioValido(m) {
       return { t: m.t, c: m.c, per: testoOk(m.per, 12) ? m.per : '', lista: l, tipo: m.tipo === 'battaglia' ? 'battaglia' : 'duello', seme: Number.isInteger(m.seme) ? m.seme : 0, sq: [1, 2, 4].includes(m.sq) ? m.sq : 1 };
     }
     case 's': return numOk(m.x) && numOk(m.z) ? { t: 's', c: m.c, x: lim(m.x, -L, L), z: lim(m.z, -L, L), m: [0, 1, 2].includes(m.m) ? m.m : 0, v: numOk(m.v) ? m.v : 100, h: Number.isInteger(m.h) ? lim(m.h, 0, 6) : 0, f: m.f ? 1 : 0, q: m.q ? 1 : 0, a: m.a ? 1 : 0, n: m.n ? 1 : 0, rn: numOk(m.rn) ? m.rn : 0 } : null;
-    case 'sparo': return { t: 'sparo', c: m.c, n: typeof m.n === 'string' ? m.n : 'sparo', r: numOk(m.r) ? m.r : 0 };
+    case 'sparo': return { t: 'sparo', c: m.c, n: typeof m.n === 'string' ? m.n : 'sparo', r: numOk(m.r) ? m.r : 0, s: m.s ? 1 : 0 };
     case 'colpo': return numOk(m.d) && m.d > 0 ? { t: 'colpo', c: m.c, a: m.a, d: Math.min(m.d, 200), testa: !!m.testa } : null;
     case 'suono': return typeof m.n === 'string' ? m : null;
     case 'boom': return numOk(m.x) && numOk(m.z) ? m : null;
@@ -339,7 +339,7 @@ function duelloEquipaggia(mod = 'normale') {
   G.arsenale = nuovoArsenale(null);
   G.arsenale.riserva = { '9mm': 45, cal12: 0, '762': 0, '308': 0, razzo: 0 };
   G.inventario = { granate: 0, kit: 0, cibo: 0, materiali: 12, radar: 0 };
-  G.scudo = 0; G.alto = false; G.livello = 0; G.rampaSotto = null; G.velocitaExtra = 1;
+  G.scudo = 0; G.alto = false; G.livello = 0; G.rampaSotto = null; G.velocitaExtra = 1; G.mira = false;
   D.trappole = [];
   // round speciali
   if (mod === 'pompa') { G.arsenale.armi.pompa = { caricatore: 6, camera: 1 }; G.arsenale.riserva.cal12 = 30; G.arsenale.corrente = 'pompa'; }
@@ -473,7 +473,7 @@ function duelloRicevi(m, a) {
     case 'sparo': {
       if (!a) break;
       const nome = Audio3D.buf[m.n] ? m.n : 'sparo';
-      sparoLontano(nome, a.x, a.z, a.sorgente, 1);
+      if (m.s) suonaBase(nome, { dest: a.sorgente.ingresso, gain: 0.6 }); else sparoLontano(nome, a.x, a.z, a.sorgente, 1);
       a.lampo = 1;
       // se il colpo mi passa vicino sento il proiettile fischiare dal lato giusto
       const d = Math.hypot(G.x - a.x, G.z - a.z), errore = avvolgi(rottaVerso(a.x, a.z, G.x, G.z) - m.r);
@@ -544,6 +544,7 @@ function duelloApriCassa() {
       case 'bende': I.cibo += 3; f = '3 bende, tasto H'; break;
       case 'pozione': I.pozioni = (I.pozioni || 0) + 1; f = 'piastra balistica, tasto P'; break;
       case 'radar': I.radar = (I.radar || 0) + 1; f = 'radar, tasto L'; break;
+      case 'silenziatore': f = montaSilenziatore(); break;
       default: {
         const def = ARMI[c.cont], scorta = { pistola: 30, pompa: 12, mitra: 60, precisione: 10, mitraglietta: 60, lanciarazzi: 3 }[c.cont];
         const rar = c.rar || 1, nomeRar = c.rar ? ' ' + nomeRarita(rar) : '';
@@ -551,7 +552,9 @@ function duelloApriCassa() {
         if (A.armi[c.cont] && (A.armi[c.cont].rarita || 1) >= rar) f = `munizioni per ${def.nome}`;
         else if (A.armi[c.cont]) { A.armi[c.cont].rarita = rar; f = `${def.nome}${nomeRar}, migliore del tuo`; }
         else {
-          A.armi[c.cont] = { caricatore: def.capacita, camera: 1, rarita: rar }; f = `${def.nome}${nomeRar}, tasto ${def.tasto}`;
+          A.armi[c.cont] = { caricatore: def.capacita, camera: 1, rarita: rar }; f = `${def.nome}${nomeRar}, ${def.categoria}, tasto ${def.tasto}`;
+          // un silenziatore tenuto da parte va sulla prima arma adatta
+          if (def.silenziabile && I.silenziatori > 0) { I.silenziatori--; A.armi[c.cont].silenziatore = true; f += ', col silenziatore'; }
           // se avevo in mano solo il piccone, la prima arma trovata me la metto subito in mano
           if (A.corrente === 'piccone') { A.corrente = c.cont; suona('arma_estrai', { gain: 0.8 }); f = `${def.nome}${nomeRar}, in mano. Piccone col 5`; }
         }
