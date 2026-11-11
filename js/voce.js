@@ -35,4 +35,34 @@ function parla(testo, priorita = 1) {
   // Safari a volte scarta una frase pronunciata subito dopo cancel()
   setTimeout(() => speechSynthesis.speak(u), 30);
 }
+// Annuncio con la voce vera del narratore (registrata), col sottotitolo. Se manca la registrazione, parla il computer.
+function annuncio(nome, testo, priorita = 1) {
+  const clip = ((typeof Audio3D !== 'undefined' && Audio3D.voci && Audio3D.voci.narratore) || {})[nome];
+  if (!clip || !Audio3D.buf[clip[0]]) { parla(testo, priorita); return; }
+  const ora = performance.now();
+  if (ora < Voce.fineStimata && priorita < Voce.prioritaCorrente) return;
+  if ('speechSynthesis' in window) speechSynthesis.cancel();
+  const durata = Audio3D.buf[clip[0]].duration * 1000;
+  Voce.prioritaCorrente = priorita; Voce.fineStimata = ora + durata;
+  Voce.sottotitolo = testo; Voce.sottotitoloFino = ora + Math.max(2200, durata + 800);
+  suona(clip[0], { gain: 1.1 });
+}
+// Il compagno parla alla radio: il clic e il fruscio prima e dopo, la voce stretta della radio, nell'orecchio.
+let prossimaRadio = 0;
+function radio(categoria, testo) {
+  const frasi = ((typeof Audio3D !== 'undefined' && Audio3D.voci && Audio3D.voci.radio) || {})[categoria];
+  if (!frasi || !frasi.length || performance.now() < prossimaRadio) return false;
+  const nome = scegli(frasi), b = Audio3D.buf[nome]; if (!b) return false;
+  prossimaRadio = performance.now() + b.duration * 1000 + 2500;
+  fruscioRadio(0); suona(nome, { gain: 0.95, quando: 0.12 }); fruscioRadio(0.15 + b.duration);
+  if (testo) { Voce.sottotitolo = testo; Voce.sottotitoloFino = performance.now() + 2500; }
+  return true;
+}
+function fruscioRadio(quando) {
+  const ctx = Audio3D.ctx, t = ctx.currentTime + quando, s = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
+  s.buffer = Audio3D.rumoreBreve; s.loop = true; f.type = 'bandpass'; f.frequency.value = 2200; f.Q.value = 0.8;
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.18, t + 0.01); g.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+  s.connect(f).connect(g).connect(Audio3D.master); s.start(t); s.stop(t + 0.14);
+  suona('tic2', { gain: 0.25, rate: 1.6, quando });
+}
 function taci() { if ('speechSynthesis' in window) speechSynthesis.cancel(); Voce.fineStimata = 0; }

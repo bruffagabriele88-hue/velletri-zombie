@@ -972,7 +972,7 @@ aggiornaPannello();
 
 // un grido d'assalto che arriva dal punto da cui stanno per sbucare
 function gridoAssalto(x, z) {
-  const voci = Object.keys(Audio3D.voci || {}); if (!voci.length) return;
+  const voci = vociSoldati(); if (!voci.length) return;
   const frasi = Audio3D.voci[scegli(voci)].assalto || [];
   if (frasi.length) suonaInPunto(scegli(frasi), x, z, { gain: 2.0, ref: 12, riverbero: 0.8 });
 }

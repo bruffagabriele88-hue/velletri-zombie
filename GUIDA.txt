@@ -126,6 +126,16 @@ Anche gli avversari costruiscono: un muro verso chi gli spara, una scatola quand
 
 
 
+
+VOCI VERE
+- I soldati nemici hanno sei voci diverse e realistiche: gridano "Contatto!", "Fuoco!", "Coprimi, cambio caricatore!",
+  "Granata!", sussurrano quando ti cercano vicino a una casa e si lamentano quando li colpisci. Niente più insulti.
+- Il tuo compagno parla alla radio: senti il clic e il fruscio, e la voce stretta della radio nell'orecchio.
+  Ti avvisa quando vede un nemico, quando ricarica, quando è ferito, quando abbatte qualcuno e quando ti rianima.
+- Una voce narrante vera per i momenti importanti: il lancio, il paracadute, l'atterraggio, la tempesta,
+  il rifornimento, quando ne resta uno solo, la vittoria e l'eliminazione. I dettagli, come le direzioni e i numeri,
+  li dice ancora la voce del computer.
+
 ARMI VERE (Battaglia reale e duello)
 - Le armi hanno i nomi di quelle vere dell'esercito italiano, e ognuna ha il suo suono, così le riconosci a orecchio
   anche quando spara qualcun altro:

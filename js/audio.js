@@ -125,12 +125,12 @@ async function inizializzaAudio(avanzamento) {
   Object.assign(A.buf, creaSuoniDuello(ctx));
   if (typeof creaSuoniRealismo === 'function') Object.assign(A.buf, creaSuoniRealismo(ctx));
   let fatti = 0;
-  await caricaInGruppi(ELENCO_SUONI.map(nome => [nome, `suoni/${nome}.wav?v=32`]), () => { fatti++; if (avanzamento) avanzamento(fatti / ELENCO_SUONI.length); });
+  await caricaInGruppi(ELENCO_SUONI.map(nome => [nome, `suoni/${nome}.wav?v=33`]), () => { fatti++; if (avanzamento) avanzamento(fatti / ELENCO_SUONI.length); });
   // frasi dei nemici: voce -> categoria -> elenco di suoni
   try {
-    A.voci = await (await fetch('suoni/voci/elenco.json')).json();
+    A.voci = await (await fetch('suoni/voci/elenco.json?v=33')).json();
     const nomi = Object.values(A.voci).flatMap(c => Object.values(c).flat());
-    await caricaInGruppi(nomi.map(nome => [nome, `suoni/voci/${nome}.wav`]));
+    await caricaInGruppi(nomi.map(nome => [nome, `suoni/voci/${nome}.wav?v=33`]));
   } catch (e) { console.error('voci non caricate', e); A.voci = {}; }
   if (typeof caricaAmbientiReali === 'function') await caricaAmbientiReali();
   console.log('Audio pronto a', ctx.sampleRate, 'Hz, HRTF');
@@ -432,4 +432,6 @@ function creaSuoniDuello(ctx) {
 // e quelli che dicono dove sono avversari e casse sono più forti di tutto il resto.
 function mixEssenziale() { return typeof G !== 'undefined' && (G.modalita === 'duello' || G.modalita === 'battaglia'); }
 // modalità con arena aperta e muri che fermano i proiettili
+// le voci dei soldati (non la radio dei compagni e non il narratore)
+function vociSoldati() { return Object.keys(Audio3D.voci || {}).filter(k => k !== 'radio' && k !== 'narratore'); }
 function inArena() { return G.modalita === 'duello' || G.modalita === 'battaglia'; }

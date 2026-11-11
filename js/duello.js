@@ -518,7 +518,7 @@ function duelloArrivaCassa(c) {
   // scende col paracadute: un fischio che cala dall'alto per tre secondi, poi tocca terra
   suonaInPunto('cassa_cade', c.x, c.z, { gain: 1.0, y: 12, ref: 8 });
   pianifica(3, () => { cassa.aTerra = true; cassa.prossimoPing = G.tempo; suonaInPunto('legno_colpito', c.x, c.z, { gain: 1.0, rate: 0.7 }); });
-  parla('Cassa in arrivo.', 0);
+  if (G.modalita === 'battaglia') annuncio('cassa', 'Rifornimento in arrivo.', 0); else parla('Cassa in arrivo.', 0);
 }
 
 function duelloApriCassa() {
@@ -838,7 +838,7 @@ function aggiornaRadar() {
 function provocazione(categoria) {
   if (G.tempo < (D.prossimaProvocazione || 0)) return;
   D.prossimaProvocazione = G.tempo + 3;
-  const voci = Object.keys(Audio3D.voci || {}); if (!voci.length) return;
+  const voci = vociSoldati(); if (!voci.length) return;
   // ogni giocatore ha sempre la stessa voce, scelta dal suo identificativo
   const mia = voci[[...D.cid].reduce((h, ch) => h + ch.charCodeAt(0), 0) % voci.length];
   const frasi = (Audio3D.voci[mia] || {})[categoria] || []; if (!frasi.length) return;

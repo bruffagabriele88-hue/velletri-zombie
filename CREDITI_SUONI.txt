@@ -56,3 +56,15 @@ passi_ciottoli.ogg       "accented steps .wav by Jess_Weddle_6121" — CC0 (pubb
 sirena.ogg               "Air raid siren (Prague) by nooly" — CC0 (pubblico dominio) — https://freesound.org/s/382611/
 zaino_zip.ogg            "Zipper_Backpack_Zipper_Ripping_01 by BlondPanda" — CC0 (pubblico dominio) — https://freesound.org/s/778090/
 civetta.ogg              "Owl at night by saralana" — CC0 (pubblico dominio) — https://freesound.org/s/559100/
+
+
+VOCI
+Le voci dei soldati, del compagno alla radio e del narratore sono state generate con ElevenLabs (elevenlabs.io),
+modello eleven_v3, con il piano gratuito. Grazie a ElevenLabs.
+
+ALTRI SUONI DA FREESOUND (licenza CC0)
+Fucile d'assalto: "Colt M4A1 SOCOM" di areniporgen; "m4carbine_fire" di db465.
+Fucile di precisione: "Sniper Shot in Field 3 (M2010 Enhanced Sniper Rifle ESR)" di qubodup.
+Lanciarazzi: "Rocket Launch" di qubodup; "Inserting a rocket into an RPG-7 rocket launcher" di serøutōnin--deprivəd.
+Silenziatore: "Springfield Armory 1911 Operator (Suppressed)" di areniporgen; "Silenced Gunshot 3" di morganpurkis; "Silenced Submachine gun" di Kodack.
+Passi su erba e acqua: Fission9, ChristopherJngs. Ambienti binaurali: KaleidacousticsAudio, benjaminbellamy, Wildhorsemann.

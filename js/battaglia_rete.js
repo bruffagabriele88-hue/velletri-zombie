@@ -137,9 +137,9 @@ function reteBRRicevi(m, a) {
       B.prossima = m.p ? { cx: m.p[0], cz: m.p[1], r: m.p[2] } : null;
       B.fase = m.f; B.stadio = m.s ? 'chiusura' : 'attesa'; B.fine = G.tempo + m.r;
       if (B.cielo || B.morto) break;
-      if (B.stadio === 'chiusura' && prima !== 'chiusura') parla(`La tempesta avanza. ${dovePerLaZona()}`, 1);
+      if (B.stadio === 'chiusura' && prima !== 'chiusura') annunciaTempesta(true);
       else if (B.stadio === 'attesa' && m.r < 21 && m.r > 0 && B.faseAnnunciata !== B.fase && (B.fase > 0 || G.tempo > B.atterratoA + 5)) {
-        B.faseAnnunciata = B.fase; parla(`Tempesta tra ${Math.round(m.r)} secondi. ${dovePerLaZona()}`, 1);
+        B.faseAnnunciata = B.fase; annunciaTempesta(false, `Tempesta tra ${Math.round(m.r)} secondi.`);
       }
       if (fasePrima !== B.fase) B.faseAnnunciata = B.faseAnnunciata === fasePrima ? null : B.faseAnnunciata;
       break;

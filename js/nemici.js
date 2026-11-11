@@ -27,7 +27,7 @@ function creaNemico(tipo, x, z, nodo = null, cacciatore = true) {
   const def = TIPI_NEMICO[tipo];
   const n = {
     tipo, def, x, z, nodo, vita: def.vita, vivo: true, udito: false, allertato: cacciatore, carica: false,
-    velocita: caso(...def.velocita), tono: caso(...def.tonoVoce), voce: scegli(Object.keys(Audio3D.voci || {})), occluso: false, occlusione: 0,
+    velocita: caso(...def.velocita), tono: caso(...def.tonoVoce), voce: scegli(vociSoldati()), occluso: false, occlusione: 0,
     sorgente: creaSorgente({ ref: tipo === 'bruto' ? 2.2 : 1.5 }),
     prossimoPasso: G.tempo + caso(0.2, 1.0), prossimoVerso: G.tempo + caso(0.1, 2.5), prossimoAttacco: 0,
     prossimoSparo: G.tempo + caso(5, 8), lato: Math.random() < 0.5 ? -1 : 1,
