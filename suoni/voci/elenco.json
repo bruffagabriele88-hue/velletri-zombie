@@ -5,17 +5,20 @@
    "falco_minaccia2",
    "falco_minaccia3",
    "falco_minaccia4",
-   "falco_minaccia5"
+   "falco_minaccia5",
+   "falco_minacciax1"
   ],
   "attacco": [
    "falco_attacco1",
    "falco_attacco2",
-   "falco_attacco3"
+   "falco_attacco3",
+   "falco_attaccox1"
   ],
   "colpito": [
    "falco_colpito1",
    "falco_colpito2",
-   "falco_colpito3"
+   "falco_colpito3",
+   "falco_colpitox1"
   ],
   "carica": [
    "falco_carica1",
@@ -43,17 +46,20 @@
    "orso_minaccia2",
    "orso_minaccia3",
    "orso_minaccia4",
-   "orso_minaccia5"
+   "orso_minaccia5",
+   "orso_minacciax2"
   ],
   "attacco": [
    "orso_attacco1",
    "orso_attacco2",
-   "orso_attacco3"
+   "orso_attacco3",
+   "orso_attaccox1"
   ],
   "colpito": [
    "orso_colpito1",
    "orso_colpito2",
-   "orso_colpito3"
+   "orso_colpito3",
+   "orso_colpitox2"
   ],
   "carica": [
    "orso_carica1",
@@ -81,17 +87,20 @@
    "lince_minaccia2",
    "lince_minaccia3",
    "lince_minaccia4",
-   "lince_minaccia5"
+   "lince_minaccia5",
+   "lince_minacciax3"
   ],
   "attacco": [
    "lince_attacco1",
    "lince_attacco2",
-   "lince_attacco3"
+   "lince_attacco3",
+   "lince_attaccox1"
   ],
   "colpito": [
    "lince_colpito1",
    "lince_colpito2",
-   "lince_colpito3"
+   "lince_colpito3",
+   "lince_colpitox1"
   ],
   "carica": [
    "lince_carica1",
@@ -119,17 +128,20 @@
    "lupo_minaccia2",
    "lupo_minaccia3",
    "lupo_minaccia4",
-   "lupo_minaccia5"
+   "lupo_minaccia5",
+   "lupo_minacciax4"
   ],
   "attacco": [
    "lupo_attacco1",
    "lupo_attacco2",
-   "lupo_attacco3"
+   "lupo_attacco3",
+   "lupo_attaccox1"
   ],
   "colpito": [
    "lupo_colpito1",
    "lupo_colpito2",
-   "lupo_colpito3"
+   "lupo_colpito3",
+   "lupo_colpitox2"
   ],
   "carica": [
    "lupo_carica1",
@@ -157,17 +169,20 @@
    "corvo_minaccia2",
    "corvo_minaccia3",
    "corvo_minaccia4",
-   "corvo_minaccia5"
+   "corvo_minaccia5",
+   "corvo_minacciax1"
   ],
   "attacco": [
    "corvo_attacco1",
    "corvo_attacco2",
-   "corvo_attacco3"
+   "corvo_attacco3",
+   "corvo_attaccox1"
   ],
   "colpito": [
    "corvo_colpito1",
    "corvo_colpito2",
-   "corvo_colpito3"
+   "corvo_colpito3",
+   "corvo_colpitox1"
   ],
   "carica": [
    "corvo_carica1",
@@ -195,17 +210,20 @@
    "toro_minaccia2",
    "toro_minaccia3",
    "toro_minaccia4",
-   "toro_minaccia5"
+   "toro_minaccia5",
+   "toro_minacciax2"
   ],
   "attacco": [
    "toro_attacco1",
    "toro_attacco2",
-   "toro_attacco3"
+   "toro_attacco3",
+   "toro_attaccox1"
   ],
   "colpito": [
    "toro_colpito1",
    "toro_colpito2",
-   "toro_colpito3"
+   "toro_colpito3",
+   "toro_colpitox2"
   ],
   "carica": [
    "toro_carica1",
@@ -231,25 +249,30 @@
   "contatto": [
    "radio_contatto1",
    "radio_contatto2",
-   "radio_contatto3"
+   "radio_contatto3",
+   "radio_contattox1",
+   "radio_contattox2"
   ],
   "ricarica": [
    "radio_ricarica1"
   ],
   "colpito": [
    "radio_colpito1",
-   "radio_colpito2"
+   "radio_colpito2",
+   "radio_colpitox1"
   ],
   "abbattuto": [
    "radio_abbattuto1",
-   "radio_abbattuto2"
+   "radio_abbattuto2",
+   "radio_abbattutox1"
   ],
   "rianimo": [
    "radio_rianimo1"
   ],
   "seguo": [
    "radio_seguo1",
-   "radio_seguo2"
+   "radio_seguo2",
+   "radio_seguox1"
   ]
  },
  "narratore": {
@@ -291,6 +314,146 @@
   ],
   "ultima_squadra": [
    "annuncio_ultima_squadra"
+  ],
+  "eliminazione": [
+   "annuncio_eliminazione"
+  ],
+  "giubbotto": [
+   "annuncio_giubbotto"
+  ],
+  "tre_rimasti": [
+   "annuncio_tre_rimasti"
+  ],
+  "meta": [
+   "annuncio_meta"
+  ],
+  "squadra_eliminata": [
+   "annuncio_squadra_eliminata"
+  ],
+  "zona_finale": [
+   "annuncio_zona_finale"
+  ]
+ },
+ "romano": {
+  "minaccia": [
+   "romano_minaccia1",
+   "romano_minaccia2",
+   "romano_minaccia3",
+   "romano_minaccia4",
+   "romano_minaccia5"
+  ],
+  "attacco": [
+   "romano_attacco1",
+   "romano_attacco2",
+   "romano_attacco3"
+  ],
+  "colpito": [
+   "romano_colpito1",
+   "romano_colpito2",
+   "romano_colpito3"
+  ],
+  "carica": [
+   "romano_carica1",
+   "romano_carica2"
+  ],
+  "spara": [
+   "romano_spara1",
+   "romano_spara2"
+  ],
+  "assalto": [
+   "romano_assalto1",
+   "romano_assalto2"
+  ],
+  "ricarica": [
+   "romano_ricarica1",
+   "romano_ricarica2"
+  ],
+  "granata": [
+   "romano_granata1"
+  ]
+ },
+ "napoletano": {
+  "minaccia": [
+   "napoletano_minaccia1",
+   "napoletano_minaccia2",
+   "napoletano_minaccia3",
+   "napoletano_minaccia4",
+   "napoletano_minaccia5"
+  ],
+  "attacco": [
+   "napoletano_attacco1",
+   "napoletano_attacco2",
+   "napoletano_attacco3"
+  ],
+  "colpito": [
+   "napoletano_colpito1",
+   "napoletano_colpito2",
+   "napoletano_colpito3"
+  ],
+  "carica": [
+   "napoletano_carica1",
+   "napoletano_carica2"
+  ],
+  "spara": [
+   "napoletano_spara1",
+   "napoletano_spara2"
+  ],
+  "assalto": [
+   "napoletano_assalto1",
+   "napoletano_assalto2"
+  ],
+  "ricarica": [
+   "napoletano_ricarica1",
+   "napoletano_ricarica2"
+  ],
+  "granata": [
+   "napoletano_granata1"
+  ]
+ },
+ "radio_romano": {
+  "contatto": [
+   "radio_romano_contatto1",
+   "radio_romano_contatto2"
+  ],
+  "ricarica": [
+   "radio_romano_ricarica1"
+  ],
+  "colpito": [
+   "radio_romano_colpito1"
+  ],
+  "abbattuto": [
+   "radio_romano_abbattuto1",
+   "radio_romano_abbattuto2"
+  ],
+  "rianimo": [
+   "radio_romano_rianimo1"
+  ],
+  "seguo": [
+   "radio_romano_seguo1",
+   "radio_romano_seguo2"
+  ]
+ },
+ "radio_napoletano": {
+  "contatto": [
+   "radio_napoletano_contatto1",
+   "radio_napoletano_contatto2"
+  ],
+  "ricarica": [
+   "radio_napoletano_ricarica1"
+  ],
+  "colpito": [
+   "radio_napoletano_colpito1"
+  ],
+  "abbattuto": [
+   "radio_napoletano_abbattuto1",
+   "radio_napoletano_abbattuto2"
+  ],
+  "rianimo": [
+   "radio_napoletano_rianimo1"
+  ],
+  "seguo": [
+   "radio_napoletano_seguo1",
+   "radio_napoletano_seguo2"
   ]
  }
 }

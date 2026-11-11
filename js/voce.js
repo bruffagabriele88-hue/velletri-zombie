@@ -49,8 +49,9 @@ function annuncio(nome, testo, priorita = 1) {
 }
 // Il compagno parla alla radio: il clic e il fruscio prima e dopo, la voce stretta della radio, nell'orecchio.
 let prossimaRadio = 0;
-function radio(categoria, testo) {
-  const frasi = ((typeof Audio3D !== 'undefined' && Audio3D.voci && Audio3D.voci.radio) || {})[categoria];
+function radio(categoria, testo, voce = 'radio') {
+  const V = (typeof Audio3D !== 'undefined' && Audio3D.voci) || {};
+  const frasi = (V[voce] || {})[categoria] || (V.radio || {})[categoria];
   if (!frasi || !frasi.length || performance.now() < prossimaRadio) return false;
   const nome = scegli(frasi), b = Audio3D.buf[nome]; if (!b) return false;
   prossimaRadio = performance.now() + b.duration * 1000 + 2500;

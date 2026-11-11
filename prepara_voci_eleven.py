@@ -55,6 +55,57 @@ ANNUNCI = {
     'ultima_squadra': "Resta una sola squadra.",
 }
 
+# ---- seconda infornata: dialetti e più frasi
+R, N = '[Roman accent] ', '[Neapolitan accent] '
+DIALETTI = {
+    'romano': ('ErXwobaYiN019PkySvjV', {
+        'minaccia': [R + "Aò, l'ho visto! Sta là!", R + "Ndo vai? Te sento, sai.", R + "[whispers] Zitti... sta dentro casa.", R + "Esci fòri, nun te nasconne!", R + "Daje, ce l'avemo davanti!"],
+        'attacco': [R + "[shouting] Daje, daje, daje!", R + "[shouting] Mo' te faccio vede' io!", R + "[shouting] Annamo!"],
+        'colpito': [R + "[pained] Ahia! M'hanno preso!", R + "Mortacci... so' ferito!", R + "[pained] Aò, fa male!"],
+        'carica': [R + "[shouting] Vado, coprime!", R + "Me sposto, statte attento!"],
+        'spara': [R + "[shouting] Tiè!", R + "Fuoco, fuoco!"],
+        'assalto': [R + "[shouting] Circondatelo, forza!", R + "Pijatelo de lato!"],
+        'ricarica': [R + "So' a secco, aspetta!", R + "[shouting] Ricarico, coprime!"],
+        'granata': [R + "[shouting] Occhio, granata!"],
+    }),
+    'napoletano': ('TX3LPaxmHKxFdv7VOQHJ', {
+        'minaccia': [N + "Uè, sta llà! L'aggio visto!", N + "Addò vaje? Te sento!", N + "[whispers] Zitto... sta dint' 'a casa.", N + "Iesce fora, nun te ne fuì!", N + "Jamme, ce sta 'nnanze!"],
+        'attacco': [N + "[shouting] Jamme, jamme!", N + "[shouting] Mo' t'acconcio io!", N + "[shouting] Avanti, guagliù!"],
+        'colpito': [N + "[pained] Ah! M'hanno pigliato!", N + "Mannaggia... so' ferito!", N + "[pained] Uè, che dulore!"],
+        'carica': [N + "[shouting] Vaco, copreme!", N + "Me sposto, statte accorto!"],
+        'spara': [N + "[shouting] Pigliate chesto!", N + "Fuoco, guagliù!"],
+        'assalto': [N + "[shouting] Circundatelo, guagliù!", N + "Pigliatelo 'e lato!"],
+        'ricarica': [N + "Nun tengo cchiù colpi, aspetta!", N + "[shouting] Ricarico, copreme!"],
+        'granata': [N + "[shouting] Attiento, 'na granata!"],
+    }),
+}
+RADIO_DIALETTI = {
+    'radio_romano': ('nPczCjzI2devNBz1zQrb', {
+        'contatto': [R + "Aò, c'ho uno davanti.", R + "Contatto, sta là, occhio."], 'ricarica': [R + "Ricarico, coprime un attimo."],
+        'colpito': [R + "[pained] M'hanno beccato, ma ce so'."], 'abbattuto': [R + "Fatto fòri. Uno de meno.", R + "Giù, l'ho steso."],
+        'rianimo': [R + "Tieni duro, mo' te tiro su."], 'seguo': [R + "So' co' te, tranquillo.", R + "Te guardo le spalle."],
+    }),
+    'radio_napoletano': ('cjVigY5qzO86Huf0OWal', {
+        'contatto': [N + "Uè, ne tengo uno 'nnanze.", N + "Contatto, sta llà, attiento."], 'ricarica': [N + "Ricarico, copreme nu mumento."],
+        'colpito': [N + "[pained] M'hanno pigliato, ma sto ccà."], 'abbattuto': [N + "Fatto. Uno 'e meno.", N + "L'aggio stiso."],
+        'rianimo': [N + "Tiene botta, mo' t'aizo io."], 'seguo': [N + "Sto cu te, statte tranquillo.", N + "Te guardo 'e spalle."],
+    }),
+}
+# più frasi per i sei soldati e per la radio normale
+ALTRE_FRASI = {
+    'minaccia': ["[whispers] Ho sentito dei passi.", "Settore libero... no, aspetta. Eccolo.", "[shouting] Ostile, sul tetto!", "Lo sento correre, è vicino."],
+    'colpito': ["[pained] Medico! Mi serve un medico!", "[breathing heavily] Sono ancora vivo..."],
+    'attacco': ["[shouting] Adesso! Tutti insieme!"],
+}
+ALTRA_RADIO = {
+    'contatto': ["Movimento sulla destra.", "[whispers] Fermo, ce n'è uno vicino."], 'abbattuto': ["Bersaglio giù."],
+    'seguo': ["Sono dietro di te, procedi."], 'colpito': ["[pained] Mi hanno colpito, resisto."],
+}
+ALTRI_ANNUNCI = {
+    'eliminazione': "Bersaglio eliminato.", 'giubbotto': "Giubbotto distrutto.", 'tre_rimasti': "Ne restano tre.",
+    'meta': "Metà dei combattenti è caduta.", 'squadra_eliminata': "La tua squadra è stata eliminata.", 'zona_finale': "Zona finale. Ultimo scontro.",
+}
+
 def chiave():
     p = os.environ.get('ELEVEN_CHIAVE')
     if not p: sys.exit('Manca ELEVEN_CHIAVE (percorso del file con la chiave).')
@@ -97,6 +148,28 @@ def main():
     for nome, frase in ANNUNCI.items():
         caratteri += genera(k, NARRATORE, frase, 'annuncio_' + nome)
         elenco.setdefault('narratore', {})[nome] = ['annuncio_' + nome]
+    # seconda infornata
+    for soldato, (voce, cat_frasi) in {**DIALETTI, **RADIO_DIALETTI}.items():
+        radio = soldato.startswith('radio')
+        for cat, frasi in cat_frasi.items():
+            for j, frase in enumerate(frasi):
+                nome = f'{soldato}_{cat}{j + 1}'
+                caratteri += genera(k, voce, frase, nome, radio=radio)
+                elenco.setdefault(soldato, {}).setdefault(cat, []).append(nome)
+    for s, (soldato, voce) in enumerate(SOLDATI.items()):
+        for cat, frasi in ALTRE_FRASI.items():
+            frase = frasi[s % len(frasi)]
+            nome = f'{soldato}_{cat}x{s % len(frasi) + 1}'
+            caratteri += genera(k, voce, frase, nome)
+            elenco[soldato][cat].append(nome)
+    for cat, frasi in ALTRA_RADIO.items():
+        for j, frase in enumerate(frasi):
+            nome = f'radio_{cat}x{j + 1}'
+            caratteri += genera(k, RADIO, frase, nome, radio=True)
+            elenco['radio'][cat].append(nome)
+    for nome, frase in ALTRI_ANNUNCI.items():
+        caratteri += genera(k, NARRATORE, frase, 'annuncio_' + nome)
+        elenco['narratore'][nome] = ['annuncio_' + nome]
     json.dump(elenco, open(os.path.join(OUT, 'elenco.json'), 'w'), ensure_ascii=False, indent=1)
     print('caratteri usati:', caratteri)
 

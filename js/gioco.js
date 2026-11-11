@@ -221,7 +221,7 @@ function feriscimi(danno, proiettile = false) {
     const assorbito = Math.min(G.scudo, danno);
     G.scudo -= assorbito; danno -= assorbito;
     suona('scudo_colpo', { gain: 0.7 });
-    if (G.scudo <= 0) parla('giubbotto rotto', 1);
+    if (G.scudo <= 0) { if (G.modalita === 'battaglia') annuncio('giubbotto', 'Giubbotto distrutto.', 1); else parla('giubbotto rotto', 1); }
     if (danno <= 0) return;
   }
   const prima = G.vita;

@@ -93,7 +93,7 @@ async function battagliaAvvia(lancio, difficolta, opz = {}) {
   G.livello = 0; G.prossimaTurbo = 0; G.mira = false;
   D.trappole = []; D.radarFino = 0;
   B.lancio = lancio; B.attiva = true; B.morto = false; B.aTerra = false; B.finita = false; B.eliminazioni = 0; B.ultimoAggressore = null;
-  B.inCasa = null; B.inCespuglio = false; B.vincitrice = null; B.faseAnnunciata = null;
+  B.inCasa = null; B.inCespuglio = false; B.vincitrice = null; B.dettaMeta = false; B.faseAnnunciata = null;
   // i cronometri della partita prima non valgono più: G.tempo ricomincia da zero
   for (const k of Object.keys(B)) if (/^(prossim|ultim|avviso)/.test(k) && typeof B[k] === 'number') B[k] = /^ultim/.test(k) ? -99 : 0;
   // da qui in poi, in rete, il caso è quello del seme comune: isola, forzieri, case, bus e bot uguali per tutti
@@ -144,6 +144,8 @@ async function battagliaAvvia(lancio, difficolta, opz = {}) {
   });
   } finally { Math.random = casoVero; }
   G.nemici = B.bot.filter(b => b.team !== B.mioTeam);
+  const radioVoci = ['radio', 'radio_romano', 'radio_napoletano'], primo = casoInt(0, 2);
+  B.bot.filter(b => b.team === B.mioTeam).forEach((b, i) => { b.radio = radioVoci[(primo + i) % 3]; });
   if (B.rete) preparaUmaniRemoti();
 
   B.fontana = loopInPunto('fontana', LUOGHI.fontana.x, LUOGHI.fontana.z, 0.35, { ref: 5 });
@@ -318,7 +320,7 @@ function atterra() {
   const dove = vicino.d < 20 ? vicino.L.nome : `${metri(vicino.d)} da ${vicino.L.nome}`;
   annuncio('aterra', "A terra. Trova un'arma.", 2);
   pianifica(1.8, () => parla(`${dove}. Hai solo il piccone. ${rimasti()} in gara.`, 1));
-  if (compagniVivi().length) pianifica(5, () => radio('seguo', 'Il tuo compagno, alla radio'));
+  if (compagniVivi().length) pianifica(5, () => { const c = compagniVivi()[0]; if (c) radio('seguo', `${c.nome}, alla radio`, c.radio); });
 }
 
 // ---------------------------------------------------------------- tempesta
@@ -330,7 +332,8 @@ function prossimaZona() {
 
 // la tempesta: la voce del narratore, poi da che parte andare
 function annunciaTempesta(avanza, testo) {
-  if (avanza) annuncio('tempesta_avanza', 'La tempesta avanza.', 1); else annuncio('tempesta_arriva', testo || 'La tempesta sta arrivando.', 1);
+  if (!avanza && B.fase >= FASI_TEMPESTA.length - 1) annuncio('zona_finale', 'Zona finale. Ultimo scontro.', 1);
+  else if (avanza) annuncio('tempesta_avanza', 'La tempesta avanza.', 1); else annuncio('tempesta_arriva', testo || 'La tempesta sta arrivando.', 1);
   pianifica(2.2, () => parla(`${avanza ? '' : (testo || '') + ' '}${dovePerLaZona()}`, 1));
 }
 function dovePerLaZona() {
@@ -394,7 +397,7 @@ function fraseBot(b, categoria) {
   if (reteBR() && D.ospite) duelloInvia({ t: 'bvo', i: B.bot.indexOf(b), k: categoria });
   if (alleati('io', b)) { // i compagni parlano alla radio
     const cat = { minaccia: 'contatto', attacco: 'contatto', spara: 'contatto', ricarica: 'ricarica', colpito: 'colpito' }[categoria];
-    if (cat && !B.morto) radio(cat, `${b.nome}, alla radio`);
+    if (cat && !B.morto) radio(cat, `${b.nome}, alla radio`, b.radio);
     return;
   }
   if (G.tempo < B.prossimaVoce || Math.hypot(b.x - G.x, b.z - G.z) > 30) return; // uno alla volta, e solo se è vicino
@@ -521,7 +524,7 @@ function aggiornaBot(b, dt) {
     if (capo.d > 1.4) { mx = (capo.x - b.x) / capo.d; mz = (capo.z - b.z) / capo.d; v = 4.4; b.rianima = 0; }
     else {
       b.rianima = (b.rianima || 0) + dt;
-      if (!b.dettoRianimo && capo.f === 'io') { b.dettoRianimo = true; if (!radio('rianimo', `${b.nome} ti sta rianimando`)) parla(`${b.nome} ti sta rianimando.`, 1); }
+      if (!b.dettoRianimo && capo.f === 'io') { b.dettoRianimo = true; if (!radio('rianimo', `${b.nome} ti sta rianimando`, b.radio)) parla(`${b.nome} ti sta rianimando.`, 1); }
       if (b.rianima > 4) { b.rianima = 0; b.dettoRianimo = false; if (capo.f === 'io') rianimami(); else duelloInvia({ t: 'rianima', a: capo.f.cid }); }
     }
   }
@@ -814,13 +817,19 @@ function elimina(b, da) {
 }
 function annunciaEliminazione(vittima, da) {
   const n = rimasti(), nome = nomeDi(vittima);
-  if (da === 'io') { B.eliminazioni++; const s = squadreVive().size; parla(B.squadre > 1 ? `Eliminato ${nome}! ${plurale(s, 'squadra', 'squadre')} in gara.` : n > 1 ? `Eliminato ${nome}! ${n} rimasti.` : `Eliminato ${nome}!`, 2); }
+  if (da === 'io') {
+    B.eliminazioni++; const s = squadreVive().size;
+    annuncio('eliminazione', `Eliminato ${nome}.`, 2);
+    pianifica(1.3, () => parla(B.squadre > 1 ? `${nome}. ${plurale(s, 'squadra', 'squadre')} in gara.` : n > 1 ? `${nome}. ${n} rimasti.` : nome, 1));
+  }
   else if (vittima.team === B.mioTeam && !B.morto) parla(`${nome}, il tuo compagno, è stato eliminato.`, 1);
   else if (B.squadre > 1) { const s = squadreVive().size; if (s === 2 && squadreVive().has(B.mioTeam)) annuncio('ultima_squadra', 'Resta una sola squadra, oltre alla tua.', 1); else if (s > 1) parla(`${s} squadre in gara.`, s <= 3 ? 1 : 0); }
   else if (n === 2 && !B.morto) annuncio('ultimo', 'Ne resta uno solo, oltre a te.', 1);
+  else if (n === 3 && B.squadre === 1 && !B.morto) annuncio('tre_rimasti', 'Ne restano tre.', 1);
+  else if (!B.dettaMeta && n <= Math.ceil((B.bot.length + umaniRemoti().length + 1) / 2) && !B.morto) { B.dettaMeta = true; annuncio('meta', 'Metà dei combattenti è caduta.', 1); }
   else if (n > 1) parla(`${n} rimasti.`, n <= 3 ? 1 : 0);
   // un compagno ha abbattuto qualcuno: lo dice alla radio
-  if (da && da.bot && da.team === B.mioTeam && vittima.team !== B.mioTeam && !B.morto) radio('abbattuto', `${da.nome}: nemico abbattuto`);
+  if (da && da.bot && da.team === B.mioTeam && vittima.team !== B.mioTeam && !B.morto) radio('abbattuto', `${da.nome}: nemico abbattuto`, da.radio);
 }
 
 function vittoria() {
@@ -876,6 +885,7 @@ function battagliaMorte() {
     controllaFine();
     return;
   }
+  if (B.squadre > 1) setTimeout(() => annuncio('squadra_eliminata', 'La tua squadra è stata eliminata.', 2), 1500);
   const posto = (B.squadre > 1 ? squadreVive().size : rimasti()) + 1, s = leggiStatBR(); s.partite++; salvaStatBR(s);
   G.stato = 'morto'; G.eventi = []; G.arsenale.grilletto = false; B.attiva = false;
   aggiornaPuntamento(null);
