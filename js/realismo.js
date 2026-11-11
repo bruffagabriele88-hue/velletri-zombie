@@ -93,7 +93,7 @@ function creaSuoniRealismo(ctx) {
 
 // i tre ambienti binaurali, in FLAC (stereo, da ascoltare direttamente, senza spazializzazione)
 async function caricaAmbientiReali() {
-  try { await caricaInGruppi(['amb_campagna', 'amb_bosco', 'amb_uccelli'].map(n => [n, `suoni/${n}.flac?v=34`])); } catch (e) { /* senza ambienti si gioca lo stesso */ }
+  try { await caricaInGruppi(['amb_campagna', 'amb_bosco', 'amb_uccelli'].map(n => [n, `suoni/${n}.flac?v=35`])); } catch (e) { /* senza ambienti si gioca lo stesso */ }
   // riverbero lungo e scuro per le code degli spari lontani, come in una valle
   const ctx = Audio3D.ctx, conv = ctx.createConvolver();
   conv.buffer = rispostaRiverbero(ctx, 3.2);

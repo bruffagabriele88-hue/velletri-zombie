@@ -32,7 +32,7 @@ function eseguiEventi() {
 
 // ---------------------------------------------------------------- menù (voce + tastiera)
 const MENU = {
-  menu: { titolo: 'Menù', voci: [['battaglia', 'Battaglia reale: tu contro undici, da solo o a squadre'], ['brete', 'Battaglia reale in rete con gli amici: i bot prendono i posti vuoti'], ['assedio', `Assedio a ${CENTRO_VELLETRI.piazza}, Velletri`], ['esplora', 'Esplorazione di Velletri'], ['altra', 'Esplorazione di un\'altra città'], ['duello', 'Duello uno contro uno in rete']] },
+  menu: { titolo: 'Menù', voci: [['battaglia', 'Battaglia reale: tu contro undici, da solo o a squadre'], ['brete', 'Battaglia reale in rete con gli amici: i bot prendono i posti vuoti'], ['assedio', `Assedio a ${CENTRO_VELLETRI.piazza}, Velletri`], ['esplora', 'Esplorazione di Velletri'], ['altra', 'Esplorazione di un\'altra città'], ['duello', 'Duello uno contro uno in rete'], ['allenamento', 'Allenamento: ripassa tutti i comandi, uno alla volta']] },
   difficolta: { titolo: 'Difficoltà', voci: [['facile', 'Facile: sette avversari, meno precisi, mira molto assistita'], ['normale', 'Normale: undici avversari'], ['difficile', 'Difficile: avversari più svelti e precisi, poca assistenza']] },
   lancio: { titolo: 'Dove vuoi atterrare? Il bus ti avvisa quando saltare.', voci: [['piazza', 'Piazza, al centro: tanti forzieri, tanta gente'], ['campanile', 'Campanile, a nord'], ['fontana', 'Fontana, a est'], ['canile', 'Canile, a sud'], ['bosco', 'Bosco, a ovest']] },
   squadre: { titolo: 'Come giochi?', voci: [['1', 'Da solo, tutti contro tutti'], ['2', 'In coppia: tu e un compagno'], ['4', 'Squadre da quattro: tu e tre compagni']] },
@@ -61,6 +61,7 @@ function confermaMenu() {
   suona('tic2', { gain: 0.5 });
   if (G.stato === 'menu') {
     if (id === 'battaglia') { apriMenu('squadre'); return; }
+    if (id === 'allenamento') { tutorialAvvia(); return; }
     if (id === 'brete') { apriMenu('brete'); return; }
     if (id === 'duello') { apriMenu('duello'); return; }
     if (id === 'altra') { G.stato = 'digitazione'; G.scopoTesto = 'citta'; G.testo = ''; parla('Scrivi il nome della città, poi Invio. Esc per tornare.', 2); aggiornaPannello(); return; }
@@ -216,6 +217,7 @@ function feriscimi(danno, proiettile = false) {
   if (!Number.isFinite(danno) || danno <= 0) return;
   stressa(0.5);
   danno = Math.min(danno, 300);
+  if (G.modalita === 'battaglia' && B.tutorial) danno = Math.min(danno, 15);
   // lo scudo assorbe i colpi prima della vita
   if (G.scudo > 0) {
     const assorbito = Math.min(G.scudo, danno);
@@ -751,6 +753,8 @@ async function primoAvvio() {
   $('messaggio').textContent = 'Preparo la grafica…';
   await new Promise(r => setTimeout(r, 30));
   try { if (typeof iniziaGrafica3D === 'function') { iniziaGrafica3D(); nascondi3D(); } } catch (e) { console.error('grafica 3D', e); }
+  // la prima volta l'allenamento è obbligatorio: si entra nel menù solo dopo averlo finito
+  if (!tutorialFatto()) { parla('Velletri Zombie. È la prima volta: si comincia con l\'allenamento.', 2); tutorialAvvia(); return; }
   apriMenu('menu', 'Velletri Zombie. ');
 }
 
@@ -817,12 +821,14 @@ document.addEventListener('keydown', e => {
   }
   // in gioco
   if (G.pausa) {
+    if (c === 'KeyM' && G.modalita === 'battaglia' && B.tutorial && TUT.obbligatorio) { parla('La prima volta l\'allenamento va finito. Clicca per riprendere.', 2); return; }
     if (c === 'KeyM') { if (D.rete) duelloChiudi(); pulisciPartita(); apriMenu('menu'); }
     else if (k === 'Enter') agganciaPuntatore();
     return;
   }
   if (e.repeat && !c.startsWith('Arrow') && !['KeyW', 'KeyS', 'KeyA', 'KeyD'].includes(c)) return;
   if (G.modalita === 'battaglia') {
+    if (B.tutorial && tutorialTasto(c, e)) return;
     G.tasti[c] = true;
     if (B.morto && c === 'KeyM') { if (D.rete) duelloChiudi(); pulisciPartita(); apriMenu('menu'); if (document.pointerLockElement) document.exitPointerLock(); return; }
     if (B.cielo) {

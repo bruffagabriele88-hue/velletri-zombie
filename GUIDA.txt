@@ -345,3 +345,18 @@ Soldato infetto: ti spara a raffiche da lontano. Senti i proiettili fischiare vi
 Suono ovattato: il nemico è dietro i palazzi, su un'altra via. Non puoi colpirlo finché non sbuca.
 In esplorazione gli zombie vagano per le strade finché non ti vedono o ti sentono: gli spari e la corsa li attirano.
 Battito del cuore: la tua vita è bassa.
+
+ALLENAMENTO (obbligatorio la prima volta)
+
+La prima volta che apri il gioco parte da solo l'allenamento: non si entra nel menù finché non lo finisci.
+La voce spiega un comando alla volta e tu lo provi; solo quando l'hai fatto si passa al successivo.
+Si svolge sull'isola, senza avversari veri, senza tempesta, e non puoi essere eliminato.
+- Cancella: ripete la spiegazione.
+- Invio: va avanti, quando la voce te lo chiede.
+- Maiuscolo più Invio: salta un esercizio che non ti riesce.
+Le lezioni: girarsi, camminare, correre, X, Spazio, O, inventario, forzieri, cambio arma, colpi rimasti,
+sparare a un fantoccio, mirino, mira agganciata, ricarica, bottino, piastra del giubbotto, cura, granata,
+muro e rampa, scatola, ascolto, radar. Poi quattro spiegazioni da ascoltare: case e cespugli, elicottero,
+tempesta, squadre e rete.
+Finito l'allenamento si apre il menù. Lo puoi rifare quando vuoi: è l'ultima voce del menù, "Allenamento".
+Nella battaglia reale adesso ci sono molti più forzieri, sia nei luoghi sia sparsi per l'isola.
