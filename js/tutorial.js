@@ -12,8 +12,8 @@ function tutorialSegnaFatto() { TUT.fattoInMemoria = true; try { localStorage.se
 async function caricaVociAllenamento() {
   if (TUT.vociPronte) return;
   try {
-    const nomi = await (await fetch('suoni/voci/allenamento/elenco.json?v=38')).json();
-    await caricaInGruppi(nomi.map(n => ['tut_' + n, `suoni/voci/allenamento/tut_${n}.mp3?v=38`]));
+    const nomi = await (await fetch('suoni/voci/allenamento/elenco.json?v=39')).json();
+    await caricaInGruppi(nomi.map(n => ['tut_' + n, `suoni/voci/allenamento/tut_${n}.mp3?v=39`]));
     Audio3D.voci.narratore = Audio3D.voci.narratore || {};
     for (const n of nomi) if (Audio3D.buf['tut_' + n]) Audio3D.voci.narratore['tut_' + n] = ['tut_' + n];
     TUT.vociPronte = true;

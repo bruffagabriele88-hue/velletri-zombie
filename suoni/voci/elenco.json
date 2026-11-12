@@ -332,6 +332,21 @@
   ],
   "zona_finale": [
    "annuncio_zona_finale"
+  ],
+  "rivale": [
+   "annuncio_rivale"
+  ],
+  "caccia": [
+   "annuncio_caccia"
+  ],
+  "drone": [
+   "annuncio_drone"
+  ],
+  "vendetta": [
+   "annuncio_vendetta"
+  ],
+  "caccia_vinta": [
+   "annuncio_caccia_vinta"
   ]
  },
  "romano": {
