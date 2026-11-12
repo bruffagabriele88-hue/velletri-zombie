@@ -67,9 +67,12 @@ function preparaTexture() {
   V3.tex = {};
   // erba: verdi diversi, ciuffi più chiari, un po' di terra
   V3.tex.erba = superficieDa(512, (u, v) => {
-    const g = per(u, v, 8, 5), fine = M(u * 64, v * 64, 2), terra = lim((per(u, v, 3, 3) - 0.18) * 4, 0, 1);
-    const r = mescola(62 + g * 40 + fine * 25, 112, terra * 0.6), gg = mescola(96 + g * 50 + fine * 35, 92, terra * 0.6), b = mescola(38 + g * 20, 60, terra * 0.6);
-    return [r, gg, b, 0.5 + fine * 0.5 + g * 0.3];
+    const g = per(u, v, 8, 5), fine = M(u * 64, v * 64, 2), fili = M(u * 180, v * 30, 1), terra = lim((per(u, v, 3, 3) - 0.18) * 4, 0, 1);
+    const secco = lim((per(u, v, 2, 4) + 0.1) * 2.2, 0, 1);                    // chiazze d'erba bruciata dal sole
+    let r = 52 + g * 30 + fine * 20 + fili * 14, gg = 74 + g * 34 + fine * 24 + fili * 18, b = 34 + g * 12 + fine * 8;
+    r = mescola(r, 118 + fine * 20, secco * 0.45); gg = mescola(gg, 104 + fine * 18, secco * 0.45); b = mescola(b, 58 + fine * 10, secco * 0.45);
+    r = mescola(r, 96, terra * 0.65); gg = mescola(gg, 78, terra * 0.65); b = mescola(b, 54, terra * 0.65);
+    return [r, gg, b, 0.45 + fine * 0.35 + fili * 0.35 + g * 0.2];
   }, 30, 3);
   // ciottoli della piazza: pietre arrotondate con le fughe scure
   V3.tex.ciottoli = superficieDa(512, (u, v) => {
@@ -84,9 +87,9 @@ function preparaTexture() {
   // terra battuta dei sentieri
   V3.tex.terra = superficieDa(256, (u, v) => { const g = per(u, v, 6, 5) * 30 + M(u * 70, v * 70, 2) * 18; return [118 + g, 92 + g * 0.8, 64 + g * 0.6, 0.5 + g / 50]; }, 6, 2.5);
   // intonaco delle case: un po' sporco in basso, macchie di umidità
-  V3.tex.intonaco = superficieDa(512, (u, v) => { const g = per(u, v, 4, 5) * 18 + M(u * 120, v * 120, 2) * 8, sporco = Math.max(0, v - 0.75) * 60; return [236 + g - sporco, 222 + g - sporco, 196 + g * 0.8 - sporco, 0.5 + M(u * 120, v * 120, 2) * 0.4]; }, 1, 1.5);
+  V3.tex.intonaco = superficieDa(512, (u, v) => { const colata = Math.max(0, N(u * 30, v * 1.5, 2)) * 26 * (0.4 + v * 0.6), g = per(u, v, 4, 5) * 18 + M(u * 120, v * 120, 2) * 8 - colata, sporco = Math.max(0, v - 0.72) * 90; return [224 + g - sporco, 214 + g - sporco, 194 + g * 0.8 - sporco, 0.5 + M(u * 120, v * 120, 2) * 0.4]; }, 1, 1.5);
   // pietra (zoccolo delle case, fontana, rocce)
-  V3.tex.pietra = superficieDa(256, (u, v) => { const g = per(u, v, 5, 5) * 40 + M(u * 60, v * 60, 3) * 25; return [128 + g, 124 + g, 116 + g, 0.5 + g / 70]; }, 2, 3);
+  V3.tex.pietra = superficieDa(256, (u, v) => { const g = per(u, v, 5, 5) * 40 + M(u * 60, v * 60, 3) * 25, crepa = Math.abs(N(u * 9, v * 9, 3)) < 0.03 ? -40 : 0, lich = lim((M(u * 14 + 3, v * 14, 3) - 0.25) * 3, 0, 1); return [mescola(98 + g + crepa, 104, lich * 0.5), mescola(96 + g + crepa, 108, lich * 0.5), mescola(90 + g + crepa, 70, lich * 0.5), 0.5 + (g + crepa) / 70]; }, 2, 4);
   // mattoni del campanile
   V3.tex.mattoni = superficieDa(512, (u, v) => {
     const fila = Math.floor(v * 32), x = u * 12 + (fila % 2) * 0.5, malta = (v * 32 - fila) < 0.12 || (x - Math.floor(x)) < 0.05;
@@ -102,8 +105,8 @@ function preparaTexture() {
   // corteccia
   V3.tex.corteccia = superficieDa(256, (u, v) => { const g = N(u * 20, v * 3, 4) * 50; return [82 + g, 62 + g * 0.8, 44 + g * 0.6, 0.5 + g / 60]; }, 1, 4);
   // fogliame (chioma) e aghi di pino
-  V3.tex.foglie = superficieDa(256, (u, v) => { const g = M(u * 40, v * 40, 3) * 60, ombra = per(u, v, 5, 3) * 30; return [48 + g + ombra, 88 + g * 1.2 + ombra, 36 + g * 0.5, 0.5 + g / 80]; }, 2, 4);
-  V3.tex.aghi = superficieDa(256, (u, v) => { const g = N(u * 60, v * 8, 3) * 50; return [28 + g * 0.5, 64 + g, 36 + g * 0.4, 0.5 + g / 60]; }, 2, 4);
+  V3.tex.foglie = superficieDa(256, (u, v) => { const g = M(u * 40, v * 40, 3) * 50, ombra = per(u, v, 5, 3) * 26, foglia = M(u * 110, v * 110, 1) * 22; return [40 + g * 0.8 + ombra + foglia * 0.6, 64 + g + ombra + foglia, 30 + g * 0.4 + foglia * 0.3, 0.4 + g / 70 + foglia / 50]; }, 3, 5);
+  V3.tex.aghi = superficieDa(256, (u, v) => { const g = N(u * 60, v * 8, 3) * 46, ago = M(u * 160, v * 20, 1) * 20; return [26 + g * 0.4 + ago * 0.4, 50 + g * 0.8 + ago, 34 + g * 0.3 + ago * 0.3, 0.45 + g / 60 + ago / 40]; }, 3, 5);
   // legno (costruzioni dei giocatori, persiane, pavimenti)
   V3.tex.legno = superficieDa(256, (u, v) => {
     const asse = Math.floor(v * 8), venatura = N(u * 3, v * 40 + asse * 7, 3) * 40, fuga = (v * 8 - asse) < 0.06;
@@ -112,7 +115,7 @@ function preparaTexture() {
   // mimetiche delle squadre: bosco, deserto, città, notte
   V3.tex.mimetiche = [
     [[86, 92, 54], [58, 66, 40], [104, 84, 54], [34, 36, 28]],
-    [[194, 170, 124], [160, 130, 90], [122, 98, 66], [210, 192, 150]],
+    [[150, 128, 92], [118, 96, 68], [92, 76, 54], [166, 146, 110]],
     [[120, 124, 128], [86, 90, 96], [150, 152, 150], [54, 56, 62]],
     [[60, 70, 92], [40, 46, 64], [86, 96, 112], [26, 30, 40]],
   ].map((tinte, k) => {
@@ -128,7 +131,7 @@ function preparaTexture() {
   const [ce, xe] = telaDisegno(128, 128);
   for (let i = 0; i < 26; i++) {
     const x0 = 20 + Math.random() * 88, curva = (Math.random() - 0.5) * 40, alto = 50 + Math.random() * 70;
-    xe.strokeStyle = `rgb(${50 + Math.random() * 40},${95 + Math.random() * 60},${30 + Math.random() * 25})`; xe.lineWidth = 2 + Math.random() * 2;
+    const secco = Math.random() < 0.3; xe.strokeStyle = secco ? `rgb(${120 + Math.random() * 40},${108 + Math.random() * 30},${62 + Math.random() * 20})` : `rgb(${46 + Math.random() * 30},${72 + Math.random() * 40},${28 + Math.random() * 18})`; xe.lineWidth = 1.2 + Math.random() * 1.6;
     xe.beginPath(); xe.moveTo(x0, 128); xe.quadraticCurveTo(x0 + curva * 0.3, 128 - alto * 0.5, x0 + curva, 128 - alto); xe.stroke();
   }
   V3.tex.ciuffo = texturaDa(ce, 1);
@@ -158,13 +161,13 @@ function iniziaGrafica3D() {
   preparaTexture();
 
   // il sole: alto nel pomeriggio, un po' di traverso, così le ombre sono lunghe e danno profondità
-  const elevazione = 38 * Math.PI / 180, azimut = 140 * Math.PI / 180;
+  const elevazione = 30 * Math.PI / 180, azimut = 140 * Math.PI / 180;
   V3.dirSole = new T.Vector3(Math.cos(elevazione) * Math.sin(azimut), Math.sin(elevazione), Math.cos(elevazione) * Math.cos(azimut));
   // cielo fisico (diffusione della luce nell'atmosfera)
   if (T.Sky) {
     const cielo = new T.Sky(); cielo.scale.setScalar(5000);
     const u = cielo.material.uniforms;
-    u.turbidity.value = 3.2; u.rayleigh.value = 2.2; u.mieCoefficient.value = 0.003; u.mieDirectionalG.value = 0.88;
+    u.turbidity.value = 4.5; u.rayleigh.value = 1.6; u.mieCoefficient.value = 0.004; u.mieDirectionalG.value = 0.9;
     u.sunPosition.value.copy(V3.dirSole);
     scena.add(cielo); V3.cielo = cielo;
     // la luce del cielo si riflette su tutti i materiali (ambiente)
@@ -176,10 +179,10 @@ function iniziaGrafica3D() {
       pm.dispose();
     } catch (e) { /* senza riflessi dell'ambiente si vede lo stesso */ }
   } else scena.background = new T.Color(0x9cc4ea);
-  scena.fog = new T.FogExp2(0xb4cbe0, 0.0028);
+  scena.fog = new T.FogExp2(0xa8bccd, 0.0017);
 
-  scena.add(new T.HemisphereLight(0xd8e8ff, 0x55603a, 0.35));
-  const sole = new T.DirectionalLight(0xfff0d8, 3.0);
+  scena.add(new T.HemisphereLight(0xc8dcf5, 0x4a4630, 0.3));
+  const sole = new T.DirectionalLight(0xffe6c4, 3.3);
   sole.castShadow = true; sole.shadow.mapSize.set(4096, 4096);
   Object.assign(sole.shadow.camera, { left: -60, right: 60, top: 60, bottom: -60, near: 1, far: 400 });
   sole.shadow.bias = -0.0004; sole.shadow.normalBias = 0.04;
@@ -253,8 +256,9 @@ function preparaRitocco() {
           vec3 c = texture2D(tDiffuse, vUv).rgb;
           c = aces(c);
           c = mix(c, c * vec3(1.02, 1.0, 0.97), 0.5);                    // appena caldo, come il pomeriggio
-          c = mix(vec3(dot(c, vec3(0.299, 0.587, 0.114))), c, 0.92);    // colori un po' meno accesi, più veri
-          c = (c - 0.5) * 1.08 + 0.5;                                     // un filo di contrasto in più
+          c = mix(vec3(dot(c, vec3(0.299, 0.587, 0.114))), c, 0.84);    // colori meno accesi, più veri
+          c = (c - 0.5) * 1.12 + 0.5;
+          c = mix(c, c * vec3(0.96, 1.0, 1.05), smoothstep(0.5, 0.0, dot(c, vec3(0.333))));  // ombre appena fredde                                     // un filo di contrasto in più
           float v = smoothstep(0.95, 0.35, length(vUv - 0.5));            // vignettatura
           c *= mix(0.72, 1.0, v);
           c = mix(c, c * vec3(1.25, 0.55, 0.5), dolore * (1.0 - v) * 0.8); // ferito: i bordi diventano rossi
@@ -303,7 +307,7 @@ function costruisciIsola3D() {
   const N = rumore2D(5), colori = [], c = new T.Color();
   for (let i = 0; i < pratoG.attributes.position.count; i++) {
     const x = pratoG.attributes.position.getX(i), y = pratoG.attributes.position.getY(i), n = N(x / 30, y / 30, 3);
-    c.setRGB(0.92 + n * 0.25, 1 + n * 0.15, 0.85 + n * 0.1);
+    const n2 = N(x / 9 + 40, y / 9, 2); c.setRGB(0.9 + n * 0.22 + n2 * 0.08, 0.92 + n * 0.12 + n2 * 0.06, 0.86 + n * 0.08);
     colori.push(c.r, c.g, c.b);
   }
   pratoG.setAttribute('color', new T.Float32BufferAttribute(colori, 3));
@@ -343,7 +347,7 @@ function costruisciLuoghi3D() {
   lastricato.rotation.x = -Math.PI / 2; lastricato.position.y = 0.025; lastricato.receiveShadow = true; S.add(lastricato);
   // palazzi intorno alla piazza: intonaci colorati, finestre con le persiane verdi, tetti di coppi
   const intonaco = materiale('intonaco'), coppi = materiale('coppi', { roughness: 0.8 });
-  const tinte = [0xf0c890, 0xe8a878, 0xf6e2b8, 0xd88a68, 0xf0d0a0, 0xd8a080, 0xfaf0d8, 0xe8b870, 0xdc9c78, 0xf2c8a0, 0xe0b090, 0xf4dcb0];
+  const tinte = [0xd8b480, 0xd09670, 0xd6c4a0, 0xc07c5e, 0xd8b88c, 0xc08e70, 0xd2c6ae, 0xd0a466, 0xc48c6c, 0xd6b08c, 0xc89e80, 0xd4bf98];
   const vetro = new T.MeshStandardMaterial({ color: 0x1c2630, roughness: 0.08, metalness: 0.4 }), persiana = new T.MeshStandardMaterial({ color: 0x3d5e3a, roughness: 0.7 });
   const finestre = [], persiane = [];
   for (let i = 0; i < 12; i++) {
@@ -351,6 +355,8 @@ function costruisciLuoghi3D() {
     const m = intonaco.clone(); m.color = new T.Color(tinte[i]);
     const casa = ombra(new T.Mesh(new T.BoxGeometry(w, h, 8), m));
     casa.position.set(Math.sin(a) * d, h / 2, -Math.cos(a) * d); casa.rotation.y = -a; S.add(casa);
+    const zoccolo = ombra(new T.Mesh(new T.BoxGeometry(w + 0.12, 0.9, 8.12), materiale('pietra'))); zoccolo.position.set(casa.position.x, 0.45, casa.position.z); zoccolo.rotation.y = -a; S.add(zoccolo);
+    const cornice = ombra(new T.Mesh(new T.BoxGeometry(w + 0.5, 0.28, 8.5), intonaco)); cornice.position.set(casa.position.x, h - 0.1, casa.position.z); cornice.rotation.y = -a; S.add(cornice);
     const tetto = ombra(new T.Mesh(new T.CylinderGeometry(0.01, w * 0.62, 2.6, 4, 1), coppi));
     tetto.position.set(casa.position.x, h + 1.3, casa.position.z); tetto.rotation.y = -a + Math.PI / 4; tetto.scale.set(1, 1, 0.66); S.add(tetto);
     for (let p = 0; p < piani; p++) for (let k = 0; k < 3; k++) {
@@ -398,7 +404,7 @@ function costruisciLuoghi3D() {
     if (Object.values(L).some(l => Math.hypot(l.x - x, l.z - z) < 18) || Math.hypot(x, z) < 48) continue;
     latifoglie.push([x, z, caso(0.8, 1.35)]);
   }
-  const corteccia = materiale('corteccia'), aghi = materiale('aghi', { roughness: 0.9 }), foglie = materiale('foglie', { roughness: 0.9 });
+  const corteccia = materiale('corteccia'), aghi = materiale('aghi', { roughness: 0.9, side: T.DoubleSide }), foglie = materiale('foglie', { roughness: 0.9 });
   const albero = (elenco, parti) => {
     for (const [geo, mat, y, sx] of parti) {
       const im = new T.InstancedMesh(geo, mat, elenco.length), m = new T.Matrix4(), q = new T.Quaternion(), s = new T.Vector3();
@@ -406,15 +412,40 @@ function costruisciLuoghi3D() {
       im.castShadow = true; im.receiveShadow = true; S.add(im);
     }
   };
-  const chioma = (r, det = 1) => { const g = new T.IcosahedronGeometry(r, det), p = g.attributes.position; for (let i = 0; i < p.count; i++) { const f = 1 + (Math.sin(p.getX(i) * 3.1) + Math.cos(p.getY(i) * 2.7 + p.getZ(i))) * 0.08; p.setXYZ(i, p.getX(i) * f, p.getY(i) * f * 0.85, p.getZ(i) * f); } g.computeVertexNormals(); return g; };
-  albero(pini, [[new T.CylinderGeometry(0.18, 0.32, 9, 8), corteccia, 4.5], [new T.ConeGeometry(2.4, 3.8, 12), aghi, 5.6], [new T.ConeGeometry(1.9, 3.4, 12), aghi, 7.4], [new T.ConeGeometry(1.3, 2.9, 10), aghi, 9.1], [new T.ConeGeometry(0.75, 2.2, 8), aghi, 10.6]]);
-  albero(latifoglie, [[new T.CylinderGeometry(0.22, 0.38, 4.4, 8), corteccia, 2.2], [chioma(2.6), foglie, 5.4], [chioma(1.8), foglie, 6.6, 1.1], [chioma(1.6), foglie, 5.0, 1.3]]);
+  const chioma = (r, det = 2) => { const g = new T.IcosahedronGeometry(r, det), p = g.attributes.position; for (let i = 0; i < p.count; i++) { const f = 1 + (Math.sin(p.getX(i) * 4.3) * Math.cos(p.getZ(i) * 3.7) + Math.cos(p.getY(i) * 5.1 + p.getX(i) * 2.3)) * 0.16; p.setXYZ(i, p.getX(i) * f, p.getY(i) * f * 0.85, p.getZ(i) * f); } g.computeVertexNormals(); return g; };
+  // un palco di rami del pino: il bordo è frastagliato (i rami) e cade verso il basso (il peso degli aghi)
+  const palco = (r, h, seme) => {
+    const geo = new T.ConeGeometry(r, h, 28, 4, true), p = geo.attributes.position;
+    for (let i = 0; i < p.count; i++) {
+      const x = p.getX(i), y = p.getY(i), z = p.getZ(i), a = Math.atan2(z, x), basso = (h / 2 - y) / h; // 0 in cima, 1 al bordo
+      const rami = 1 + (Math.sin(a * 9 + seme) * 0.5 + Math.sin(a * 23 + seme * 2) * 0.3 + Math.sin(a * 5 - seme) * 0.2) * 0.22 * basso;
+      p.setXYZ(i, x * rami, y - basso * basso * h * 0.18 * (1 + Math.sin(a * 9 + seme) * 0.5), z * rami);
+    }
+    geo.computeVertexNormals(); return geo;
+  };
+  albero(pini, [[new T.CylinderGeometry(0.16, 0.34, 9.5, 9), corteccia, 4.7], [palco(2.6, 3.4, 1), aghi, 4.6], [palco(2.3, 3.2, 2), aghi, 6.0], [palco(1.9, 3.0, 3), aghi, 7.4],
+    [palco(1.45, 2.7, 4), aghi, 8.7], [palco(1.0, 2.3, 5), aghi, 9.9], [palco(0.55, 1.8, 6), aghi, 11.0]]);
+  // tronco con due rami, e la chioma fatta di sei ciuffi sfalsati: da lontano non sembra più un lecca-lecca
+  const ramo = (ang, alto, lung) => { const g = new T.CylinderGeometry(0.08, 0.16, lung, 6); g.translate(0, lung / 2, 0); g.rotateZ(ang); g.translate(0, alto, 0); return g; };
+  albero(latifoglie, [[new T.CylinderGeometry(0.2, 0.42, 4.6, 9), corteccia, 2.3], [ramo(0.7, 3.4, 2.2), corteccia, 0], [ramo(-0.6, 3.0, 2.0), corteccia, 0],
+    [chioma(1.9), foglie, 5.2], [chioma(1.5).translate(1.3, 0.4, 0.4), foglie, 5.0], [chioma(1.4).translate(-1.2, 0.6, -0.5), foglie, 5.2],
+    [chioma(1.3).translate(0.3, 1.3, -1.1), foglie, 5.4], [chioma(1.2).translate(-0.4, 1.6, 1.0), foglie, 5.3], [chioma(1.0).translate(0.2, 2.3, 0.1), foglie, 5.6]]);
   // rocce dalla forma irregolare
-  const roccia = new T.DodecahedronGeometry(1, 1); { const p = roccia.attributes.position; for (let i = 0; i < p.count; i++) { const f = 0.75 + Math.abs(Math.sin(p.getX(i) * 5 + p.getZ(i) * 3)) * 0.35; p.setXYZ(i, p.getX(i) * f, p.getY(i) * f * 0.6, p.getZ(i) * f); } roccia.computeVertexNormals(); }
-  const sassi = []; for (let i = 0; i < 45; i++) { const a = caso(-Math.PI, Math.PI), d = caso(22, 94); sassi.push([Math.sin(a) * d, 0.1, -Math.cos(a) * d, caso(0, 6), caso(0.4, 1.5)]); }
+  const roccia = new T.IcosahedronGeometry(1, 3); { const p = roccia.attributes.position, R = rumore2D(77); for (let i = 0; i < p.count; i++) { const f = 0.8 + Math.abs(Math.sin(p.getX(i) * 5 + p.getZ(i) * 3)) * 0.18 + R(p.getX(i) * 2.2 + p.getY(i), p.getZ(i) * 2.2, 3) * 0.22; p.setXYZ(i, p.getX(i) * f, p.getY(i) * f * 0.6, p.getZ(i) * f); } roccia.computeVertexNormals(); }
+  const sassi = []; for (let i = 0; i < 45; i++) { const a = caso(-Math.PI, Math.PI), d = caso(22, 94); sassi.push([Math.sin(a) * d, -0.15, -Math.cos(a) * d, caso(0, 6), caso(0.4, 1.5)]); }
   const imR = new T.InstancedMesh(roccia, pietra, sassi.length), mm = new T.Matrix4(), qq = new T.Quaternion(), ss = new T.Vector3();
   sassi.forEach(([x, y, z, r, k], i) => { qq.setFromEuler(new T.Euler(r * 0.3, r, r * 0.2)); ss.set(k, k, k); mm.compose(new T.Vector3(x, y, z), qq, ss); imR.setMatrixAt(i, mm); });
   imR.castShadow = true; imR.receiveShadow = true; S.add(imR);
+  // ombre di contatto: dove un oggetto tocca terra la luce del cielo non arriva, e la base si scurisce
+  const [co, xo] = telaDisegno(128, 128), go = xo.createRadialGradient(64, 64, 0, 64, 64, 64);
+  go.addColorStop(0, 'rgba(0,0,0,0.55)'); go.addColorStop(0.55, 'rgba(0,0,0,0.25)'); go.addColorStop(1, 'rgba(0,0,0,0)');
+  xo.fillStyle = go; xo.fillRect(0, 0, 128, 128);
+  const macchia = new T.MeshBasicMaterial({ map: texturaDa(co, 1, false), transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 });
+  const basi = [...latifoglie.map(([x, z, k]) => [x, z, 3.2 * k]), ...pini.map(([x, z, k]) => [x, z, 2.6 * k]), ...sassi.map(([x, , z, , k]) => [x, z, 2.4 * k])];
+  const pianoO = new T.PlaneGeometry(1, 1); pianoO.rotateX(-Math.PI / 2);
+  const imO = new T.InstancedMesh(pianoO, macchia, basi.length), mo = new T.Matrix4();
+  basi.forEach(([x, z, r], i) => { mo.makeScale(r, 1, r); mo.setPosition(x, 0.03, z); imO.setMatrixAt(i, mo); });
+  imO.renderOrder = 1; S.add(imO); V3.macchiaBase = macchia;
 }
 
 // ---------------------------------------------------------------- soldati
@@ -566,18 +597,42 @@ function armaInMano() {
   if (A.userData.tipo === chiave) return;
   A.userData.tipo = chiave;
   while (A.children.length) A.remove(A.children[0]);
-  const nero = new T.MeshStandardMaterial({ color: 0x1c1d20, metalness: 0.75, roughness: 0.32 });
-  const polimero = new T.MeshStandardMaterial({ color: 0x2b2c2a, roughness: 0.6 });
+  const nero = new T.MeshStandardMaterial({ color: 0x26272a, metalness: 0.8, roughness: 0.42 });
+  const polimero = new T.MeshStandardMaterial({ color: 0x3a3a34, metalness: 0.05, roughness: 0.78 });
   const legno = new T.MeshStandardMaterial({ map: V3.tex.legno.map, roughness: 0.6, color: 0xa07050 });
   const verde = new T.MeshStandardMaterial({ color: 0x4b5a32, roughness: 0.7 });
   const guanto = new T.MeshStandardMaterial({ color: 0x3a3a30, roughness: 0.85 });
   const p = (geo, mat, x, y, z, rx = 0) => { const m = new T.Mesh(geo, mat); m.position.set(x, y, z); m.rotation.x = rx; A.add(m); return m; };
-  const box = (w, h, d) => new T.BoxGeometry(w, h, d), cil = (r, l, n = 12) => new T.CylinderGeometry(r, r, l, n);
+  const cil = (r, l, n = 16) => new T.CylinderGeometry(r, r, l, n);
+  // un parallelepipedo con gli spigoli smussati: niente oggetto vero ha gli spigoli vivi, ed è questo che fa "cartone"
+  const box = (w, h, d) => {
+    const chiave = `${w}|${h}|${d}`; V3.scatoleTonde = V3.scatoleTonde || new Map();
+    if (V3.scatoleTonde.has(chiave)) return V3.scatoleTonde.get(chiave);
+    const r = Math.min(w, h) * 0.18, s = new T.Shape(), x = -w / 2 + r, y = -h / 2 + r, ww = w - 2 * r, hh = h - 2 * r;
+    s.moveTo(x, y - r); s.lineTo(x + ww, y - r); s.quadraticCurveTo(x + ww + r, y - r, x + ww + r, y); s.lineTo(x + ww + r, y + hh); s.quadraticCurveTo(x + ww + r, y + hh + r, x + ww, y + hh + r);
+    s.lineTo(x, y + hh + r); s.quadraticCurveTo(x - r, y + hh + r, x - r, y + hh); s.lineTo(x - r, y); s.quadraticCurveTo(x - r, y - r, x, y - r);
+    const b = Math.min(r, d * 0.2), geo = new T.ExtrudeGeometry(s, { depth: Math.max(0.001, d - 2 * b), bevelEnabled: true, bevelThickness: b, bevelSize: b * 0.6, bevelSegments: 2, curveSegments: 3 });
+    geo.translate(0, 0, -(d - 2 * b) / 2); geo.computeVertexNormals();
+    V3.scatoleTonde.set(chiave, geo); return geo;
+  };
   // le mani coi guanti
   p(box(0.09, 0.08, 0.13), guanto, 0, -0.1, 0.04);
   if (tipo === 'pistola') { p(box(0.06, 0.07, 0.3), nero, 0, 0.02, -0.12); p(box(0.055, 0.15, 0.08), polimero, 0, -0.08, 0.0); p(cil(0.012, 0.04), nero, 0, 0.02, -0.28, Math.PI / 2); }
   if (tipo === 'pompa') { p(cil(0.024, 0.85), nero, 0, 0.02, -0.4, Math.PI / 2); p(cil(0.02, 0.6), nero, 0, -0.03, -0.32, Math.PI / 2); p(box(0.08, 0.07, 0.24), legno, 0, -0.035, -0.45); p(box(0.07, 0.12, 0.34), legno, 0, -0.05, 0.16); p(box(0.09, 0.08, 0.13), guanto, 0, -0.08, -0.42); }
-  if (tipo === 'mitra') { p(box(0.07, 0.09, 0.55), nero, 0, 0, -0.2); p(cil(0.016, 0.3), nero, 0, 0.01, -0.6, Math.PI / 2); p(box(0.055, 0.2, 0.07), nero, 0, -0.13, -0.22).rotation.x = 0.25; p(box(0.07, 0.08, 0.2), legno, 0, -0.02, -0.36); p(box(0.06, 0.11, 0.24), legno, 0, -0.04, 0.17); p(box(0.09, 0.08, 0.13), guanto, 0, -0.06, -0.36); }
+  if (tipo === 'mitra') {
+    p(box(0.07, 0.09, 0.42), nero, 0, 0, -0.18);                       // castello
+    p(box(0.03, 0.02, 0.4), nero, 0, 0.056, -0.2);                      // slitta in alto
+    for (let k = 0; k < 8; k++) p(box(0.036, 0.008, 0.012), nero, 0, 0.068, -0.03 - k * 0.045);
+    p(box(0.02, 0.05, 0.03), nero, 0, 0.09, -0.36); p(box(0.022, 0.04, 0.02), nero, 0, 0.085, 0.0); // mirini
+    p(box(0.078, 0.08, 0.26), polimero, 0, -0.01, -0.5);               // guardamano
+    for (let k = 0; k < 4; k++) p(box(0.08, 0.012, 0.03), nero, 0, 0.0, -0.42 - k * 0.055);
+    p(cil(0.015, 0.22), nero, 0, 0.01, -0.73, Math.PI / 2); p(cil(0.022, 0.06), nero, 0, 0.01, -0.86, Math.PI / 2); // canna e spegnifiamma
+    const car = p(box(0.05, 0.2, 0.075), polimero, 0, -0.14, -0.22); car.rotation.x = 0.28;
+    const car2 = p(box(0.05, 0.08, 0.07), polimero, 0, -0.25, -0.18); car2.rotation.x = 0.5;
+    const imp = p(box(0.05, 0.14, 0.06), polimero, 0, -0.1, 0.0); imp.rotation.x = -0.3; // impugnatura
+    p(box(0.06, 0.1, 0.22), polimero, 0, -0.02, 0.15); p(box(0.065, 0.13, 0.04), polimero, 0, -0.03, 0.27); // calcio
+    p(box(0.09, 0.08, 0.13), guanto, 0, -0.07, -0.5);
+  }
   if (tipo === 'precisione') { p(box(0.06, 0.08, 0.7), nero, 0, 0, -0.25); p(cil(0.014, 0.5), nero, 0, 0.01, -0.82, Math.PI / 2); p(cil(0.035, 0.36, 16), nero, 0, 0.09, -0.2, Math.PI / 2); p(cil(0.045, 0.04, 16), nero, 0, 0.09, -0.4, Math.PI / 2); p(box(0.07, 0.13, 0.32), polimero, 0, -0.04, 0.17); p(box(0.09, 0.08, 0.13), guanto, 0, -0.06, -0.4); }
   if (tipo === 'mitraglietta') { p(box(0.065, 0.09, 0.4), nero, 0, 0, -0.14); p(cil(0.015, 0.14), nero, 0, 0.01, -0.4, Math.PI / 2); p(box(0.05, 0.22, 0.06), nero, 0, -0.15, -0.14); p(box(0.04, 0.04, 0.24), nero, 0, -0.01, 0.15); p(box(0.09, 0.08, 0.13), guanto, 0, -0.07, -0.26); }
   if (tipo === 'lanciarazzi') { p(cil(0.065, 1.05, 16), verde, 0.02, 0.06, -0.3, Math.PI / 2); p(new T.ConeGeometry(0.06, 0.18, 16), new T.MeshStandardMaterial({ color: 0x5b5f55, roughness: 0.5 }), 0.02, 0.06, -0.9, -Math.PI / 2); p(box(0.04, 0.12, 0.06), polimero, 0.02, -0.05, -0.1); p(box(0.06, 0.06, 0.12), nero, 0.07, 0.13, -0.15); }

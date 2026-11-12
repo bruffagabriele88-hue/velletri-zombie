@@ -371,3 +371,7 @@ Si sentono solo in cuffia.
 SICUREZZA E WINDOWS
 - Il gioco non carica più codice da siti esterni, e la pagina accetta collegamenti solo ai server che servono.
 - Tasto zero: ascolto, come Controllo (per Windows).
+
+GRAFICA PIÙ VERA (per chi guarda lo schermo)
+Erba con chiazze secche, pini con i rami, alberi a ciuffi, sassi mezzi interrati, palazzi con lo zoccolo di pietra,
+ombre morbide alla base delle cose, colori meno accesi e meno foschia, fucile con gli spigoli smussati.
