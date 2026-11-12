@@ -375,3 +375,30 @@ SICUREZZA E WINDOWS
 GRAFICA PIÙ VERA (per chi guarda lo schermo)
 Erba con chiazze secche, pini con i rami, alberi a ciuffi, sassi mezzi interrati, palazzi con lo zoccolo di pietra,
 ombre morbide alla base delle cose, colori meno accesi e meno foschia, fucile con gli spigoli smussati.
+
+CACCIA ALL'UOMO (da solo)
+Nel menù, seconda voce. Sei tu il bersaglio: tutti gli undici sono contro di te. Parti col fucile d'assalto,
+il fucile a pompa, due piastre e due granate. Non c'è tempesta. Ogni venticinque secondi circa un drone dice a tutti
+dove sei ("Ti hanno individuato"): spostati subito. Resisti cinque minuti e hai vinto. Il tasto O e lo Spazio
+ti dicono quanto manca.
+
+BOT CON CARATTERE
+Ogni avversario ha un carattere:
+- cecchino: cerca il fucile di precisione, tiene le distanze e si apposta a lungo;
+- aggressivo: ti corre addosso urlando e non scappa mai;
+- prudente: si chiude in una casa e ti aspetta lì dentro;
+- normale.
+Con lo Spazio senti anche il carattere di chi hai vicino, per esempio "Ferri, cecchino, avanti, 30 metri".
+
+IL RIVALE
+Chi ti elimina diventa il tuo rivale. Nella partita dopo c'è di nuovo, il narratore te lo dice, ed è più bravo:
+ti viene a cercare. Se ti elimina ancora, il conto sale. Se lo elimini tu: vendetta compiuta, e il rivale sparisce.
+
+DUELLO: TRE MODALITÀ
+Chi crea la stanza sceglie:
+- Classico, uno contro uno: armi, costruzioni e round speciali, come prima.
+- Senza costruzioni: muri, rampe, scatole e trappole non si possono fare. Solo armi e mira.
+- Caccia all'uomo: a ogni round uno è la preda, a turno. La preda ha la pistola, il giubbotto e corre più veloce;
+  il cacciatore ha il fucile d'assalto. Ogni otto secondi il cacciatore sente un segnale da dove si trova la preda.
+  Se la preda resiste sessanta secondi, il round è suo; se viene presa, il round va a chi l'ha presa.
+Chi entra con il codice sente la modalità scelta.

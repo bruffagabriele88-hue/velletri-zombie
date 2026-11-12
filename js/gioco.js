@@ -32,13 +32,14 @@ function eseguiEventi() {
 
 // ---------------------------------------------------------------- menù (voce + tastiera)
 const MENU = {
-  menu: { titolo: 'Menù', voci: [['battaglia', 'Battaglia reale: tu contro undici, da solo o a squadre'], ['brete', 'Battaglia reale in rete con gli amici: i bot prendono i posti vuoti'], ['assedio', `Assedio a ${CENTRO_VELLETRI.piazza}, Velletri`], ['esplora', 'Esplorazione di Velletri'], ['altra', 'Esplorazione di un\'altra città'], ['duello', 'Duello uno contro uno in rete'], ['allenamento', 'Allenamento: ripassa tutti i comandi, uno alla volta']] },
+  menu: { titolo: 'Menù', voci: [['battaglia', 'Battaglia reale: tu contro undici, da solo o a squadre'], ['caccia', "Caccia all'uomo: sei tu il bersaglio, undici ti danno la caccia, resisti cinque minuti"], ['brete', 'Battaglia reale in rete con gli amici: i bot prendono i posti vuoti'], ['assedio', `Assedio a ${CENTRO_VELLETRI.piazza}, Velletri`], ['esplora', 'Esplorazione di Velletri'], ['altra', 'Esplorazione di un\'altra città'], ['duello', 'Duello uno contro uno in rete'], ['allenamento', 'Allenamento: ripassa tutti i comandi, uno alla volta']] },
   difficolta: { titolo: 'Difficoltà', voci: [['facile', 'Facile: sette avversari, meno precisi, mira molto assistita'], ['normale', 'Normale: undici avversari'], ['difficile', 'Difficile: avversari più svelti e precisi, poca assistenza']] },
   lancio: { titolo: 'Dove vuoi atterrare? Il bus ti avvisa quando saltare.', voci: [['piazza', 'Piazza, al centro: tanti forzieri, tanta gente'], ['campanile', 'Campanile, a nord'], ['fontana', 'Fontana, a est'], ['canile', 'Canile, a sud'], ['bosco', 'Bosco, a ovest']] },
   squadre: { titolo: 'Come giochi?', voci: [['1', 'Da solo, tutti contro tutti'], ['2', 'In coppia: tu e un compagno'], ['4', 'Squadre da quattro: tu e tre compagni']] },
   brete: { titolo: 'Battaglia reale in rete', voci: [['crea', 'Crea una stanza'], ['entra', 'Entra in una stanza con un codice']] },
   squadreRete: { titolo: 'Squadre', voci: [['1', 'Tutti contro tutti'], ['2', 'A coppie: gli amici in squadra insieme, i bot riempiono'], ['4', 'Squadre da quattro: gli amici insieme, i bot riempiono']] },
   duello: { titolo: 'Duello', voci: [['crea', 'Crea una stanza'], ['entra', 'Entra in una stanza con un codice']] },
+  modoDuello: { titolo: 'Modalità del duello', voci: [['classico', 'Classico, uno contro uno: armi, costruzioni e round speciali'], ['nobuild', 'Senza costruzioni, uno contro uno: solo armi e mira'], ['caccia', "Caccia all'uomo: a turno uno è la preda e deve resistere sessanta secondi"]] },
   armi: { titolo: 'Arma principale', voci: [['pompa', 'Fucile a pompa'], ['mitra', 'Mitragliatore'], ['precisione', 'Fucile di precisione']] },
 };
 let sceltaMenu = 0, sceltaModalita = 'assedio';
@@ -60,7 +61,8 @@ function confermaMenu() {
   const id = MENU[G.stato].voci[sceltaMenu][0];
   suona('tic2', { gain: 0.5 });
   if (G.stato === 'menu') {
-    if (id === 'battaglia') { apriMenu('squadre'); return; }
+    if (id === 'battaglia') { B.cacciaScelta = false; apriMenu('squadre'); return; }
+    if (id === 'caccia') { B.cacciaScelta = true; B.squadre = 1; apriMenu('lancio'); return; }
     if (id === 'allenamento') { tutorialAvvia(); return; }
     if (id === 'brete') { apriMenu('brete'); return; }
     if (id === 'duello') { apriMenu('duello'); return; }
@@ -76,14 +78,16 @@ function confermaMenu() {
   } else if (G.stato === 'lancio') {
     B.lancio = id; apriMenu('difficolta');
   } else if (G.stato === 'difficolta') {
-    battagliaAvvia(B.lancio, id, { squadre: B.squadre });
+    battagliaAvvia(B.lancio, id, { squadre: B.cacciaScelta ? 1 : B.squadre, caccia: !!B.cacciaScelta });
   } else if (G.stato === 'brete') {
     if (id === 'crea') apriMenu('squadreRete');
     else { G.stato = 'digitazione'; G.scopoTesto = 'codice'; G.testo = ''; parla('Scrivi il codice di 4 cifre, poi Invio. Esc per tornare.', 2); aggiornaPannello(); }
   } else if (G.stato === 'squadreRete') {
     duelloCrea('battaglia', +id);
+  } else if (G.stato === 'modoDuello') {
+    duelloCrea('duello', 1, id);
   } else if (G.stato === 'duello') {
-    if (id === 'crea') duelloCrea();
+    if (id === 'crea') apriMenu('modoDuello');
     else { G.stato = 'digitazione'; G.scopoTesto = 'codice'; G.testo = ''; parla('Scrivi il codice di 4 cifre, poi Invio. Esc per tornare.', 2); aggiornaPannello(); }
   }
 }
@@ -814,7 +818,7 @@ document.addEventListener('keydown', e => {
     if (k === 'Enter') {
       if (G.modalita === 'duello') duelloRivincita();
       else if (G.modalita === 'battaglia' && B.rete) { if (D.ospite) reteBRRivincita(); else parla('La prossima partita la avvia chi ha creato la stanza.', 1); }
-      else if (G.modalita === 'battaglia') battagliaAvvia(B.lancio, null, { squadre: B.squadre });
+      else if (G.modalita === 'battaglia') battagliaAvvia(B.lancio, null, { squadre: B.squadre, caccia: B.caccia });
       else avviaPartita();
       if (document.pointerLockElement !== tela) agganciaPuntatore();
     }

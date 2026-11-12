@@ -104,6 +104,9 @@ ALTRA_RADIO = {
 ALTRI_ANNUNCI = {
     'eliminazione': "Bersaglio eliminato.", 'giubbotto': "Giubbotto distrutto.", 'tre_rimasti': "Ne restano tre.",
     'meta': "Metà dei combattenti è caduta.", 'squadra_eliminata': "La tua squadra è stata eliminata.", 'zona_finale': "Zona finale. Ultimo scontro.",
+    # rivale e caccia all'uomo
+    'rivale': "Il tuo rivale è in partita.", 'vendetta': "Vendetta compiuta.", 'caccia': "Sei il bersaglio. Resisti.",
+    'drone': "Ti hanno individuato.", 'caccia_vinta': "Sei sopravvissuto alla caccia.",
 }
 
 def chiave():

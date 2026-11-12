@@ -10,7 +10,7 @@ const D = {
   fuori: true, prossimoInvio: 0, attesa: null, bussa: null, casse: [], inizioRound: 0, sorgenteZona: null,
   zonaAnnunciata: false, eroFuori: false, prossimoDannoZona: 0, prossimaCassa: 0, 
   ultimoAggressore: null, ultimoColpoSubito: -99, roundChiuso: false, finito: false,
-  tipo: 'duello', squadre: 1,   // tipo di stanza: duello, oppure battaglia reale in rete
+  tipo: 'duello', squadre: 1, regola: 'classico', preda: null, uccisorePreda: null,   // tipo di stanza: duello, oppure battaglia reale in rete
 };
 const RAGGIO_ARENA = 24, RAGGIO_FINALE = 5, LIMITE = 32;
 const PREFISSO_STANZA = 'velletri-zombie-1v1-';
@@ -137,7 +137,7 @@ function messaggioValido(m) {
     case 'prov': return typeof m.n === 'string' && m.n.length < 30 ? { t: 'prov', c: m.c, n: m.n } : null;
     case 'ok': case 'via': {
       const l = listaPulita(m.lista); if (!l) return null;
-      return { t: m.t, c: m.c, per: testoOk(m.per, 12) ? m.per : '', lista: l, tipo: m.tipo === 'battaglia' ? 'battaglia' : 'duello', seme: Number.isInteger(m.seme) ? m.seme : 0, sq: [1, 2, 4].includes(m.sq) ? m.sq : 1 };
+      return { t: m.t, c: m.c, per: testoOk(m.per, 12) ? m.per : '', lista: l, tipo: m.tipo === 'battaglia' ? 'battaglia' : 'duello', seme: Number.isInteger(m.seme) ? m.seme : 0, sq: [1, 2, 4].includes(m.sq) ? m.sq : 1, rg: REGOLE_DUELLO[m.rg] ? m.rg : 'classico' };
     }
     case 's': return numOk(m.x) && numOk(m.z) ? { t: 's', c: m.c, x: lim(m.x, -L, L), z: lim(m.z, -L, L), m: [0, 1, 2].includes(m.m) ? m.m : 0, v: numOk(m.v) ? m.v : 100, h: Number.isInteger(m.h) ? lim(m.h, 0, 6) : 0, f: m.f ? 1 : 0, q: m.q ? 1 : 0, a: m.a ? 1 : 0, n: m.n ? 1 : 0, rn: numOk(m.rn) ? m.rn : 0 } : null;
     case 'sparo': return { t: 'sparo', c: m.c, n: typeof m.n === 'string' ? m.n : 'sparo', r: numOk(m.r) ? m.r : 0, s: m.s ? 1 : 0 };
@@ -159,7 +159,7 @@ function messaggioValido(m) {
       if (!numOk(m.n) || !m.pos || typeof m.pos !== 'object') return null;
       const pos = {};
       for (const c of D.giocatori) { const p = m.pos[c]; if (!Array.isArray(p) || !numOk(p[0]) || !numOk(p[1])) return null; pos[c] = [lim(p[0], -LIMITE, LIMITE), lim(p[1], -LIMITE, LIMITE)]; }
-      return { t: 'round', c: m.c, n: Math.round(m.n), pos, punti: puntiPuliti(m.punti), casse: (Array.isArray(m.casse) ? m.casse : []).map(cassaPulita).filter(Boolean).slice(0, 6), mod: typeof m.mod === 'string' && ROUND_SPECIALI[m.mod] !== undefined ? m.mod : 'normale' };
+      return { t: 'round', c: m.c, n: Math.round(m.n), pos, punti: puntiPuliti(m.punti), casse: (Array.isArray(m.casse) ? m.casse : []).map(cassaPulita).filter(Boolean).slice(0, 6), mod: typeof m.mod === 'string' && ROUND_SPECIALI[m.mod] !== undefined ? m.mod : 'normale', r: REGOLE_DUELLO[m.r] ? m.r : 'classico', p: typeof m.p === 'string' && D.giocatori.includes(m.p) ? m.p : null };
     }
     case 'fineRound': return { t: 'fineRound', c: m.c, vincitore: typeof m.vincitore === 'string' ? m.vincitore : null, punti: puntiPuliti(m.punti), fine: !!m.fine };
     case 'cassa': { const k = cassaPulita(m.cassa); return k ? { t: 'cassa', c: m.c, cassa: k } : null; }
@@ -180,15 +180,15 @@ function duelloSmista(m) {
       parla(`Giocatore entrato. Siete in ${D.giocatori.length}. Invio per iniziare.`, 2);
       aggiornaPannello();
     }
-    duelloInvia({ t: 'ok', per: m.c, lista: D.giocatori, tipo: D.tipo, sq: D.squadre });
+    duelloInvia({ t: 'ok', per: m.c, lista: D.giocatori, tipo: D.tipo, sq: D.squadre, rg: D.regola });
     return;
   }
   if (m.t === 'ok') {
     if (D.ospite) return;
     if (m.per === D.cid && !D.cidOspite) {
       D.cidOspite = m.c; clearInterval(D.bussa); clearTimeout(D.attesa);
-      G.stato = 'attesa'; D.tipo = m.tipo; D.squadre = m.sq;
-      parla(`Sei nella stanza${m.tipo === 'battaglia' ? ' della battaglia reale' + (m.sq > 1 ? ', a squadre' : '') : ''}. Siete in ${m.lista.length}. Attendi il via.`, 2);
+      G.stato = 'attesa'; D.tipo = m.tipo; D.squadre = m.sq; D.regola = m.rg;
+      parla(`Sei nella stanza${m.tipo === 'battaglia' ? ' della battaglia reale' + (m.sq > 1 ? ', a squadre' : '') : ', duello ' + REGOLE_DUELLO[m.rg]}. Siete in ${m.lista.length}. Attendi il via.`, 2);
     }
     if (m.c === D.cidOspite) { D.giocatori = m.lista; aggiornaPannello(); }
     return;
@@ -211,8 +211,10 @@ function duelloSmista(m) {
 }
 
 // ---------------------------------------------------------------- stanza
-async function duelloCrea(tipo = 'duello', squadre = 1) {
-  D.tipo = tipo; D.squadre = squadre;
+const REGOLE_DUELLO = { classico: 'classico', nobuild: 'senza costruzioni', caccia: "caccia all'uomo" };
+const CACCIA_ROUND = 60;
+async function duelloCrea(tipo = 'duello', squadre = 1, regola = 'classico') {
+  D.tipo = tipo; D.squadre = squadre; D.regola = REGOLE_DUELLO[regola] ? regola : 'classico';
   G.stato = 'caricamento'; aggiornaPannello();
   parla('Creo la stanza.', 2);
   try { await duelloApriRete(String(casoInt(1000, 9999)), true); }
@@ -220,7 +222,7 @@ async function duelloCrea(tipo = 'duello', squadre = 1) {
   G.stato = 'attesa'; aggiornaPannello(); duelloDiciCodice();
 }
 function duelloDiciCodice() {
-  if (D.ospite) parla(`${D.tipo === 'battaglia' ? 'Battaglia reale in rete. ' : ''}Codice stanza: ${D.codice.split('').join(', ')}. Giocatori: ${D.giocatori.length}. Quando siete tutti, premi Invio${D.tipo === 'battaglia' ? ': i posti vuoti li prendono i bot' : ''}. Esc per annullare.`, 2);
+  if (D.ospite) parla(`${D.tipo === 'battaglia' ? 'Battaglia reale in rete. ' : `Duello ${REGOLE_DUELLO[D.regola]}. `}Codice stanza: ${D.codice.split('').join(', ')}. Giocatori: ${D.giocatori.length}. Quando siete tutti, premi Invio${D.tipo === 'battaglia' ? ': i posti vuoti li prendono i bot' : ''}. Esc per annullare.`, 2);
   else parla(`Siete in ${D.giocatori.length}. Attendi il via.`, 1);
 }
 function duelloDaiIlVia() {
@@ -372,8 +374,10 @@ function duelloNuovoRound() {
   D.giocatori.forEach((cid, i) => { const a = a0 + i * PI2 / D.giocatori.length; pos[cid] = [Math.sin(a) * r, -Math.cos(a) * r]; });
   const casse = [0, 1, 2, 3, 4].map(() => { const [x, z] = puntoCasuale(16); return { id: Math.random().toString(36).slice(2), x, z, cont: contenutoCasuale() }; });
   // dal secondo round, uno su tre è speciale
-  const mod = D.round > 1 && Math.random() < 0.34 ? scegli(Object.keys(ROUND_SPECIALI).filter(k => k !== 'normale')) : 'normale';
-  const m = { t: 'round', n: D.round, pos, punti: D.punti, casse, mod };
+  const speciali = Object.keys(ROUND_SPECIALI).filter(k => k !== 'normale' && !(D.regola === 'nobuild' && (k === 'costruttori' || k === 'torri')));
+  const mod = D.regola !== 'caccia' && D.round > 1 && Math.random() < 0.34 ? scegli(speciali) : 'normale';
+  const preda = D.regola === 'caccia' ? D.giocatori[(D.round - 1) % D.giocatori.length] : null;
+  const m = { t: 'round', n: D.round, pos, punti: D.punti, casse, mod, r: D.regola, p: preda };
   D.ultimoRound = m;
   duelloInvia(m);
   duelloApplicaRound(m);
@@ -387,7 +391,11 @@ function duelloApplicaRound(m) {
   [G.x, G.z] = m.pos[D.cid] || [0, 0];
   G.rotta = rottaVerso(G.x, G.z, 0, 0); G.vita = 100;
   D.mod = ROUND_SPECIALI[m.mod] !== undefined ? m.mod : 'normale';
+  D.regola = m.r || 'classico'; D.preda = D.regola === 'caccia' ? m.p : null; D.uccisorePreda = null; D.prossimoPingPreda = G.tempo + 8; D.cacciaDetti = {};
   duelloEquipaggia(D.mod);
+  if (D.regola === 'nobuild') G.inventario.materiali = 0;
+  if (D.preda === D.cid) { G.scudo = 50; G.velocitaExtra = 1.15; G.inventario.materiali = 20; }   // la preda: più veloce, col giubbotto e materiali per ripararsi
+  else if (D.preda) { const A = G.arsenale; A.armi.mitra = { caricatore: ARMI.mitra.capacita, camera: 1, rarita: 1 }; A.riserva[ARMI.mitra.munizione] = 90; A.corrente = 'mitra'; }
   G.occupatoFino = G.tempo + 1.5;
   for (const [cid, a] of D.altri) {
     const p = m.pos[cid]; if (!p) continue;
@@ -397,7 +405,8 @@ function duelloApplicaRound(m) {
   }
   D.casse = m.casse.map(c => ({ ...c, aTerra: true, prossimoPing: G.tempo + caso(0.5, 1.5), detta: false }));
   colpoInizio();
-  parla(`Round ${m.n}${D.mod !== 'normale' ? ', speciale: ' + ROUND_SPECIALI[D.mod] : ''}. ${descriviPunteggio()} Via.`, 2);
+  const ruolo = !D.preda ? '' : D.preda === D.cid ? `Sei la preda: resisti ${CACCIA_ROUND} secondi. ` : `Sei il cacciatore: la preda è ${nomeAvversario(D.preda)}. Ogni otto secondi senti dove si trova. `;
+  parla(`Round ${m.n}${D.mod !== 'normale' ? ', speciale: ' + ROUND_SPECIALI[D.mod] : ''}. ${ruolo}${descriviPunteggio()} Via.`, 2);
   aggiornaPannello();
 }
 
@@ -412,6 +421,7 @@ function duelloMorte() {
   D.fuori = true; G.occupatoFino = Infinity; G.arsenale.grilletto = false; G.alto = false;
   const da = G.tempo - D.ultimoColpoSubito < 6 ? D.ultimoAggressore : null;
   duelloInvia({ t: 'morto', da });
+  if (D.preda === D.cid) D.uccisorePreda = da;
   parla(da ? `Abbattuto da ${nomeAvversario(da)}.` : 'Sei stato abbattuto.', 2);
   if (D.ospite) duelloControllaRound();
 }
@@ -420,9 +430,17 @@ function duelloMorte() {
 function duelloControllaRound() {
   if (!D.ospite || D.roundChiuso || !D.attivo) return;
   const vivi = D.giocatori.filter(cid => cid === D.cid ? !D.fuori : (D.altri.get(cid) && D.altri.get(cid).vivo));
-  if (vivi.length > 1) return;
+  let vincitore;
+  if (D.preda) {
+    // caccia: vince la preda se resiste fino alla fine o se abbatte tutti i cacciatori; altrimenti chi l'ha presa
+    const predaViva = vivi.includes(D.preda), cacciatori = vivi.filter(c => c !== D.preda);
+    if (predaViva && G.tempo - D.inizioRound < CACCIA_ROUND && cacciatori.length) return;
+    vincitore = predaViva ? D.preda : D.giocatori.includes(D.uccisorePreda) && D.uccisorePreda !== D.preda ? D.uccisorePreda : cacciatori[0] || null;
+  } else {
+    if (vivi.length > 1) return;
+    vincitore = vivi[0] || null;
+  }
   D.roundChiuso = true;
-  const vincitore = vivi[0] || null;
   if (vincitore) D.punti[vincitore] = (D.punti[vincitore] || 0) + 1;
   const fine = vincitore && D.punti[vincitore] >= D.traguardo;
   const m = { t: 'fineRound', vincitore, punti: D.punti, fine };
@@ -432,8 +450,9 @@ function duelloControllaRound() {
 }
 
 function duelloFineRound(m) {
-  D.punti = m.punti; D.fuori = true; G.occupatoFino = Infinity;
-  const chi = !m.vincitore ? 'Nessuno in piedi.' : m.vincitore === D.cid ? 'Round tuo!' : `Round a ${nomeAvversario(m.vincitore)}.`;
+  D.punti = m.punti; D.fuori = true; D.roundChiuso = true; G.occupatoFino = Infinity;
+  let chi = !m.vincitore ? 'Nessuno in piedi.' : m.vincitore === D.cid ? 'Round tuo!' : `Round a ${nomeAvversario(m.vincitore)}.`;
+  if (D.preda && m.vincitore) chi = m.vincitore === D.preda ? (D.preda === D.cid ? 'Sei sopravvissuto! Round tuo.' : 'La preda è sopravvissuta.') + ` ${m.vincitore === D.cid ? '' : 'Round a ' + nomeAvversario(m.vincitore) + '.'}` : (m.vincitore === D.cid ? 'Preda presa! Round tuo.' : `Preda presa. Round a ${nomeAvversario(m.vincitore)}.`);
   if (m.fine) {
     if (m.vincitore === D.cid) suonaBase('vittoria', { gain: 0.9 });
     setTimeout(() => {
@@ -442,7 +461,7 @@ function duelloFineRound(m) {
       aggiornaPuntamento(null);
       parla(`${m.vincitore === D.cid ? 'Hai vinto la partita!' : `Ha vinto ${nomeAvversario(m.vincitore)}.`} ${descriviPunteggio()} ${D.ospite ? 'Invio per la rivincita, ' : ''}M per il menù.`, 2);
     }, 1500);
-  } else setTimeout(() => { if (D.attivo) parla(`${chi} ${descriviPunteggio()}`, 2); }, 1200);
+  } else setTimeout(() => { if (D.attivo) parla(`${chi} ${descriviPunteggio()}`.replace(/\s+/g, ' '), 2); }, 1200);
 }
 
 function duelloRivincita() {
@@ -490,6 +509,7 @@ function duelloRicevi(m, a) {
     case 'costruzione': if (m.c2 && typeof m.c2.x === 'number') { m.c2.nato = G.tempo; G.costruzioni.push(m.c2); suonaInPunto('legno_colpito', m.c2.x, m.c2.z, { gain: 1.0, rate: m.c2.tipo === 'rampa' ? 1.15 : 1.45, y: ((m.c2.livello || 0) - (G.livello || 0)) * 2.5 }); } break;
     case 'dannoC': { const c = G.costruzioni.find(c => c.id === m.id); if (c) danneggiaCostruzione(c, m.d); break; }
     case 'morto':
+      if (m.c === D.preda) D.uccisorePreda = m.da;
       if (a && a.vivo) {
         a.vivo = false; a.morteT = 0; a.alto = false;
         suonaBase('corpo_cade', { dest: a.sorgente.ingresso, gain: 1, quando: 0.3 });
@@ -568,6 +588,7 @@ function duelloApriCassa() {
 
 // ---------------------------------------------------------------- zona che si restringe
 function raggioZona() {
+  if (D.preda) return RAGGIO_ARENA;
   const t = G.tempo - D.inizioRound, veloce = D.mod === 'tempesta';
   const attesa = veloce ? 5 : 20, durata = veloce ? 30 : 60;
   if (t < attesa) return RAGGIO_ARENA;
@@ -605,6 +626,7 @@ function aggiornaDuello(dt) {
   aggiornaAggancio(dt);
   battitoBattaglia();
   if (!D.roundChiuso) aggiornaZona();
+  if (D.preda && !D.roundChiuso) aggiornaCacciaDuello();
 
   // stato inviato 10 volte al secondo
   if (G.tempo >= D.prossimoInvio) {
@@ -623,6 +645,18 @@ function aggiornaDuello(dt) {
       duelloArrivaCassa(cassa);
     }
   }
+}
+
+// caccia all'uomo nel duello: ogni otto secondi la preda manda un segnale che i cacciatori sentono da dove si trova
+function aggiornaCacciaDuello() {
+  const t = G.tempo - D.inizioRound, resta = CACCIA_ROUND - t;
+  if (G.tempo >= D.prossimoPingPreda) {
+    D.prossimoPingPreda = G.tempo + 8;
+    if (D.preda === D.cid) { if (!D.fuori) suonaBase('tic2', { gain: 0.5, rate: 0.7 }); }
+    else { const a = D.altri.get(D.preda); if (a && a.vivo && !D.fuori) suonaInPunto('sonar', a.x, a.z, { gain: 1.5, ref: 10, riverbero: 0.1 }); }
+  }
+  for (const s of [30, 10]) if (resta <= s && !D.cacciaDetti[s]) { D.cacciaDetti[s] = true; parla(`${s} secondi!`, 1); }
+  if (D.ospite && resta <= 0) duelloControllaRound();
 }
 
 function duelloRicognizione() {
@@ -778,6 +812,7 @@ function aggiornaCasseSolitario() {
 // ---------------------------------------------------------------- trappole e radar
 // Trappola (tasto F): la piazzo sotto i piedi. Gli altri non la sentono. Chi ci passa sopra perde 40 di vita.
 function duelloTrappola() {
+  if (costruireVietato()) return;
   if (!puoAgire() || (G.modalita === 'duello' && D.fuori)) return;
   if (!D.trappole) D.trappole = [];
   if (G.inventario.materiali < 5) { parla(`Servono 5 materiali, ne hai ${G.inventario.materiali}.`, 1); return; }

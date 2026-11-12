@@ -9,7 +9,14 @@ const COSTRUZIONI = {
   rampa: { nome: 'rampa', costo: 4, distanza: 2.5, larghezza: 2, vita: 120, durata: 2.0 },
 };
 
+// duello senza costruzioni: muri, rampe, scatole e trappole non si possono fare
+function costruireVietato() {
+  if (G.modalita !== 'duello' || D.regola !== 'nobuild') return false;
+  if (G.tempo - (D.avvisoNB || -9) > 2) { D.avvisoNB = G.tempo; parla('Senza costruzioni.', 1); }
+  return true;
+}
 function costruisci(tipo) {
+  if (costruireVietato()) return;
   if (!puoAgire() || G.arsenale.ricarica) return;
   if (inArena() && tipo !== 'barricata' && tipo !== 'rampa') return;
   // nella battaglia reale si costruisce in mezzo secondo, come si deve
@@ -79,6 +86,7 @@ function descriviCostruzioni() {
 
 // Scatola (tasto T nel duello): quattro muri tutto intorno a me in un colpo solo
 function costruisciScatola() {
+  if (costruireVietato()) return;
   if (!puoAgire() || G.arsenale.ricarica) return;
   if (G.inventario.materiali < 10) { parla(`Servono 10 materiali, ne hai ${G.inventario.materiali}.`, 1); return; }
   G.inventario.materiali -= 10;
