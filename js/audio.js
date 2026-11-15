@@ -7,6 +7,7 @@ const Audio3D = {
 };
 
 const ELENCO_SUONI = [
+  'bus_motore', 'bus_strada', 'porta_bus', 'vento_caduta', 'vento_forte', 'paracadute',
   'sparo', 'sparo2', 'sparo3', 'ak_sparo3', 'ak_sparo4', 'bossolo', 'grilletto_vuoto', 'sgancio', 'caricatore_cade', 'inserimento', 'carrello',
   'passo1', 'passo2', 'passo3', 'passo4', 'passo5', 'passo6', 'verso1', 'verso2', 'verso3', 'verso4',
   'ringhio', 'respiro1', 'respiro2', 'colpo_corpo', 'colpo_testa', 'corpo_cade', 'ambiente',
@@ -125,17 +126,17 @@ async function inizializzaAudio(avanzamento) {
   Object.assign(A.buf, creaSuoniDuello(ctx));
   if (typeof creaSuoniRealismo === 'function') Object.assign(A.buf, creaSuoniRealismo(ctx));
   let fatti = 0;
-  await caricaInGruppi(ELENCO_SUONI.map(nome => [nome, `suoni/${nome}.wav?v=40`]), () => { fatti++; if (avanzamento) avanzamento(fatti / ELENCO_SUONI.length); });
+  await caricaInGruppi(ELENCO_SUONI.map(nome => [nome, `suoni/${nome}.wav?v=41`]), () => { fatti++; if (avanzamento) avanzamento(fatti / ELENCO_SUONI.length); });
   // frasi dei nemici: voce -> categoria -> elenco di suoni
   try {
-    A.voci = await (await fetch('suoni/voci/elenco.json?v=40')).json();
+    A.voci = await (await fetch('suoni/voci/elenco.json?v=41')).json();
     const nomi = Object.values(A.voci).flatMap(c => Object.values(c).flat());
-    await caricaInGruppi(nomi.map(nome => [nome, `suoni/voci/${nome}.wav?v=40`]));
+    await caricaInGruppi(nomi.map(nome => [nome, `suoni/voci/${nome}.wav?v=41`]));
   } catch (e) { console.error('voci non caricate', e); A.voci = {}; }
   // il menù letto dal narratore: file piccoli, si caricano subito (se mancano, legge la voce del computer)
   try {
-    const menu = await (await fetch('suoni/voci/menu/elenco.json?v=40')).json();
-    await caricaInGruppi(menu.map(n => ['menu_' + n, `suoni/voci/menu/menu_${n}.mp3?v=40`]));
+    const menu = await (await fetch('suoni/voci/menu/elenco.json?v=41')).json();
+    await caricaInGruppi(menu.map(n => ['menu_' + n, `suoni/voci/menu/menu_${n}.mp3?v=41`]));
   } catch (e) { /* il menù lo legge il computer */ }
   if (typeof caricaAmbientiReali === 'function') await caricaAmbientiReali();
   console.log('Audio pronto a', ctx.sampleRate, 'Hz, HRTF');

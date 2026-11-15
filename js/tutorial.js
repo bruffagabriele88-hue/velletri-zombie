@@ -12,8 +12,8 @@ function tutorialSegnaFatto() { TUT.fattoInMemoria = true; try { localStorage.se
 async function caricaVociAllenamento() {
   if (TUT.vociPronte) return;
   try {
-    const nomi = await (await fetch('suoni/voci/allenamento/elenco.json?v=40')).json();
-    await caricaInGruppi(nomi.map(n => ['tut_' + n, `suoni/voci/allenamento/tut_${n}.mp3?v=40`]));
+    const nomi = await (await fetch('suoni/voci/allenamento/elenco.json?v=41')).json();
+    await caricaInGruppi(nomi.map(n => ['tut_' + n, `suoni/voci/allenamento/tut_${n}.mp3?v=41`]));
     Audio3D.voci.narratore = Audio3D.voci.narratore || {};
     for (const n of nomi) if (Audio3D.buf['tut_' + n]) Audio3D.voci.narratore['tut_' + n] = ['tut_' + n];
     TUT.vociPronte = true;
@@ -151,8 +151,8 @@ const LEZIONI = [
   { id: 'case', invio: true,
     prepara: () => { const b = B.bot[0]; if (b && b.vivo) { b.vivo = false; b.morteT = 99; chiudiSorgente(b.sorgente); } D.casse = []; },
     testo: 'I comandi sono finiti. Adesso ascolta soltanto. Sull\'isola ci sono case e una chiesa. Si entra dalla porta, dentro c\'è sempre un forziere, i muri fermano i colpi e i suoni da fuori arrivano attutiti. Se sbatti contro un muro, la voce ti dice dov\'è la porta. Nei cespugli, se non corri e non spari, sei nascosto e nessuno ti vede.' + INVIO },
-  { id: 'elicottero', invio: true,
-    testo: 'In partita si parte sull\'elicottero, che attraversa l\'isola. Prima scegli dal menù dove atterrare; in volo puoi cambiare luogo coi tasti da 1 a 5. Ti dico io quando lanciarti: premi Spazio. In caduta, W ti porta avanti e giri come sempre, e un richiamo sonoro arriva dal luogo scelto.' + INVIO },
+  { id: 'elicottero', invio: true, vocePc: true,
+    testo: 'In partita si parte sul bus, che attraversa l\'isola volando. Prima scegli dal menù dove atterrare; in volo puoi cambiare luogo coi tasti da 1 a 5. Ti dico io quando lanciarti: premi Spazio. In caduta, W ti porta avanti e giri come sempre, e un richiamo sonoro arriva dal luogo scelto.' + INVIO },
   { id: 'tempesta', invio: true,
     testo: 'Due minuti dopo l\'atterraggio arriva la tempesta: l\'isola si restringe a tappe, e chi resta fuori dalla zona sicura perde vita. Ti avviso prima, e con O sai sempre dove andare. Ogni tanto cade una cassa col paracadute, con roba migliore. Vince l\'ultimo in piedi.' + INVIO },
   { id: 'squadre', invio: true,
@@ -177,7 +177,7 @@ function tutorialInizia() {
 function tutorialDici() {
   const L = LEZIONI[TUT.passo]; if (!L) return;
   // due spiegazioni hanno una nota in più per Windows che nella registrazione non c'è: lì le legge la voce del computer
-  const letta = L.windows && !SU_MAC;
+  const letta = (L.windows && !SU_MAC) || L.vocePc; // vocePc: la registrazione è da rifare, intanto legge il computer
   if (letta) parla(L.testo, 2); else annuncio('tut_' + L.id, L.testo, 2);
   const clip = letta ? null : Audio3D.buf['tut_' + L.id];
   TUT.ricorda = G.tempo + 25 + (clip ? clip.duration : L.testo.length * 0.07);

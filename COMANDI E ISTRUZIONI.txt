@@ -487,3 +487,15 @@ NOVITÀ
   a 360 gradi che illumina la scena. Arrivano qualche secondo dopo l'inizio: si gioca subito e la grafica migliora da sola.
 - Il menù è pronto per essere letto dal narratore: appena ElevenLabs rinnova i caratteri del mese basta generare le voci
   (prepara_voci_menu.py) e il menù non usa più la voce del computer.
+
+IL BUS È TORNATO, CON SUONI VERI
+Si parte di nuovo sul bus che vola sopra l'isola. Registrazioni vere: la porta ad aria compressa che si apre,
+il motore che vibra in cabina, il rumore della strada, il clacson. Quando ti lanci la cabina sparisce,
+arriva il vento vero della caduta e senti il bus che prosegue e si allontana. Col paracadute aperto
+il vento cala e senti il tessuto che sbatte.
+
+SFIDA CLAUDE
+Nel menù, terza voce: uno contro uno contro un avversario che si chiama Claude. Partite tutti e due col fucile
+d'assalto, la pistola, una piastra e una granata; niente tempesta. Claude è preciso e paziente: ogni tanto si ferma
+ad ascoltare e capisce più o meno dove sei. Ti parla: quando ti trova, quando lo colpisci in testa (e ti dice
+il danno), quando è ferito, quando vince o perde. Il punteggio tra voi due si ricorda tra una partita e l'altra.

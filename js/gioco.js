@@ -32,7 +32,7 @@ function eseguiEventi() {
 
 // ---------------------------------------------------------------- menù (voce + tastiera)
 const MENU = {
-  menu: { titolo: 'Menù', voci: [['battaglia', 'Battaglia reale: tu contro undici, da solo o a squadre'], ['caccia', "Caccia all'uomo: sei tu il bersaglio, undici ti danno la caccia, resisti cinque minuti"], ['brete', 'Battaglia reale in rete con gli amici: i bot prendono i posti vuoti'], ['assedio', `Assedio a ${CENTRO_VELLETRI.piazza}, Velletri`], ['esplora', 'Esplorazione di Velletri'], ['altra', 'Esplorazione di un\'altra città'], ['duello', 'Duello uno contro uno in rete'], ['allenamento', 'Allenamento: ripassa tutti i comandi, uno alla volta']] },
+  menu: { titolo: 'Menù', voci: [['battaglia', 'Battaglia reale: tu contro undici, da solo o a squadre'], ['caccia', "Caccia all'uomo: sei tu il bersaglio, undici ti danno la caccia, resisti cinque minuti"], ['claude', 'Sfida Claude: uno contro uno contro di me'], ['brete', 'Battaglia reale in rete con gli amici: i bot prendono i posti vuoti'], ['assedio', `Assedio a ${CENTRO_VELLETRI.piazza}, Velletri`], ['esplora', 'Esplorazione di Velletri'], ['altra', 'Esplorazione di un\'altra città'], ['duello', 'Duello uno contro uno in rete'], ['allenamento', 'Allenamento: ripassa tutti i comandi, uno alla volta']] },
   difficolta: { titolo: 'Difficoltà', voci: [['facile', 'Facile: sette avversari, meno precisi, mira molto assistita'], ['normale', 'Normale: undici avversari'], ['difficile', 'Difficile: avversari più svelti e precisi, poca assistenza']] },
   lancio: { titolo: 'Dove vuoi atterrare? Ti avviso io quando lanciarti.', voci: [['piazza', 'Piazza, al centro: tanti forzieri, tanta gente'], ['campanile', 'Campanile, a nord'], ['fontana', 'Fontana, a est'], ['canile', 'Canile, a sud'], ['bosco', 'Bosco, a ovest']] },
   squadre: { titolo: 'Come giochi?', voci: [['1', 'Da solo, tutti contro tutti'], ['2', 'In coppia: tu e un compagno'], ['4', 'Squadre da quattro: tu e tre compagni']] },
@@ -66,6 +66,7 @@ function confermaMenu() {
   suona('tic2', { gain: 0.5 });
   if (G.stato === 'menu') {
     if (id === 'battaglia') { B.cacciaScelta = false; apriMenu('squadre'); return; }
+    if (id === 'claude') { B.cacciaScelta = false; battagliaAvvia('piazza', 'difficile', { squadre: 1, claude: true }); return; }
     if (id === 'caccia') { B.cacciaScelta = true; B.squadre = 1; apriMenu('lancio'); return; }
     if (id === 'allenamento') { tutorialAvvia(); return; }
     if (id === 'brete') { apriMenu('brete'); return; }
@@ -822,7 +823,7 @@ document.addEventListener('keydown', e => {
     if (k === 'Enter') {
       if (G.modalita === 'duello') duelloRivincita();
       else if (G.modalita === 'battaglia' && B.rete) { if (D.ospite) reteBRRivincita(); else parla('La prossima partita la avvia chi ha creato la stanza.', 1); }
-      else if (G.modalita === 'battaglia') battagliaAvvia(B.lancio, null, { squadre: B.squadre, caccia: B.caccia });
+      else if (G.modalita === 'battaglia') battagliaAvvia(B.lancio, null, { squadre: B.squadre, caccia: B.caccia, claude: B.claude });
       else avviaPartita();
       if (document.pointerLockElement !== tela) agganciaPuntatore();
     }

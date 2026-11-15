@@ -96,6 +96,7 @@ async function battagliaAvvia(lancio, difficolta, opz = {}) {
   pulisciPartita();
   B.tutorial = !!opz.tutorial;
   B.caccia = !!opz.caccia && !opz.rete && !opz.tutorial;
+  B.claude = !!opz.claude && !opz.rete && !opz.tutorial && !B.caccia;
   B.rivaleBot = null; B.cacciaFine = 0;
   G.modalita = 'battaglia'; G.pos = null; G.ondata = null;
   G.tempo = 0; G.campo = null; G.uccisi = 0; G.punti = 0; G.serie = { n: 0, fino: 0 }; G.ultimaFerita = -99; G.prossimaSpinta = 0;
@@ -132,7 +133,7 @@ async function battagliaAvvia(lancio, difficolta, opz = {}) {
 
   // squadre: prima le persone, poi i bot riempiono i posti. Da soli, ognuno è una squadra a sé.
   const umani = B.rete ? D.giocatori.slice() : ['io'];
-  const nBot = B.tutorial ? 1 : B.rete ? Math.max(0, 12 - umani.length) : B.diff.bot;
+  const nBot = B.tutorial || B.claude ? 1 : B.rete ? Math.max(0, 12 - umani.length) : B.diff.bot;
   B.mioTeam = B.rete ? Math.floor(D.giocatori.indexOf(D.cid) / B.squadre) : 0;
   B.squadraUmani = {};
   umani.forEach((c, i) => { B.squadraUmani[c] = Math.floor(i / B.squadre); });
@@ -167,7 +168,8 @@ async function battagliaAvvia(lancio, difficolta, opz = {}) {
   }
   } finally { Math.random = casoVero; }
   // il rivale: se l'ultima volta qualcuno ti ha eliminato, stavolta c'è di nuovo e ti viene a cercare
-  const riv = !B.rete && !B.tutorial ? leggiRivale() : null;
+  const riv = !B.rete && !B.tutorial && !B.claude ? leggiRivale() : null;
+  if (B.claude) preparaClaude();
   if (riv && riv.nome) {
     const nemici = B.bot.filter(b => !b.compagno);
     const r = nemici.find(b => b.nome === riv.nome) || nemici[0];
@@ -194,8 +196,8 @@ async function battagliaAvvia(lancio, difficolta, opz = {}) {
   avviaBus();
   const compagni = compagniVivi().map(c => c.nome);
   const squadra = B.squadre > 1 ? (compagni.length ? `Sei in squadra con ${compagni.join(' e ')}. ` : 'Sei in squadra. ') : '';
-  const titolo = B.caccia ? "Caccia all'uomo: sei tu il bersaglio. " : '';
-  parla(`${G.pausa ? 'Clicca per partire. ' : ''}${titolo}${squadra}Sei sull'elicottero, ${B.bus.verso}. Vuoi atterrare a ${mio.nome}: ti dico io quando lanciarti. Da 1 a 5 cambi luogo. Spazio per lanciarti.`, 2);
+  const titolo = B.caccia ? "Caccia all'uomo: sei tu il bersaglio. " : B.claude ? `Sfida contro Claude, uno contro uno. ${statClaude()} ` : '';
+  parla(`${G.pausa ? 'Clicca per partire. ' : ''}${titolo}${squadra}Sei sul bus, ${B.bus.verso}. Vuoi atterrare a ${mio.nome}: ti dico io quando lanciarti. Da 1 a 5 cambi luogo. Spazio per lanciarti.`, 2);
   aggiornaPannello();
 }
 
@@ -217,30 +219,25 @@ function preparaBus(meta) {
   G.x = ax; G.z = az; G.rotta = a; G.occupatoFino = Infinity;
 }
 
-// L'elicottero da trasporto: le pale che battono l'aria (un rombo che pulsa quattro volte e mezzo al secondo)
-// e il fischio della turbina. Al posto del bus dei cartoni animati.
+// Il bus: registrazioni vere di un motore di bus (dentro la cabina, con le vibrazioni della carrozzeria)
+// e di un bus in strada, più il vento fuori dai finestrini. Si parte con la porta ad aria compressa che si apre.
+function anelloReale(nome, volume, filtro) {
+  const ctx = Audio3D.ctx, g = ctx.createGain(); g.gain.value = 0;
+  let dest = g;
+  if (filtro) { const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = filtro; f.connect(g); dest = f; }
+  g.connect(Audio3D.master);
+  const src = suona(nome, { dest, loop: true, offset: Math.random() * ((Audio3D.buf[nome] || {}).duration || 0) });
+  g.gain.setTargetAtTime(volume, ctx.currentTime, 0.6);
+  return { g, src, filtro: dest !== g ? dest : null };
+}
 function avviaBus() {
-  const ctx = Audio3D.ctx, t = ctx.currentTime, uscita = ctx.createGain();
-  uscita.gain.setValueAtTime(0, t); uscita.gain.linearRampToValueAtTime(0.5, t + 2);
-  uscita.connect(Audio3D.master);
-  const n = ctx.sampleRate * 2, buf = ctx.createBuffer(1, n, ctx.sampleRate), d = buf.getChannelData(0);
-  for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
-  const rumore = ctx.createBufferSource(); rumore.buffer = buf; rumore.loop = true;
-  const basso = ctx.createBiquadFilter(); basso.type = 'lowpass'; basso.frequency.value = 260; basso.Q.value = 1.2;
-  const pale = ctx.createGain(); pale.gain.value = 0.25;
-  // il battito delle pale: un oscillatore lento che apre e chiude il rumore
-  const lfo = ctx.createOscillator(); lfo.type = 'sawtooth'; lfo.frequency.value = 4.6;
-  const prof = ctx.createGain(); prof.gain.value = 0.9; lfo.connect(prof).connect(pale.gain);
-  rumore.connect(basso).connect(pale).connect(uscita);
-  const motore = ctx.createOscillator(); motore.type = 'sawtooth'; motore.frequency.value = 38;
-  const gm = ctx.createGain(); gm.gain.value = 0.08; const fm = ctx.createBiquadFilter(); fm.type = 'lowpass'; fm.frequency.value = 180;
-  motore.connect(fm).connect(gm).connect(uscita);
-  const turbina = ctx.createOscillator(); turbina.frequency.value = 2280;
-  const gt = ctx.createGain(); gt.gain.value = 0.006; turbina.connect(gt).connect(uscita);
-  for (const o of [rumore, lfo, motore, turbina]) o.start(t);
-  B.suonoBus = { uscita, osc: [rumore, lfo, motore, turbina], vento: ventoContinuo(0.04) };
-  // il portellone che si apre
-  suona('carrello', { gain: 0.6, rate: 0.45, quando: 1.2 }); suona('ak_otturatore', { gain: 0.4, rate: 0.5, quando: 1.6 });
+  const ctx = Audio3D.ctx;
+  B.suonoBus = {
+    motore: anelloReale('bus_motore', 0.85), strada: anelloReale('bus_strada', 0.45),
+    vento: anelloReale('vento_forte', 0.08, 900), caduta: anelloReale('vento_caduta', 0), vela: anelloReale('paracadute', 0),
+  };
+  suona('porta_bus', { gain: 0.9, quando: 0.8 });
+  clacson(ctx.currentTime + 2.4);
 }
 function clacson(quando) {
   const ctx = Audio3D.ctx, g = ctx.createGain(), f = ctx.createBiquadFilter();
@@ -249,21 +246,12 @@ function clacson(quando) {
   for (const fr of [349, 440]) { const o = ctx.createOscillator(); o.type = 'square'; o.frequency.value = fr; o.connect(f); o.start(quando); o.stop(quando + 0.36); }
   f.connect(g).connect(Audio3D.master);
 }
-// il vento durante il volo: rumore filtrato, il volume e il timbro seguono la velocità
-function ventoContinuo(volume) {
-  const ctx = Audio3D.ctx, n = ctx.sampleRate * 2, buf = ctx.createBuffer(1, n, ctx.sampleRate), d = buf.getChannelData(0);
-  for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
-  const src = ctx.createBufferSource(); src.buffer = buf; src.loop = true;
-  const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 500; f.Q.value = 0.7;
-  const g = ctx.createGain(); g.gain.value = volume;
-  src.connect(f).connect(g).connect(Audio3D.master); src.start();
-  return { src, f, g };
-}
+function volume(anello, v, tempo = 0.3) { if (anello) anello.g.gain.setTargetAtTime(v, Audio3D.ctx.currentTime, tempo); }
 function fermaSuonoBus() {
   const S = B.suonoBus; if (!S) return;
-  const t = Audio3D.ctx.currentTime;
-  S.uscita.gain.setTargetAtTime(0, t, 0.3); S.vento.g.gain.setTargetAtTime(0, t, 0.3);
-  setTimeout(() => { try { S.osc.forEach(o => o.stop()); S.vento.src.stop(); } catch (e) { /* già fermi */ } }, 1500);
+  for (const a of [S.motore, S.strada, S.vento, S.caduta, S.vela]) volume(a, 0, 0.4);
+  const via = B.busCheVa; B.busCheVa = null;
+  setTimeout(() => { for (const a of [S.motore, S.strada, S.vento, S.caduta, S.vela]) try { a.src.stop(); } catch (e) { /* già fermo */ } if (via) fermaLoop(via); }, 2000);
   B.suonoBus = null;
 }
 
@@ -284,7 +272,14 @@ function saltaDalBus() {
   if (B.cielo !== 'bus') return;
   B.cielo = 'caduta'; B.prossimaGuida = G.tempo + 0.3; B.prossimaFrase = G.tempo + 4;
   const S = B.suonoBus;
-  if (S) { const t = Audio3D.ctx.currentTime; S.uscita.gain.setTargetAtTime(0, t, 0.4); S.vento.g.gain.setTargetAtTime(0.35, t, 0.2); S.vento.f.frequency.setTargetAtTime(900, t, 0.3); }
+  if (S) {
+    // fuori dal bus: la cabina sparisce, arriva il vento della caduta; il bus continua per la sua strada e lo senti allontanarsi
+    volume(S.motore, 0, 0.25); volume(S.strada, 0, 0.25); volume(S.vento, 0.25, 0.2); volume(S.caduta, 1.0, 0.15);
+    if (S.vento.filtro) S.vento.filtro.frequency.setTargetAtTime(6000, Audio3D.ctx.currentTime, 0.2);
+    const U = B.bus;
+    B.busCheVa = loopInPunto('bus_motore', G.x, G.z, 1.6, { ref: 25 }); B.busCheVa.t0 = U.t;
+  }
+  suona('porta_bus', { gain: 0.6, rate: 1.1 });
   suona('lancio', { gain: 0.9, rate: 0.7 });
   parla(`Lanciato! ${guidaCielo()} Tieni W per andare avanti.`, 1);
 }
@@ -314,11 +309,17 @@ function aggiornaCielo(dt) {
     if (U.t >= U.durata - 0.5) { parla("Fine del volo: il pilota ti fa scendere.", 1); saltaDalBus(); }
     return;
   }
-  // caduta: prima in picchiata, poi col deltaplano
+  if (B.busCheVa) {
+    const U = B.bus, V = B.busCheVa; U.t += dt;
+    const bx = U.ax + U.ux * BUS.velocita * U.t, bz = U.az + U.uz * BUS.velocita * U.t;
+    posiziona(V, bx, BUS.quota - B.quota, bz);
+    if (U.t - V.t0 > 14) { fermaLoop(V); B.busCheVa = null; }
+  }
+  // caduta: prima in picchiata, poi col paracadute
   const vela = B.quota < BUS.apriA;
   if (vela && !B.velaAperta) {
     B.velaAperta = true; suona('raccogli', { gain: 0.8, rate: 1.2 }); suona('lancio', { gain: 0.6, rate: 0.5 });
-    const S = B.suonoBus; if (S) { const t = Audio3D.ctx.currentTime; S.vento.g.gain.setTargetAtTime(0.16, t, 0.3); S.vento.f.frequency.setTargetAtTime(420, t, 0.3); }
+    const S = B.suonoBus; if (S) { volume(S.caduta, 0.15, 0.4); volume(S.vento, 0.35, 0.4); volume(S.vela, 0.7, 0.2); }
     annuncio('paracadute', 'Paracadute aperto.', 0);
   }
   B.quota -= (vela ? BUS.vela : BUS.picchiata) * dt;
@@ -355,7 +356,7 @@ function atterra() {
   for (const L of Object.values(LUOGHI)) { const d = Math.hypot(L.x - G.x, L.z - G.z); if (!vicino || d < vicino.d) vicino = { L, d }; }
   const dove = vicino.d < 20 ? vicino.L.nome : `${metri(vicino.d)} da ${vicino.L.nome}`;
   annuncio('aterra', "A terra. Trova un'arma.", 2);
-  if (!B.caccia) pianifica(1.8, () => parla(`${dove}. Hai solo il piccone. ${rimasti()} in gara.`, 1));
+  if (!B.caccia && !B.claude) pianifica(1.8, () => parla(`${dove}. Hai solo il piccone. ${rimasti()} in gara.`, 1));
   else pianifica(1.2, () => parla(`${dove}.`, 1));
   if (compagniVivi().length) pianifica(5, () => { const c = compagniVivi()[0]; if (c) radio('seguo', `${c.nome}, alla radio`, c.radio); });
   if (B.caccia) {
@@ -367,6 +368,15 @@ function atterra() {
     B.fine = 1e9; B.cacciaFine = G.tempo + CACCIA_DURATA; B.prossimoDrone = G.tempo + CACCIA_DRONE; B.cacciaDetto = 5;
     pianifica(2.6, () => annuncio('caccia', 'Sei il bersaglio. Resisti.', 2));
     pianifica(5, () => parla('Hai il fucile d\'assalto, il fucile a pompa, due piastre e due granate. Undici ti cercano. Ogni tanto un drone dice a tutti dove sei: quando lo senti, spostati. Resisti cinque minuti.', 1));
+  }
+  if (B.claude) {
+    // uno contro uno: tutti e due armati, niente tempesta
+    const A = G.arsenale;
+    A.armi.mitra = { caricatore: ARMI.mitra.capacita, camera: 1, rarita: 1.15 }; A.armi.pistola = { caricatore: ARMI.pistola.capacita, camera: 1, rarita: 1 };
+    A.riserva[ARMI.mitra.munizione] += 120; A.riserva[ARMI.pistola.munizione] += 30; A.corrente = 'mitra';
+    G.inventario.pozioni = 1; G.inventario.kit = 1; G.inventario.granate = 1; G.scudo = 50;
+    B.fine = 1e9; B.prossimoOrecchio = G.tempo + 25;
+    pianifica(2.5, () => claudeDice("Eccomi. Sono atterrato anch'io. Hai il fucile d'assalto, la pistola, una piastra e una granata, come me. Vediamo chi sente meglio.", true));
   }
   if (B.rivaleBot) pianifica(B.caccia ? 16 : 6, () => { const r = B.rivaleBot; if (!r || !r.vivo || B.morto) return; annuncio('rivale', 'Il tuo rivale è in partita.', 1); pianifica(2.4, () => parla(`È ${r.nome}. Ti ha eliminato ${r.volte === 1 ? 'l\'ultima volta' : r.volte + ' volte di fila'}. Ti sta cercando.`, 1)); });
 }
@@ -518,7 +528,7 @@ function pensa(b) {
   if (b.bersaglio && b.bersaglio !== prima) {
     b.ingaggioT = G.tempo; // la mira si assesta nei primi secondi, come per una persona
     b.prossimoSparo = Math.max(b.prossimoSparo, G.tempo + (b.bersaglio === 'io' ? caso(1.2, 2.0) * B.diff.reazione : caso(0.5, 1.1)) / b.bravura); // tempo di reazione
-    if (b.bersaglio === 'io') fraseBot(b, b.carattere === 'aggressivo' && Math.random() < 0.6 ? 'attacco' : 'minaccia');
+    if (b.bersaglio === 'io') { fraseBot(b, b.carattere === 'aggressivo' && Math.random() < 0.6 ? 'attacco' : 'minaccia'); if (b.claude) claudeDice(scegli(['Ti ho trovato.', 'Eccoti.', 'Ti vedo. Pronto?'])); }
     // un compagno vede un nemico: me lo dice, con la direzione rispetto a me
     if (b.team === B.mioTeam && !B.morto && G.tempo - (B.ultimaChiamata || -9) > 6) {
       B.ultimaChiamata = G.tempo;
@@ -624,7 +634,7 @@ function aggiornaBot(b, dt) {
   } else {
     // gironzola; dopo due minuti va a caccia dell'avversario più vicino (ne conosce solo la zona, non il punto esatto)
     const dopo = G.tempo - B.atterratoA;
-    const caccia = dopo > 120 || B.caccia || (b.rivale && dopo > 40) || (b.carattere === 'aggressivo' && dopo > 60);
+    const caccia = dopo > 120 || B.caccia || B.claude || (b.rivale && dopo > 40) || (b.carattere === 'aggressivo' && dopo > 60);
     const armato = b.arma !== 'piccone';
     if (b.carattere === 'prudente' && armato && !B.caccia && !capoDi(b)) {
       // il prudente si sceglie una casa dentro la zona, ci entra e aspetta
@@ -817,6 +827,10 @@ function battagliaColpito(b, danno, testa, ritardo, esplosivo) {
   b.stordito = Math.max(b.stordito, 0.25);
   feritoBot(b, danno, 'io');
   if (B.tutorial) tutorialColpito();
+  if (b.claude && b.vivo) {
+    if (testa) claudeDice(scegli([`Ahi! Alla testa, ${danno} di danno. Bel colpo.`, 'Colpo in testa... questo me lo segno.', `Testa! ${danno}. Non male per niente.`]), true);
+    else if (b.vita < 40 && !b.dettoMale) { b.dettoMale = true; claudeDice('Mi hai fatto male. Ma non è ancora finita.', true); }
+  }
   if (avevaScudo && b.scudo <= 0 && b.vivo) suona('scudo_rotto', { gain: 0.6, quando: 0.05 });
   if (typeof mostraNumero3D === 'function') { mostraNumero3D(b.x, b.z, b.livello, String(danno), testa); sangue3D(b.x, b.z, b.livello || 0, testa, danno); }
   if (b.vivo) {
@@ -878,6 +892,7 @@ function elimina(b, da) {
   const bottino = nuovoForziere(b.x, b.z, { ...cont, materiali: Math.min(80, b.materiali) + 15 });
   D.casse.push(bottino);
   if (reteBR() && D.ospite) duelloInvia({ t: 'bm', i: B.bot.indexOf(b), da: idDi(da), k: { id: bottino.id, x: bottino.x, z: bottino.z, cont: bottino.cont, rar: bottino.rar || 1, materiali: bottino.materiali } });
+  if (b.claude && da === 'io') { const s = leggiStatClaude(); s.tue++; salvaStatClaude(s); setTimeout(() => parla(`Claude: Complimenti, mi hai battuto. Ora sei a ${s.tue} vittorie contro ${s.mie}. Rivincita? Premi Invio.`, 2), 7500); }
   if (b.rivale && da === 'io') {
     b.rivale = false; B.rivaleBot = null; salvaRivale(null);
     pianifica(2.6, () => annuncio('vendetta', 'Vendetta compiuta.', 2));
@@ -944,6 +959,7 @@ function battagliaMorte() {
   const compagni = compagniVivi();
   if (!B.aTerra && B.squadre > 1 && compagni.length) { vaiATerra(); return; }
   annuncio('eliminato', 'Sei stato eliminato.', 2);
+  if (B.claude && !B.morto) { const s = leggiStatClaude(); s.mie++; salvaStatClaude(s); setTimeout(() => parla(`Claude: Presa! Bella partita però. ${s.tue} a ${s.mie}. Premi Invio e riprova.`, 2), 3500); }
   if (!B.rete && !B.tutorial) {
     const k = B.ultimoAggressore;
     if (k && k.bot && !alleati('io', k)) { const prima = leggiRivale(); salvaRivale({ nome: k.nome, volte: prima && prima.nome === k.nome ? (prima.volte || 1) + 1 : 1 }); }
@@ -988,6 +1004,7 @@ function aggiornaBattaglia(dt) {
   aggiornaTempesta();
   if (B.tutorial) aggiornaTutorial();
   if (B.caccia) aggiornaCaccia();
+  if (B.claude) aggiornaClaude();
   for (const b of B.bot) bot(b);
   if (B.aTerra) {
     // a terra perdo vita ogni secondo
@@ -1003,6 +1020,34 @@ function aggiornaBattaglia(dt) {
     for (const L of Object.values(LUOGHI)) { if (!L.suono) continue; const d = Math.hypot(L.x - G.x, L.z - G.z); if (!best || d < best.d) best = { L, d }; }
     if (best && best.d < 90) { suonaInPunto(best.L.suono, best.L.x, best.L.z, { gain: best.L.gain, ref: best.L.ref, y: 6 }); B.prossimoLuogo = G.tempo + best.L.ogni; }
     else B.prossimoLuogo = G.tempo + 5;
+  }
+}
+
+// ---------------------------------------------------------------- sfida contro Claude
+// Un solo avversario, che porta il mio nome: preciso, paziente, che ti cerca ascoltando. E ogni tanto ti parla.
+function leggiStatClaude() { try { return JSON.parse(localStorage.getItem('vz_claude')) || { tue: 0, mie: 0 }; } catch (e) { return { tue: 0, mie: 0 }; } }
+function salvaStatClaude(s) { try { localStorage.setItem('vz_claude', JSON.stringify(s)); } catch (e) { /* non disponibile */ } }
+function statClaude() { const s = leggiStatClaude(); return s.tue + s.mie ? `Finora hai vinto ${s.tue} volte, io ${s.mie}.` : 'È la nostra prima sfida.'; }
+function claudeDice(testo, subito = false) {
+  if (!B.claude || (!subito && G.tempo < (B.prossimaFraseClaude || 0))) return;
+  B.prossimaFraseClaude = G.tempo + 8;
+  parla(`Claude: ${testo}`, 1);
+}
+function preparaClaude() {
+  const b = B.bot[0]; if (!b) return;
+  b.nome = b.def.nome = 'Claude'; b.claude = true; b.carattere = 'normale';
+  b.bravura = 1.15; b.coraggio = 0.85; b.arma = 'mitra'; b.rar = 1.15; b.colpi = CAPIENZA_BOT.mitra; b.scudo = 50; b.granate = 1;
+  // atterra dall'altra parte della piazza, a una quarantina di metri da te
+  const L = LUOGHI.piazza, a = caso(-Math.PI, Math.PI);
+  b.x = L.x + Math.sin(a) * 40; b.z = L.z - Math.cos(a) * 40; b.atterraA = B.bus.tMeglio + caso(9, 12);
+}
+function aggiornaClaude() {
+  if (!B.claude || B.cielo || B.morto || B.finita) return;
+  const b = B.bot[0]; if (!b || !b.vivo || b.inAria) return;
+  // ogni tanto si ferma ad ascoltare e capisce più o meno dove sei, come faresti tu con Ctrl
+  if (G.tempo >= B.prossimoOrecchio) {
+    B.prossimoOrecchio = G.tempo + caso(22, 32);
+    if (!b.bersaglio) { b.sospetto = { x: G.x + caso(-10, 10), z: G.z + caso(-10, 10), t: G.tempo }; claudeDice(scegli(['Ti sento. Più o meno so dove sei.', 'Silenzio... ecco, ti ho sentito.', 'Sto venendo a cercarti.'])); }
   }
 }
 

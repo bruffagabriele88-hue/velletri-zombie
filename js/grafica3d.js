@@ -745,7 +745,7 @@ function disegna3D(ora, dt) {
   if (!iniziaGrafica3D()) return false;
   V3.tela3d.style.display = 'block';
   const T = V3.T, cam = V3.camera;
-  // telecamera: in elicottero e in caduta dall'alto, poi all'altezza degli occhi; a terra (ferito) bassa
+  // telecamera: sul bus e in caduta dall'alto, poi all'altezza degli occhi; a terra (ferito) bassa
   const inCielo = G.modalita === 'battaglia' && B.cielo;
   const camminando = G.inMovimento && !inCielo;
   V3.passo = (V3.passo || 0) + (camminando ? dt * (G.tasti.ShiftLeft || G.tasti.ShiftRight ? 11 : 7.5) : 0);
@@ -930,7 +930,7 @@ function hudBattaglia(W, H, ora) {
     g.fillStyle = '#f2f2ee'; g.fillText(`IN GARA ${rimasti()}    ELIMINAZIONI ${B.eliminazioni}`, W - pad - 14 * u, pad + 28 * u);
     const f = FASI_TEMPESTA[B.fase];
     g.font = carattere(600, 16); g.fillStyle = '#b8a8d8';
-    g.fillText(B.cielo ? 'IN ELICOTTERO' : !f ? 'TEMPESTA FINALE' : B.stadio === 'attesa' ? `TEMPESTA TRA ${Math.max(0, Math.round(B.fine - G.tempo))} S` : 'LA TEMPESTA AVANZA', W - pad - 14 * u, pad + 56 * u);
+    g.fillText(B.cielo ? (B.cielo === 'bus' ? 'SUL BUS' : 'IN CADUTA') : !f ? 'TEMPESTA FINALE' : B.stadio === 'attesa' ? `TEMPESTA TRA ${Math.max(0, Math.round(B.fine - G.tempo))} S` : 'LA TEMPESTA AVANZA', W - pad - 14 * u, pad + 56 * u);
   }
   // bussola
   const cx = W / 2;
