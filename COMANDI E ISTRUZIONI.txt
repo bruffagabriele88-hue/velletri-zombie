@@ -480,3 +480,10 @@ Chi crea la stanza sceglie:
   il cacciatore ha il fucile d'assalto. Ogni otto secondi il cacciatore sente un segnale da dove si trova la preda.
   Se la preda resiste sessanta secondi, il round è suo; se viene presa, il round va a chi l'ha presa.
 Chi entra con il codice sente la modalità scelta.
+
+NOVITÀ
+- Il lanciarazzi è stato tolto: non si trova più nei forzieri e il tasto 7 non fa niente.
+- Grafica fotografica: superfici vere scansionate (erba, intonaco, pietra, corteccia, coppi, sabbia) e un cielo vero
+  a 360 gradi che illumina la scena. Arrivano qualche secondo dopo l'inizio: si gioca subito e la grafica migliora da sola.
+- Il menù è pronto per essere letto dal narratore: appena ElevenLabs rinnova i caratteri del mese basta generare le voci
+  (prepara_voci_menu.py) e il menù non usa più la voce del computer.

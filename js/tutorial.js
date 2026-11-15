@@ -12,8 +12,8 @@ function tutorialSegnaFatto() { TUT.fattoInMemoria = true; try { localStorage.se
 async function caricaVociAllenamento() {
   if (TUT.vociPronte) return;
   try {
-    const nomi = await (await fetch('suoni/voci/allenamento/elenco.json?v=39')).json();
-    await caricaInGruppi(nomi.map(n => ['tut_' + n, `suoni/voci/allenamento/tut_${n}.mp3?v=39`]));
+    const nomi = await (await fetch('suoni/voci/allenamento/elenco.json?v=40')).json();
+    await caricaInGruppi(nomi.map(n => ['tut_' + n, `suoni/voci/allenamento/tut_${n}.mp3?v=40`]));
     Audio3D.voci.narratore = Audio3D.voci.narratore || {};
     for (const n of nomi) if (Audio3D.buf['tut_' + n]) Audio3D.voci.narratore['tut_' + n] = ['tut_' + n];
     TUT.vociPronte = true;
@@ -96,7 +96,7 @@ const LEZIONI = [
     testo: 'Adesso le armi. In partita parti solo col piccone: le armi stanno nei forzieri. Il forziere più vicino manda un richiamo che si ripete, e da vicino diventa un luccichio. Ne ho messo uno a dodici metri. Premi Maiuscolo più Z per girarti verso il forziere, cammina fin lì, e quando senti «cassa, E» premi E per aprirlo.',
     fatto: () => !!G.arsenale.armi.mitra, salta: tutorialArma },
   { id: 'armi', prepara: tutorialArma,
-    testo: 'Hai un ARX 160, un fucile d\'assalto. Le armi si scelgono coi numeri: 1 pistola, 2 fucile a pompa, 3 fucile d\'assalto, 4 fucile di precisione, 5 piccone, 6 mitraglietta, 7 lanciarazzi. Il piccone colpisce da vicino e rompe i muri. Premi 5 per prendere il piccone, poi 3 per riprendere il fucile.',
+    testo: 'Hai un ARX 160, un fucile d\'assalto. Le armi si scelgono coi numeri: 1 pistola, 2 fucile a pompa, 3 fucile d\'assalto, 4 fucile di precisione, 5 piccone, 6 mitraglietta. Il piccone colpisce da vicino e rompe i muri. Premi 5 per prendere il piccone, poi 3 per riprendere il fucile.',
     fatto: () => TUT.tasti.Digit5 && TUT.tasti.Digit3 && G.arsenale.corrente === 'mitra', salta: tutorialArma },
   { id: 'colpi', pausa: 3,
     testo: 'Maiuscolo più C ti dice che arma hai in mano e quanti colpi restano. Provalo.',

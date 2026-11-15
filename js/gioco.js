@@ -34,7 +34,7 @@ function eseguiEventi() {
 const MENU = {
   menu: { titolo: 'Menù', voci: [['battaglia', 'Battaglia reale: tu contro undici, da solo o a squadre'], ['caccia', "Caccia all'uomo: sei tu il bersaglio, undici ti danno la caccia, resisti cinque minuti"], ['brete', 'Battaglia reale in rete con gli amici: i bot prendono i posti vuoti'], ['assedio', `Assedio a ${CENTRO_VELLETRI.piazza}, Velletri`], ['esplora', 'Esplorazione di Velletri'], ['altra', 'Esplorazione di un\'altra città'], ['duello', 'Duello uno contro uno in rete'], ['allenamento', 'Allenamento: ripassa tutti i comandi, uno alla volta']] },
   difficolta: { titolo: 'Difficoltà', voci: [['facile', 'Facile: sette avversari, meno precisi, mira molto assistita'], ['normale', 'Normale: undici avversari'], ['difficile', 'Difficile: avversari più svelti e precisi, poca assistenza']] },
-  lancio: { titolo: 'Dove vuoi atterrare? Il bus ti avvisa quando saltare.', voci: [['piazza', 'Piazza, al centro: tanti forzieri, tanta gente'], ['campanile', 'Campanile, a nord'], ['fontana', 'Fontana, a est'], ['canile', 'Canile, a sud'], ['bosco', 'Bosco, a ovest']] },
+  lancio: { titolo: 'Dove vuoi atterrare? Ti avviso io quando lanciarti.', voci: [['piazza', 'Piazza, al centro: tanti forzieri, tanta gente'], ['campanile', 'Campanile, a nord'], ['fontana', 'Fontana, a est'], ['canile', 'Canile, a sud'], ['bosco', 'Bosco, a ovest']] },
   squadre: { titolo: 'Come giochi?', voci: [['1', 'Da solo, tutti contro tutti'], ['2', 'In coppia: tu e un compagno'], ['4', 'Squadre da quattro: tu e tre compagni']] },
   brete: { titolo: 'Battaglia reale in rete', voci: [['crea', 'Crea una stanza'], ['entra', 'Entra in una stanza con un codice']] },
   squadreRete: { titolo: 'Squadre', voci: [['1', 'Tutti contro tutti'], ['2', 'A coppie: gli amici in squadra insieme, i bot riempiono'], ['4', 'Squadre da quattro: gli amici insieme, i bot riempiono']] },
@@ -44,17 +44,21 @@ const MENU = {
 };
 let sceltaMenu = 0, sceltaModalita = 'assedio';
 
+// le frasi d'apertura che hanno una registrazione del narratore
+const INTRO_MENU = { 'Velletri Zombie. ': 'menu_benvenuto', 'Mappa pronta. ': 'menu_mappa' };
 function apriMenu(nome, intro = '') {
   G.stato = nome; sceltaMenu = 0;
-  const m = MENU[nome];
-  parla(`${intro}${m.titolo}. ${m.voci[0][1]}. Frecce su e giù, Invio per scegliere.`, 2);
+  const m = MENU[nome], testo = `${intro}${m.titolo}. ${m.voci[0][1]}. Frecce su e giù, Invio per scegliere.`;
+  const nomi = [`menu_${nome}_titolo`, `menu_${nome}_${m.voci[0][0]}`, 'menu_aiuto'];
+  if (intro) nomi.unshift(INTRO_MENU[intro] || 'manca');
+  annunciaCatena(nomi, testo, 2);
   aggiornaPannello();
 }
 function muoviMenu(d) {
   const m = MENU[G.stato];
   sceltaMenu = (sceltaMenu + d + m.voci.length) % m.voci.length;
   suona('tic', { gain: 0.5 });
-  parla(m.voci[sceltaMenu][1], 1);
+  annunciaCatena([`menu_${G.stato}_${m.voci[sceltaMenu][0]}`], m.voci[sceltaMenu][1], 1);
   aggiornaPannello();
 }
 function confermaMenu() {
@@ -881,7 +885,6 @@ document.addEventListener('keydown', e => {
     case 'Digit4': cambiaArma('precisione'); break;
     case 'Digit5': cambiaArma('piccone'); break;
     case 'Digit6': cambiaArma('mitraglietta'); break;
-    case 'Digit7': cambiaArma('lanciarazzi'); break;
     case 'KeyN': costruisci('rampa'); break;
     case 'KeyJ': if (G.modalita === 'duello') vocaleMuto(); break;
     case 'KeyP': if (G.modalita === 'battaglia') { bevePozione(); break; } sfogliaLuoghi(e.shiftKey ? -1 : 1); break;

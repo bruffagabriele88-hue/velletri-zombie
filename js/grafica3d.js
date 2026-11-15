@@ -223,6 +223,7 @@ function iniziaGrafica3D() {
   V3.legno = new T.MeshStandardMaterial({ map: V3.tex.legno.map, normalMap: V3.tex.legno.normalMap, roughness: 0.82 });
 
   preparaRitocco();
+  setTimeout(caricaGraficaVera, 1500); // le superfici fotografate e il cielo vero arrivano dopo, senza far aspettare
   addEventListener('resize', () => {
     r.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
     if (V3.composer) { V3.composer.setSize(innerWidth, innerHeight); V3.bloom && V3.bloom.setSize(innerWidth, innerHeight); }
@@ -271,6 +272,82 @@ function preparaRitocco() {
     r.toneMapping = T.NoToneMapping; r.outputEncoding = T.LinearEncoding;
     Object.assign(V3, { composer: comp, bloom, finale });
   } catch (e) { console.error('ritocco non disponibile', e); V3.composer = null; r.toneMapping = T.ACESFilmicToneMapping; r.outputEncoding = T.sRGBEncoding; }
+}
+
+// ---------------------------------------------------------------- superfici fotografate e cielo vero
+// Materiali scansionati da superfici reali (Poly Haven, licenza CC0): colore, rilievo, ruvidità e ombre negli incavi.
+// Sostituiscono quelli disegnati dal computer appena sono scaricati. Il numero dice quanto rimpicciolire la trama.
+const SUPERFICI_VERE = {
+  erba: ['aerial_grass_rock', 1.6], ciottoli: ['cobblestone_floor_08', 0.9], intonaco: ['plastered_wall_04', 3],
+  corteccia: ['bark_brown_02', 1.5], pietra: ['rock_face_03', 1], coppi: ['roof_tiles_14', 2.5],
+  sabbia: ['coast_sand_01', 1.2], terra: ['forest_ground_04', 1],
+};
+// dopo un cambio di luce o di superfici, tutti i materiali si ricompilano (altrimenti alcuni restano neri)
+function ricompilaMateriali() {
+  clearTimeout(V3.ricompila);
+  V3.ricompila = setTimeout(() => V3.scena.traverse(o => { if (o.isMesh) for (const m of [].concat(o.material)) if (m) m.needsUpdate = true; }), 300);
+}
+function caricaGraficaVera() {
+  const T = V3.T, L = new T.TextureLoader(), ani = V3.r.capabilities.getMaxAnisotropy();
+  const carica = (url, colore) => new Promise(ok => L.load(url, t => { t.wrapS = t.wrapT = T.RepeatWrapping; t.anisotropy = ani; if (colore) t.encoding = T.sRGBEncoding; ok(t); }, undefined, () => ok(null)));
+  for (const [nome, [file, scala]] of Object.entries(SUPERFICI_VERE)) {
+    const vecchia = V3.tex[nome]; if (!vecchia) continue;
+    Promise.all([carica(`grafica/superfici/${file}_diff.jpg`, true), carica(`grafica/superfici/${file}_nor_gl.jpg`), carica(`grafica/superfici/${file}_arm.jpg`)]).then(([map, nor, arm]) => {
+      if (!map || !nor || !arm) return;
+      for (const t of [map, nor, arm]) t.repeat.copy(vecchia.map.repeat).multiplyScalar(scala);
+      V3.scena.traverse(o => {
+        if (!o.isMesh) return;
+        for (const m of Array.isArray(o.material) ? o.material : [o.material]) {
+          if (!m || m.map !== vecchia.map) continue;
+          m.map = map; m.normalMap = nor; m.roughnessMap = arm; m.aoMap = arm; m.roughness = 1; m.aoMapIntensity = 0.9;
+          if (nome === 'erba') m.color.setRGB(0.62, 0.86, 0.5);
+          if (o.geometry.attributes.uv && !o.geometry.attributes.uv2) o.geometry.setAttribute('uv2', o.geometry.attributes.uv); // le ombre negli incavi usano il secondo set di coordinate
+          m.needsUpdate = true;
+        }
+      });
+      V3.tex[nome] = { map, normalMap: nor };
+      ricompilaMateriali();
+    });
+  }
+  // il cielo: una fotografia a 360 gradi in alta gamma dinamica. Illumina tutto e si riflette su metalli, vetri e acqua.
+  if (!T.RGBELoader) return;
+  new T.RGBELoader().setDataType(T.HalfFloatType).load('grafica/cielo/cielo_4k.hdr', tex => {
+    tex.mapping = T.EquirectangularReflectionMapping;
+    // il disco del sole nella fotografia è troppo luminoso per la scheda grafica e azzererebbe la luce del cielo:
+    // prima annoto dov'è, poi lo abbasso. La luce diretta del sole la dà già la lampada del sole, con le ombre.
+    {
+      const d16 = tex.image.data, w0 = tex.image.width, f = T.DataUtils.fromHalfFloat, LIMITE = T.DataUtils.toHalfFloat(24);
+      let max = 0, kMax = 0;
+      for (let k = 0; k < d16.length; k += 4) { const l = f(d16[k]) + f(d16[k + 1]) + f(d16[k + 2]); if (l > max) { max = l; kMax = k; } }
+      V3.soleFoto = [(kMax / 4) % w0, Math.floor(kMax / 4 / w0)];
+      for (let k = 0; k < d16.length; k++) if ((k & 3) !== 3 && f(d16[k]) > 24) d16[k] = LIMITE;
+      tex.needsUpdate = true;
+    }
+    // la luce del cielo: una sfera con la fotografia, che il generatore trasforma in luce diffusa e riflessi
+    const sc = new T.Scene(), dc = tex.image.data, fh = T.DataUtils.fromHalfFloat;
+    let somma = 0, n = 0;
+    for (let j = 0; j < tex.image.height / 2; j += 4) for (let i = 0; i < tex.image.width; i += 4) { const k = (j * tex.image.width + i) * 4; somma += (fh(dc[k]) + fh(dc[k + 1]) + fh(dc[k + 2])) / 3; n++; }
+    const forza = lim(1.1 / (somma / n || 1), 1, 8);
+    sc.add(new T.Mesh(new T.SphereGeometry(100, 64, 32), new T.MeshBasicMaterial({ map: tex, side: T.BackSide, color: new T.Color(forza, forza, forza) })));
+    const pm = new T.PMREMGenerator(V3.r);
+    V3.scena.environment = pm.fromScene(sc, 0, 0.1, 1000).texture; pm.dispose();
+    ricompilaMateriali();
+    V3.scena.background = tex;
+    if (V3.cielo) V3.cielo.visible = false;
+    // dov'è il sole nella fotografia: il punto più luminoso. Le ombre e i riflessi devono venire da lì.
+    // i dati sono in mezza precisione (va bene su tutti i browser): li converto per cercare il sole
+    const { data: d16, width: w, height: h } = tex.image, data = { length: d16.length }, f = T.DataUtils.fromHalfFloat;
+    const val = k => f(d16[k]);
+    const [mi, mj] = V3.soleFoto;
+    const v = 1 - (mj + 0.5) / h, u = (mi + 0.5) / w, el = (v - 0.5) * Math.PI, az = (u - 0.5) * 2 * Math.PI;
+    const dir = new T.Vector3(Math.cos(az) * Math.cos(el), Math.sin(el), Math.sin(az) * Math.cos(el)).normalize();
+    if (dir.y > 0.15) V3.dirSole.copy(dir);
+    // la foschia prende il colore dell'orizzonte della fotografia
+    const r0 = Math.floor(h / 2) - 2, c = [0, 0, 0];
+    for (let i = 0; i < w; i++) { const k = (r0 * w + i) * 4; c[0] += val(k); c[1] += val(k + 1); c[2] += val(k + 2); }
+    const m = Math.max(...c) || 1; V3.scena.fog.color.setRGB(c[0] / m * 0.8, c[1] / m * 0.8, c[2] / m * 0.8);
+    V3.cieloVero = true;
+  });
 }
 
 function ombra(m) { m.castShadow = true; m.receiveShadow = true; return m; }

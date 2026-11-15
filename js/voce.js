@@ -50,7 +50,23 @@ function annuncio(nome, testo, priorita = 1) {
   Voce.clip = suona(clip[0], { gain: 1.1 });
 }
 // una voce registrata lunga (le spiegazioni dell'allenamento) si deve poter interrompere
-function fermaClipVoce() { if (Voce.clip) { try { Voce.clip.stop(); } catch (e) { /* già finita */ } Voce.clip = null; } }
+function fermaClipVoce() {
+  for (const c of [Voce.clip, ...(Voce.catena || [])]) if (c) { try { c.stop(); } catch (e) { /* già finita */ } }
+  Voce.clip = null; Voce.catena = [];
+}
+// Più registrazioni una dopo l'altra (il menù: titolo, voce scelta, aiuto). Se ne manca anche una sola, parla il computer.
+function annunciaCatena(nomi, testo, priorita = 1) {
+  const bufs = nomi.map(n => typeof Audio3D !== 'undefined' && Audio3D.buf[n]);
+  if (!bufs.length || bufs.some(b => !b)) { parla(testo, priorita); return; }
+  const ora = performance.now();
+  if (ora < Voce.fineStimata && priorita < Voce.prioritaCorrente) return;
+  if ('speechSynthesis' in window) speechSynthesis.cancel();
+  fermaClipVoce();
+  let t = 0;
+  Voce.catena = nomi.map((n, i) => { const s = suona(n, { gain: 1.1, quando: t }); t += bufs[i].duration + 0.12; return s; });
+  Voce.prioritaCorrente = priorita; Voce.fineStimata = ora + t * 1000;
+  Voce.sottotitolo = testo; Voce.sottotitoloFino = ora + Math.max(2200, t * 1000 + 800);
+}
 // Il compagno parla alla radio: il clic e il fruscio prima e dopo, la voce stretta della radio, nell'orecchio.
 let prossimaRadio = 0;
 function radio(categoria, testo, voce = 'radio') {

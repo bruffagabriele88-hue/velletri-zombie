@@ -125,13 +125,18 @@ async function inizializzaAudio(avanzamento) {
   Object.assign(A.buf, creaSuoniDuello(ctx));
   if (typeof creaSuoniRealismo === 'function') Object.assign(A.buf, creaSuoniRealismo(ctx));
   let fatti = 0;
-  await caricaInGruppi(ELENCO_SUONI.map(nome => [nome, `suoni/${nome}.wav?v=39`]), () => { fatti++; if (avanzamento) avanzamento(fatti / ELENCO_SUONI.length); });
+  await caricaInGruppi(ELENCO_SUONI.map(nome => [nome, `suoni/${nome}.wav?v=40`]), () => { fatti++; if (avanzamento) avanzamento(fatti / ELENCO_SUONI.length); });
   // frasi dei nemici: voce -> categoria -> elenco di suoni
   try {
-    A.voci = await (await fetch('suoni/voci/elenco.json?v=39')).json();
+    A.voci = await (await fetch('suoni/voci/elenco.json?v=40')).json();
     const nomi = Object.values(A.voci).flatMap(c => Object.values(c).flat());
-    await caricaInGruppi(nomi.map(nome => [nome, `suoni/voci/${nome}.wav?v=39`]));
+    await caricaInGruppi(nomi.map(nome => [nome, `suoni/voci/${nome}.wav?v=40`]));
   } catch (e) { console.error('voci non caricate', e); A.voci = {}; }
+  // il menù letto dal narratore: file piccoli, si caricano subito (se mancano, legge la voce del computer)
+  try {
+    const menu = await (await fetch('suoni/voci/menu/elenco.json?v=40')).json();
+    await caricaInGruppi(menu.map(n => ['menu_' + n, `suoni/voci/menu/menu_${n}.mp3?v=40`]));
+  } catch (e) { /* il menù lo legge il computer */ }
   if (typeof caricaAmbientiReali === 'function') await caricaAmbientiReali();
   console.log('Audio pronto a', ctx.sampleRate, 'Hz, HRTF');
 }

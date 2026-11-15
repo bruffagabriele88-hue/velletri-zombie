@@ -50,7 +50,7 @@ function nomeRarita(m) { return (RARITA.find(r => r[0] === m) || RARITA[0])[1]; 
 function raritaCasuale() { let r = Math.random() * 100; for (const [m, , peso] of RARITA) { if (r < peso) return m; r -= peso; } return 1; }
 function contenutoForziere() {
   const r = Math.random();
-  if (r < 0.62) return { cont: scegli(['pompa', 'mitra', 'mitra', 'precisione', 'pistola', 'pompa', 'mitraglietta', 'mitraglietta', 'lanciarazzi']), rar: raritaCasuale(), materiali: 15 };
+  if (r < 0.62) return { cont: scegli(['pompa', 'mitra', 'mitra', 'precisione', 'pistola', 'pompa', 'mitraglietta', 'mitraglietta', 'mitra']), rar: raritaCasuale(), materiali: 15 };
   if (r < 0.78) return { cont: 'pozione', materiali: 5 }; // una piastra balistica per il giubbotto
   if (r < 0.90) return { cont: scegli(['kit', 'bende']), materiali: 5 };
   if (r < 0.93) return { cont: 'granate', materiali: 5 };
