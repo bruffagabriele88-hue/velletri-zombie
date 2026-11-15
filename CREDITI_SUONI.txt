@@ -82,3 +82,7 @@ BUS, VENTO E PARACADUTE (Freesound, licenza CC0)
 - vento della caduta: "Strong wind" di lextrack (freesound.org/s/344887)
 - vento forte: "Wind 2" di FunWithSound (freesound.org/s/390740)
 - paracadute: "Fabric Flapping" di IENBA (freesound.org/s/701647)
+
+ORECCHIE MISURATE (audio 3D personalizzato)
+Database SADIE II, University of York (Armstrong, Thresh, Kearney), licenza Apache 2.0.
+Dettagli e licenza in suoni/orecchie/LEGGIMI.txt e suoni/orecchie/LICENSE-2.0.txt. Grazie all'Audio Lab di York.

@@ -32,7 +32,7 @@ function eseguiEventi() {
 
 // ---------------------------------------------------------------- menù (voce + tastiera)
 const MENU = {
-  menu: { titolo: 'Menù', voci: [['battaglia', 'Battaglia reale: tu contro undici, da solo o a squadre'], ['caccia', "Caccia all'uomo: sei tu il bersaglio, undici ti danno la caccia, resisti cinque minuti"], ['claude', 'Sfida Claude: uno contro uno contro di me'], ['brete', 'Battaglia reale in rete con gli amici: i bot prendono i posti vuoti'], ['assedio', `Assedio a ${CENTRO_VELLETRI.piazza}, Velletri`], ['esplora', 'Esplorazione di Velletri'], ['altra', 'Esplorazione di un\'altra città'], ['duello', 'Duello uno contro uno in rete'], ['allenamento', 'Allenamento: ripassa tutti i comandi, uno alla volta']] },
+  menu: { titolo: 'Menù', voci: [['battaglia', 'Battaglia reale: tu contro undici, da solo o a squadre'], ['caccia', "Caccia all'uomo: sei tu il bersaglio, undici ti danno la caccia, resisti cinque minuti"], ['claude', 'Sfida Claude: uno contro uno contro di me'], ['brete', 'Battaglia reale in rete con gli amici: i bot prendono i posti vuoti'], ['assedio', `Assedio a ${CENTRO_VELLETRI.piazza}, Velletri`], ['esplora', 'Esplorazione di Velletri'], ['altra', 'Esplorazione di un\'altra città'], ['duello', 'Duello uno contro uno in rete'], ['allenamento', 'Allenamento: ripassa tutti i comandi, uno alla volta'], ['orecchie', "Test delle orecchie: scegli l'audio 3D più preciso per te"]] },
   difficolta: { titolo: 'Difficoltà', voci: [['facile', 'Facile: sette avversari, meno precisi, mira molto assistita'], ['normale', 'Normale: undici avversari'], ['difficile', 'Difficile: avversari più svelti e precisi, poca assistenza']] },
   lancio: { titolo: 'Dove vuoi atterrare? Ti avviso io quando lanciarti.', voci: [['piazza', 'Piazza, al centro: tanti forzieri, tanta gente'], ['campanile', 'Campanile, a nord'], ['fontana', 'Fontana, a est'], ['canile', 'Canile, a sud'], ['bosco', 'Bosco, a ovest']] },
   squadre: { titolo: 'Come giochi?', voci: [['1', 'Da solo, tutti contro tutti'], ['2', 'In coppia: tu e un compagno'], ['4', 'Squadre da quattro: tu e tre compagni']] },
@@ -69,6 +69,7 @@ function confermaMenu() {
     if (id === 'claude') { B.cacciaScelta = false; battagliaAvvia('piazza', 'difficile', { squadre: 1, claude: true }); return; }
     if (id === 'caccia') { B.cacciaScelta = true; B.squadre = 1; apriMenu('lancio'); return; }
     if (id === 'allenamento') { tutorialAvvia(); return; }
+    if (id === 'orecchie') { testOrecchieAvvia(); return; }
     if (id === 'brete') { apriMenu('brete'); return; }
     if (id === 'duello') { apriMenu('duello'); return; }
     if (id === 'altra') { G.stato = 'digitazione'; G.scopoTesto = 'citta'; G.testo = ''; parla('Scrivi il nome della città, poi Invio. Esc per tornare.', 2); aggiornaPannello(); return; }
@@ -797,6 +798,7 @@ document.addEventListener('keydown', e => {
   if (G.stato === 'gioco' && (e.ctrlKey || e.altKey) && !e.metaKey) e.preventDefault();
   if (G.stato === 'inizio') { if (k === 'Enter') primoAvvio(); return; }
   if (G.stato === 'caricamento') return;
+  if (G.stato === 'testOrecchie') { testOrecchieTasto(e); return; }
 
   if (G.stato === 'attesa') {
     if (c === 'Space') duelloDiciCodice();
@@ -941,6 +943,7 @@ function aggiornaPannello() {
   v.innerHTML = '';
   if (G.stato === 'inizio') m.textContent = 'Clicca o premi Invio per iniziare.';
   else if (G.stato === 'caricamento') m.textContent = 'Caricamento…';
+  else if (G.stato === 'testOrecchie') m.textContent = 'Test delle orecchie: frecce per rispondere (su davanti, giù dietro, sinistra, destra). Spazio ripete, Esc esce.';
   else if (G.stato === 'attesa') m.textContent = `Stanza ${D.codice}. Giocatori: ${D.giocatori.length}. ${D.ospite ? 'Invio per iniziare, ' : 'Attendi che chi ha creato la stanza dia il via. '}Spazio ripete, Esc annulla.`;
   else if (MENU[G.stato]) {
     m.textContent = MENU[G.stato].titolo;

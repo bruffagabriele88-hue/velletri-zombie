@@ -93,7 +93,7 @@ function creaSuoniRealismo(ctx) {
 
 // i tre ambienti binaurali, in FLAC (stereo, da ascoltare direttamente, senza spazializzazione)
 async function caricaAmbientiReali() {
-  try { await caricaInGruppi(['amb_campagna', 'amb_bosco', 'amb_uccelli'].map(n => [n, `suoni/${n}.flac?v=41`])); } catch (e) { /* senza ambienti si gioca lo stesso */ }
+  try { await caricaInGruppi(['amb_campagna', 'amb_bosco', 'amb_uccelli'].map(n => [n, `suoni/${n}.flac?v=42`])); } catch (e) { /* senza ambienti si gioca lo stesso */ }
   // riverbero lungo e scuro per le code degli spari lontani, come in una valle
   const ctx = Audio3D.ctx, conv = ctx.createConvolver();
   conv.buffer = rispostaRiverbero(ctx, 3.2);
@@ -196,7 +196,8 @@ function volo(nome, x1, z1, x2, z2, durata, opz = {}) {
   if (!Audio3D.buf[nome]) return;
   const ctx = Audio3D.ctx, t0 = ctx.currentTime + (opz.quando || 0), s = creaSorgente({ ref: opz.ref || 1.2, riverbero: 0.1 });
   const p = s.panner, y = opz.y || 0.2;
-  if (p.positionX) {
+  if (s.hrtf) { s.y = y; s.moto = { x1, z1, x2, z2, t0, durata }; s.x = x1; s.z = z1; aggiornaOrecchie(s, true); }
+  else if (p.positionX) {
     p.positionX.setValueAtTime(x1, t0); p.positionY.setValueAtTime(y, t0); p.positionZ.setValueAtTime(z1, t0);
     p.positionX.linearRampToValueAtTime(x2, t0 + durata); p.positionZ.linearRampToValueAtTime(z2, t0 + durata);
   } else p.setPosition(x1, y, z1);

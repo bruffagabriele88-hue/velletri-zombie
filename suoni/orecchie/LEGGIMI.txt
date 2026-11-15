@@ -1,0 +1,9 @@
+Orecchie misurate (risposte all'impulso della testa, HRIR) dei soggetti H3, H4, H5, H6, H7, H8
+dal database SADIE II, Audio Lab, Department of Electronic Engineering, University of York
+(Cal Armstrong, Lewis Thresh, Gavin Kearney). https://www.york.ac.uk/sadie-project/database.html
+
+Copyright 2018, University of York. Licensed under the Apache License, Version 2.0 (vedi LICENSE-2.0.txt).
+Modifiche fatte per il gioco: tenute solo 144 direzioni per soggetto (ogni 10 gradi di azimut, elevazioni
+-30, 0, 30 e 60 gradi), troncate a 256 campioni a 48 kHz, normalizzate nel volume e salvate in Float32 grezzo.
+Riferimento: Armstrong C., Thresh L., Murphy D., Kearney G. "A Perceptual Evaluation of Individual and
+Non-Individual HRTFs: A Case Study of the SADIE II Database", Applied Sciences 2018, DOI 10.3390/app8112029.

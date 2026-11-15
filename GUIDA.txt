@@ -421,3 +421,11 @@ Nel menù, terza voce: uno contro uno contro un avversario che si chiama Claude.
 d'assalto, la pistola, una piastra e una granata; niente tempesta. Claude è preciso e paziente: ogni tanto si ferma
 ad ascoltare e capisce più o meno dove sei. Ti parla: quando ti trova, quando lo colpisci in testa (e ti dice
 il danno), quando è ferito, quando vince o perde. Il punteggio tra voi due si ricorda tra una partita e l'altra.
+
+TEST DELLE ORECCHIE (ultima voce del menù)
+In cuffia, ognuno sente lo spazio in modo diverso perché le orecchie sono diverse. Il gioco ora ha le orecchie
+di sei persone vere, misurate in laboratorio dall'Università di York, più il modello del browser.
+Il test ti fa sentire tre colpi da una direzione e tu rispondi con le frecce: su davanti, giù dietro,
+sinistra, destra. Spazio ripete, Esc esce. Sei prove per ognuna delle sette orecchie, in ordine casuale.
+Alla fine il gioco tiene quelle con cui hai indovinato di più (soprattutto davanti e dietro) e le usa
+per tutti i suoni. Si può rifare quando si vuole. Ognuno dei tuoi amici può fare il suo test.

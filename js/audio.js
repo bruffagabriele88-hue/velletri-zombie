@@ -126,18 +126,22 @@ async function inizializzaAudio(avanzamento) {
   Object.assign(A.buf, creaSuoniDuello(ctx));
   if (typeof creaSuoniRealismo === 'function') Object.assign(A.buf, creaSuoniRealismo(ctx));
   let fatti = 0;
-  await caricaInGruppi(ELENCO_SUONI.map(nome => [nome, `suoni/${nome}.wav?v=41`]), () => { fatti++; if (avanzamento) avanzamento(fatti / ELENCO_SUONI.length); });
+  await caricaInGruppi(ELENCO_SUONI.map(nome => [nome, `suoni/${nome}.wav?v=42`]), () => { fatti++; if (avanzamento) avanzamento(fatti / ELENCO_SUONI.length); });
   // frasi dei nemici: voce -> categoria -> elenco di suoni
   try {
-    A.voci = await (await fetch('suoni/voci/elenco.json?v=41')).json();
+    A.voci = await (await fetch('suoni/voci/elenco.json?v=42')).json();
     const nomi = Object.values(A.voci).flatMap(c => Object.values(c).flat());
-    await caricaInGruppi(nomi.map(nome => [nome, `suoni/voci/${nome}.wav?v=41`]));
+    await caricaInGruppi(nomi.map(nome => [nome, `suoni/voci/${nome}.wav?v=42`]));
   } catch (e) { console.error('voci non caricate', e); A.voci = {}; }
   // il menù letto dal narratore: file piccoli, si caricano subito (se mancano, legge la voce del computer)
   try {
-    const menu = await (await fetch('suoni/voci/menu/elenco.json?v=41')).json();
-    await caricaInGruppi(menu.map(n => ['menu_' + n, `suoni/voci/menu/menu_${n}.mp3?v=41`]));
+    const menu = await (await fetch('suoni/voci/menu/elenco.json?v=42')).json();
+    await caricaInGruppi(menu.map(n => ['menu_' + n, `suoni/voci/menu/menu_${n}.mp3?v=42`]));
   } catch (e) { /* il menù lo legge il computer */ }
+  try {
+    const scelta = localStorage.getItem('vz_orecchie');
+    if (scelta && scelta !== 'browser') { await caricaOrecchie(scelta); Orecchie.scelta = scelta; }
+  } catch (e) { console.error('orecchie non caricate', e); Orecchie.scelta = 'browser'; }
   if (typeof caricaAmbientiReali === 'function') await caricaAmbientiReali();
   console.log('Audio pronto a', ctx.sampleRate, 'Hz, HRTF');
 }
@@ -146,6 +150,11 @@ function aggiornaAscoltatore(x, z, rotta) {
   const A = Audio3D, L = A.ctx.listener, t = A.ctx.currentTime;
   A.ascoltatore = { x, z, rotta };
   if (A.fisse) for (const s of A.fisse) indiziDalVivo(s);
+  const ora = A.ctx.currentTime;
+  for (const s of Orecchie.sorgenti) {
+    if (s.moto) { const m = s.moto, k = lim((ora - m.t0) / m.durata, 0, 1); s.x = m.x1 + (m.x2 - m.x1) * k; s.z = m.z1 + (m.z2 - m.z1) * k; }
+    aggiornaOrecchie(s);
+  }
   const [fx, fz] = avanti(rotta);
   if (L.forwardX) {
     L.positionX.setTargetAtTime(x, t, 0.01); L.positionZ.setTargetAtTime(z, t, 0.01);
@@ -156,7 +165,50 @@ function aggiornaAscoltatore(x, z, rotta) {
   }
 }
 
-// Catena spaziale: ingresso -> filtro aria -> panner HRTF -> master (+ mandata al riverbero)
+// ---------------------------------------------------------------- orecchie vere
+// Misure di laboratorio di come arriva il suono alle orecchie di persone vere (SADIE II, University of York, licenza Apache 2.0):
+// per ogni direzione intorno alla testa, una coppia di risposte all'impulso, orecchio sinistro e destro.
+// Il suono passa attraverso quelle delle persona scelta col test delle orecchie, al posto del modello unico del browser.
+const Orecchie = { scelta: 'browser', dati: {}, meta: null, sorgenti: new Set() };
+async function caricaOrecchie(nome) {
+  if (Orecchie.dati[nome]) return Orecchie.dati[nome];
+  const ctx = Audio3D.ctx;
+  if (!Orecchie.meta) Orecchie.meta = await (await fetch('suoni/orecchie/elenco.json?v=42')).json();
+  const M = Orecchie.meta, grezzi = new Float32Array(await (await fetch(`suoni/orecchie/${nome}.bin?v=42`)).arrayBuffer());
+  const nAz = 360 / M.passoAz, rapporto = ctx.sampleRate / 48000, n = Math.round(M.n * rapporto), buf = [];
+  for (let e = 0; e < M.el.length; e++) for (let a = 0; a < nAz; a++) {
+    const b = ctx.createBuffer(2, n, ctx.sampleRate);
+    for (let o = 0; o < 2; o++) {
+      const base = ((e * nAz + a) * 2 + o) * M.n, dest = b.getChannelData(o);
+      // se la scheda audio non va a 48000 Hz, ricampiono la misura
+      for (let i = 0; i < n; i++) { const p = i / rapporto, k = Math.floor(p), f = p - k; dest[i] = (grezzi[base + k] || 0) * (1 - f) + (grezzi[base + k + 1] || 0) * f; }
+    }
+    buf.push(b);
+  }
+  return (Orecchie.dati[nome] = { buf, nAz });
+}
+// da dove arriva il suono rispetto alla mia testa: aggiorna la coppia di orecchie, con una dissolvenza per non sentire scatti
+function aggiornaOrecchie(s, subito = false) {
+  const h = s.hrtf, A = Audio3D, ctx = A.ctx, L = A.ascoltatore, M = Orecchie.meta, t = ctx.currentTime;
+  const dx = s.x - L.x, dz = s.z - L.z, [fx, fz] = avanti(L.rotta || 0), [rx, rz] = destraDi(L.rotta || 0);
+  const davanti = dx * fx + dz * fz, destra = dx * rx + dz * rz, piano = Math.hypot(dx, dz), d = Math.hypot(piano, s.y);
+  const az = ((Math.atan2(-destra, davanti) * 180 / Math.PI) + 360) % 360, el = Math.atan2(s.y, piano) * 180 / Math.PI;
+  // volume con la distanza, come faceva il browser (modello inverso)
+  const g = h.ref / (h.ref + h.rolloff * (Math.min(Math.max(d, h.ref), 200) - h.ref));
+  if (subito) h.dist.gain.value = g; else h.dist.gain.setTargetAtTime(g, t, 0.02);
+  let iEl = 0; M.el.forEach((v, i) => { if (Math.abs(v - el) < Math.abs(M.el[iEl] - el)) iEl = i; });
+  const idx = iEl * h.set.nAz + Math.round(az / M.passoAz) % h.set.nAz;
+  if (idx === h.idx || (!subito && h.idx >= 0 && t < h.prossimo)) return;
+  const k = h.idx < 0 ? h.attivo : 1 - h.attivo, c = ctx.createConvolver();
+  c.normalize = false; c.buffer = h.set.buf[idx];
+  if (h.conv[k]) { try { h.conv[k].disconnect(); } catch (e) { /* già staccato */ } }
+  h.pre.connect(c); c.connect(h.gain[k]); h.conv[k] = c;
+  if (h.idx < 0 || subito) { h.gain[k].gain.value = 1; h.gain[1 - k].gain.value = 0; }
+  else { h.gain[k].gain.setTargetAtTime(1, t, 0.012); h.gain[1 - k].gain.setTargetAtTime(0, t, 0.012); }
+  h.attivo = k; h.idx = idx; h.prossimo = t + 0.04;
+}
+
+// Catena spaziale: ingresso -> filtro aria -> orecchie (misurate, o il modello HRTF del browser) -> master (+ mandata al riverbero)
 function creaSorgente(opz = {}) {
   const ctx = Audio3D.ctx;
   const ingresso = ctx.createGain();
@@ -172,29 +224,44 @@ function creaSorgente(opz = {}) {
   // Le cuffie non lo fanno abbastanza, quindi lo rinforzo: dietro meno acuti e più "corpo" a 1000 Hz, davanti più presenza a 3500 Hz.
   const ombra = ctx.createBiquadFilter(); ombra.type = 'highshelf'; ombra.frequency.value = 4500; ombra.gain.value = 0;
   const banda = ctx.createBiquadFilter(); banda.type = 'peaking'; banda.frequency.value = 3500; banda.Q.value = 1.1; banda.gain.value = 0;
-  ingresso.connect(aria).connect(ombra).connect(banda).connect(panner).connect(opz.diretto ? Audio3D.master : Audio3D.mondo);
+  const modo = opz.orecchie !== undefined ? opz.orecchie : Orecchie.scelta, set = modo !== 'browser' && Orecchie.dati[modo];
+  let uscitaSpaziale = panner, hrtf = null;
+  if (set) {
+    // orecchie misurate: due convolutori che si danno il cambio, poi il volume della distanza
+    const pre = ctx.createGain(), dist = ctx.createGain(), gA = ctx.createGain(), gB = ctx.createGain();
+    gA.connect(dist); gB.connect(dist); dist.connect(opz.diretto ? Audio3D.master : Audio3D.mondo);
+    hrtf = { set, pre, dist, gain: [gA, gB], conv: [null, null], attivo: 0, idx: -1, prossimo: 0, ref: opz.ref || 1.5, rolloff: opz.rolloff || 1 };
+    ingresso.connect(aria).connect(ombra).connect(banda).connect(pre);
+    uscitaSpaziale = pre;
+  } else ingresso.connect(aria).connect(ombra).connect(banda).connect(panner).connect(opz.diretto ? Audio3D.master : Audio3D.mondo);
   // Il riflesso del terreno: all'aperto ogni suono arriva due volte, diretto e rimbalzato a terra un attimo dopo.
   // Il ritardo dipende dalla distanza: è così che dal vivo si capisce quanto è lontana una cosa.
   const ritardoTerra = ctx.createDelay(0.03); ritardoTerra.delayTime.value = 0.002;
   const terra = ctx.createBiquadFilter(); terra.type = 'lowpass'; terra.frequency.value = 5000;
   const gTerra = ctx.createGain(); gTerra.gain.value = 0;
-  banda.connect(ritardoTerra).connect(terra).connect(gTerra).connect(panner);
+  banda.connect(ritardoTerra).connect(terra).connect(gTerra).connect(uscitaSpaziale);
   const mandata = ctx.createGain();
   mandata.gain.value = opz.riverbero ?? 0.5;
   aria.connect(mandata).connect(Audio3D.mandataRiverbero);
   const ref = opz.ref || 1.5;
   // quanto l'aria smorza gli acuti con la distanza: chi è lontano nelle arene resta riconoscibile
-  return { ingresso, aria, panner, mandata, ombra, banda, ritardoTerra, gTerra, x: 0, y: 0, z: 0, chiara: ref >= 5, aria_m: ref >= 8 ? 170 : ref >= 5 ? 90 : 30 };
+  const s0 = { ingresso, aria, panner: hrtf ? hrtf.dist : panner, hrtf, mandata, ombra, banda, ritardoTerra, gTerra, x: 0, y: 0, z: 0, chiara: ref >= 5, aria_m: ref >= 8 ? 170 : ref >= 5 ? 90 : 30 };
+  if (hrtf) Orecchie.sorgenti.add(s0);
+  return s0;
 }
 function chiudiSorgente(s, dopo = 0) {
-  setTimeout(() => { try { s.panner.disconnect(); s.mandata.disconnect(); if (s.gTerra) s.gTerra.disconnect(); } catch (e) { /* già chiusa */ } }, dopo * 1000);
+  setTimeout(() => {
+    Orecchie.sorgenti.delete(s);
+    try { s.panner.disconnect(); s.mandata.disconnect(); if (s.gTerra) s.gTerra.disconnect(); if (s.hrtf) for (const c of s.hrtf.conv) if (c) c.disconnect(); } catch (e) { /* già chiusa */ }
+  }, dopo * 1000);
 }
 
 function posiziona(s, x, y, z, subito = false) {
   if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z)) return; // mai valori impossibili nel motore audio
   const A = Audio3D, p = s.panner, t = A.ctx.currentTime;
   s.x = x; s.y = y; s.z = z;
-  if (p.positionX) {
+  if (s.hrtf) aggiornaOrecchie(s, subito);
+  else if (p.positionX) {
     if (subito) { p.positionX.value = x; p.positionY.value = y; p.positionZ.value = z; }
     else { p.positionX.setTargetAtTime(x, t, 0.01); p.positionY.setTargetAtTime(y, t, 0.01); p.positionZ.setTargetAtTime(z, t, 0.01); }
   } else p.setPosition(x, y, z);
@@ -214,7 +281,8 @@ function indiziDalVivo(s, subito = false) {
   // c = 1 davanti, 0 di lato, -1 dietro; vicino a me (un metro) non coloro niente
   const c = d < 0.3 ? 0 : (dx * fx + dz * fz) / d, peso = Math.min(1, d / 1.5);
   const dietro = Math.max(0, -c), davanti = Math.max(0, c);
-  const gOmbra = -9 * dietro * dietro * peso, gBanda = (dietro > 0 ? 3 * dietro * dietro : 2.5 * davanti * davanti) * peso, fBanda = dietro > 0 ? 1000 : 3500;
+  const rinforzo = s.hrtf ? 0 : 1;
+  const gOmbra = -9 * dietro * dietro * peso * rinforzo, gBanda = rinforzo * (dietro > 0 ? 3 * dietro * dietro : 2.5 * davanti * davanti) * peso, fBanda = dietro > 0 ? 1000 : 3500;
   // riflesso a terra: la strada in più del suono che rimbalza, tra una sorgente e un ascoltatore alti un metro e sessanta
   const strada = Math.sqrt(d * d + 4 * ALTEZZA_ORECCHIE * ALTEZZA_ORECCHIE) - d;
   const rit = lim(strada / 343, 0.0002, 0.028), gT = d < 0.5 || Math.abs(s.y) > 1 ? 0 : 0.28 * Math.min(1, d / 3);
