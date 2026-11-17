@@ -429,3 +429,9 @@ Il test ti fa sentire tre colpi da una direzione e tu rispondi con le frecce: su
 sinistra, destra. Spazio ripete, Esc esce. Sei prove per ognuna delle sette orecchie, in ordine casuale.
 Alla fine il gioco tiene quelle con cui hai indovinato di più (soprattutto davanti e dietro) e le usa
 per tutti i suoni. Si può rifare quando si vuole. Ognuno dei tuoi amici può fare il suo test.
+
+GRAFICA DA SPARATUTTO (per chi guarda lo schermo)
+Al posto delle forme fatte di scatole e palline ci sono modelli 3D veri: soldati animati in divisa (corrono,
+camminano, mirano, sparano, vengono colpiti, cadono), con il colore della divisa diverso per ogni squadra;
+armi vere in mano e nelle mani dei nemici; pini, alberi, rocce e cespugli veri; casse militari vere.
+La qualità si adatta da sola: se il computer fa fatica, il gioco abbassa i dettagli meno visibili.

@@ -806,7 +806,7 @@ function feritoBot(b, danno, da) {
   if (reteBR() && !D.ospite) { if (da === 'io') duelloInvia({ t: 'cb', i: B.bot.indexOf(b), d: Math.round(danno) }); return; }
   if (alleati(b, da)) return;
   const assorbito = Math.min(b.scudo, danno); b.scudo -= assorbito; b.vita -= danno - assorbito;
-  b.allertaFino = G.tempo + 10; b.ultimoAggressore = da;
+  b.allertaFino = G.tempo + 10; b.ultimoAggressore = da; b.colpitoT = G.tempo;
   if (b.vita <= 0) { elimina(b, da); return; }
   // ferito grave: a volte scappa per curarsi, a volte resiste; altrimenti costruisce per coprirsi
   if (b.vita + b.scudo < 40 && G.tempo >= (b.prossimaFuga || 0) && b.carattere !== 'aggressivo' && Math.random() > b.coraggio) {

@@ -86,3 +86,8 @@ BUS, VENTO E PARACADUTE (Freesound, licenza CC0)
 ORECCHIE MISURATE (audio 3D personalizzato)
 Database SADIE II, University of York (Armstrong, Thresh, Kearney), licenza Apache 2.0.
 Dettagli e licenza in suoni/orecchie/LEGGIMI.txt e suoni/orecchie/LICENSE-2.0.txt. Grazie all'Audio Lab di York.
+
+MODELLI 3D
+Soldato animato (SWAT), armi (fucile d'assalto, pistola, fucile a pompa, mitraglietta, fucile di precisione),
+alberi, pini, rocce, piante e cassa militare: Quaternius (quaternius.com), scaricati da poly.pizza, licenza CC0.
+Grazie a Quaternius.

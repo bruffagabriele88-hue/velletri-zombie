@@ -183,7 +183,7 @@ function iniziaGrafica3D() {
 
   scena.add(new T.HemisphereLight(0xc8dcf5, 0x4a4630, 0.3));
   const sole = new T.DirectionalLight(0xffe6c4, 3.3);
-  sole.castShadow = true; sole.shadow.mapSize.set(4096, 4096);
+  sole.castShadow = true; sole.shadow.mapSize.set(2048, 2048);
   Object.assign(sole.shadow.camera, { left: -60, right: 60, top: 60, bottom: -60, near: 1, far: 400 });
   sole.shadow.bias = -0.0004; sole.shadow.normalBias = 0.04;
   scena.add(sole); scena.add(sole.target); V3.sole = sole;
@@ -223,7 +223,8 @@ function iniziaGrafica3D() {
   V3.legno = new T.MeshStandardMaterial({ map: V3.tex.legno.map, normalMap: V3.tex.legno.normalMap, roughness: 0.82 });
 
   preparaRitocco();
-  setTimeout(caricaGraficaVera, 1500); // le superfici fotografate e il cielo vero arrivano dopo, senza far aspettare
+  setTimeout(caricaGraficaVera, 1500);
+  setTimeout(caricaModelli, 600);   // soldati, armi, alberi e rocce: modelli 3D veri // le superfici fotografate e il cielo vero arrivano dopo, senza far aspettare
   addEventListener('resize', () => {
     r.setSize(innerWidth, innerHeight, false); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
     if (V3.composer) { V3.composer.setSize(innerWidth, innerHeight); V3.bloom && V3.bloom.setSize(innerWidth, innerHeight); }
@@ -243,7 +244,9 @@ function preparaRitocco() {
     const rt = new T.WebGLRenderTarget(innerWidth * dpr, innerHeight * dpr, { type: T.HalfFloatType, samples: 4 });
     const comp = new T.EffectComposer(r, rt);
     comp.addPass(new T.RenderPass(V3.scena, V3.camera));
-    const bloom = new T.UnrealBloomPass(new T.Vector2(innerWidth, innerHeight), 0.32, 0.5, 0.92);
+    // i bagliori sono sfocati per natura: calcolarli a metà risoluzione non si vede e costa un quarto
+    const bloom = new T.UnrealBloomPass(new T.Vector2(innerWidth / 2, innerHeight / 2), 0.32, 0.5, 0.92);
+    const dimBloom = bloom.setSize.bind(bloom); bloom.setSize = (w, h) => dimBloom(Math.max(1, w / 2), Math.max(1, h / 2));
     comp.addPass(bloom);
     const finale = new T.ShaderPass({
       uniforms: { tDiffuse: { value: null }, esposizione: { value: 0.72 }, tempo: { value: 0 }, dolore: { value: 0 } },
@@ -256,7 +259,7 @@ function preparaRitocco() {
         void main(){
           vec3 c = texture2D(tDiffuse, vUv).rgb;
           c = aces(c);
-          c = mix(c, c * vec3(1.02, 1.0, 0.97), 0.5);                    // appena caldo, come il pomeriggio
+          c = mix(c, c * vec3(1.04, 1.0, 0.93), 0.5);                    // caldo, come il pomeriggio: toglie il viola al cielo
           c = mix(vec3(dot(c, vec3(0.299, 0.587, 0.114))), c, 0.84);    // colori meno accesi, più veri
           c = (c - 0.5) * 1.12 + 0.5;
           c = mix(c, c * vec3(0.96, 1.0, 1.05), smoothstep(0.5, 0.0, dot(c, vec3(0.333))));  // ombre appena fredde                                     // un filo di contrasto in più
@@ -282,6 +285,71 @@ const SUPERFICI_VERE = {
   corteccia: ['bark_brown_02', 1.5], pietra: ['rock_face_03', 1], coppi: ['roof_tiles_14', 2.5],
   sabbia: ['coast_sand_01', 1.2], terra: ['forest_ground_04', 1],
 };
+// ---------------------------------------------------------------- modelli 3D veri
+// Soldati animati, armi, alberi, pini, rocce e piante: modelli di Quaternius (licenza CC0, liberi).
+const MODELLI = ['soldato', 'arma_mitra', 'arma_pistola', 'arma_pompa', 'arma_mitraglietta', 'arma_precisione',
+  'cassa', 'albero_a', 'albero_b', 'albero_c', 'pino_a', 'pino_b', 'pino_c', 'roccia_a', 'roccia_b', 'roccia_c', 'pianta_a', 'pianta_b'];
+function caricaModelli() {
+  const T = V3.T; if (!T.GLTFLoader) return;
+  const L = new T.GLTFLoader(); V3.mod = {};
+  let fatti = 0;
+  for (const n of MODELLI) L.load(`grafica/modelli/${n}.glb?v=44`, g => { V3.mod[n] = g; if (++fatti === MODELLI.length) applicaModelli(); }, undefined, e => { console.error('modello', n, e); if (++fatti === MODELLI.length) applicaModelli(); });
+}
+// le foglie degli alberi sono dipinte in rosso autunnale: giro la tinta verso il verde della campagna, direttamente nella scheda grafica
+// le piante hanno le punte arancioni: le rendo verdi scure, da macchia mediterranea
+function fogliaPianta(m) { m.color = new V3.T.Color(0.55, 0.75, 0.45); }
+function fogliaVerde(m) {
+  m.onBeforeCompile = sh => {
+    sh.fragmentShader = sh.fragmentShader.replace('#include <map_fragment>', `#include <map_fragment>
+      { vec3 c = diffuseColor.rgb; float a = 1.75; const vec3 k = vec3(0.57735);
+        float co = cos(a); c = c * co + cross(k, c) * sin(a) + k * dot(k, c) * (1.0 - co);
+        diffuseColor.rgb = clamp(c * vec3(0.85, 1.0, 0.8), 0.0, 1.0); }`);
+  };
+  m.needsUpdate = true;
+}
+// tante copie di un modello, in un colpo solo (una per ogni posto): pesa come un oggetto solo
+function istanzeModello(nome, posti, altezza, verde) {
+  const T = V3.T, g = V3.mod[nome]; if (!g || !posti.length) return [];
+  g.scene.updateMatrixWorld(true);
+  const box = new T.Box3().setFromObject(g.scene), h = box.max.y - box.min.y || 1, base = altezza / h;
+  const out = [], m = new T.Matrix4(), q = new T.Quaternion(), s = new T.Vector3(), p = new T.Vector3(), su = new T.Vector3(0, 1, 0);
+  g.scene.traverse(o => {
+    if (!o.isMesh) return;
+    const mat = o.material.clone();
+    if (mat.transparent || /leaves|leaf/i.test(mat.name)) { mat.transparent = false; mat.alphaTest = 0.4; mat.side = T.DoubleSide; mat.depthWrite = true; }
+    if (verde && /leaves/i.test(mat.name)) fogliaVerde(mat);
+    const im = new T.InstancedMesh(o.geometry, mat, posti.length);
+    posti.forEach(([x, z, k, r], i) => {
+      q.setFromAxisAngle(su, r ?? (i * 2.39) % PI2); s.setScalar(base * (k || 1)); p.set(x, -box.min.y * base * (k || 1), z);
+      m.compose(p, q, s).multiply(o.matrixWorld); im.setMatrixAt(i, m);
+    });
+    im.castShadow = true; im.receiveShadow = true; V3.scena.add(im); out.push(im);
+  });
+  return out;
+}
+function applicaModelli() {
+  const P = V3.posti; if (!P) return;
+  // alberi, pini e rocce: via quelli disegnati, dentro i modelli (divisi a gruppi, perché ci sono tre modelli per tipo)
+  const gruppi = (elenco, nomi) => nomi.map((n, j) => elenco.filter((_, i) => i % nomi.length === j));
+  const nuovi = [];
+  const pini = gruppi(P.pini.map(([x, z, k]) => [x, z, k]), ['pino_a', 'pino_b', 'pino_c']);
+  ['pino_a', 'pino_b', 'pino_c'].forEach((n, j) => nuovi.push(...istanzeModello(n, pini[j], 11.5)));
+  const lat = gruppi(P.latifoglie.map(([x, z, k]) => [x, z, k]), ['albero_a', 'albero_b', 'albero_c']);
+  ['albero_a', 'albero_b', 'albero_c'].forEach((n, j) => nuovi.push(...istanzeModello(n, lat[j], 7.5, true)));
+  const sassi = gruppi(P.sassi.map(([x, , z, r, k]) => [x, z, k * 0.9, r]), ['roccia_a', 'roccia_b', 'roccia_c']);
+  ['roccia_a', 'roccia_b', 'roccia_c'].forEach((n, j) => nuovi.push(...istanzeModello(n, sassi[j], 1.3)));
+  if (nuovi.length) for (const v of V3.vecchioVerde || []) v.visible = false;
+  V3.modelliPronti = true;
+  // i soldati e l'arma in mano si rifanno coi modelli al prossimo fotogramma
+  for (const [, m] of V3.bot) V3.scena.remove(m);
+  V3.bot.clear();
+  for (const [, m] of V3.cespugli) V3.scena.remove(m);
+  V3.cespugli.clear();
+  for (const [, m] of V3.casse) V3.scena.remove(m);
+  V3.casse.clear();
+  if (V3.arma) V3.arma.userData.tipo = null;
+}
+
 // dopo un cambio di luce o di superfici, tutti i materiali si ricompilano (altrimenti alcuni restano neri)
 function ricompilaMateriali() {
   clearTimeout(V3.ricompila);
@@ -301,6 +369,7 @@ function caricaGraficaVera() {
           if (!m || m.map !== vecchia.map) continue;
           m.map = map; m.normalMap = nor; m.roughnessMap = arm; m.aoMap = arm; m.roughness = 1; m.aoMapIntensity = 0.9;
           if (nome === 'erba') m.color.setRGB(0.62, 0.86, 0.5);
+          if (nome === 'ciottoli') m.color.setRGB(0.62, 0.6, 0.56);
           if (o.geometry.attributes.uv && !o.geometry.attributes.uv2) o.geometry.setAttribute('uv2', o.geometry.attributes.uv); // le ombre negli incavi usano il secondo set di coordinate
           m.needsUpdate = true;
         }
@@ -486,7 +555,7 @@ function costruisciLuoghi3D() {
     for (const [geo, mat, y, sx] of parti) {
       const im = new T.InstancedMesh(geo, mat, elenco.length), m = new T.Matrix4(), q = new T.Quaternion(), s = new T.Vector3();
       elenco.forEach(([x, z, k], i) => { q.setFromAxisAngle(new T.Vector3(0, 1, 0), (i * 1.7) % PI2); s.set(k * (sx || 1), k, k * (sx || 1)); m.compose(new T.Vector3(x + (sx ? Math.sin(i) * 0.3 : 0), y * k, z), q, s); im.setMatrixAt(i, m); });
-      im.castShadow = true; im.receiveShadow = true; S.add(im);
+      im.castShadow = true; im.receiveShadow = true; S.add(im); (V3.vecchioVerde = V3.vecchioVerde || []).push(im);
     }
   };
   const chioma = (r, det = 2) => { const g = new T.IcosahedronGeometry(r, det), p = g.attributes.position; for (let i = 0; i < p.count; i++) { const f = 1 + (Math.sin(p.getX(i) * 4.3) * Math.cos(p.getZ(i) * 3.7) + Math.cos(p.getY(i) * 5.1 + p.getX(i) * 2.3)) * 0.16; p.setXYZ(i, p.getX(i) * f, p.getY(i) * f * 0.85, p.getZ(i) * f); } g.computeVertexNormals(); return g; };
@@ -512,7 +581,8 @@ function costruisciLuoghi3D() {
   const sassi = []; for (let i = 0; i < 45; i++) { const a = caso(-Math.PI, Math.PI), d = caso(22, 94); sassi.push([Math.sin(a) * d, -0.15, -Math.cos(a) * d, caso(0, 6), caso(0.4, 1.5)]); }
   const imR = new T.InstancedMesh(roccia, pietra, sassi.length), mm = new T.Matrix4(), qq = new T.Quaternion(), ss = new T.Vector3();
   sassi.forEach(([x, y, z, r, k], i) => { qq.setFromEuler(new T.Euler(r * 0.3, r, r * 0.2)); ss.set(k, k, k); mm.compose(new T.Vector3(x, y, z), qq, ss); imR.setMatrixAt(i, mm); });
-  imR.castShadow = true; imR.receiveShadow = true; S.add(imR);
+  imR.castShadow = true; imR.receiveShadow = true; S.add(imR); (V3.vecchioVerde = V3.vecchioVerde || []).push(imR);
+  V3.posti = { pini, latifoglie, sassi };
   // ombre di contatto: dove un oggetto tocca terra la luce del cielo non arriva, e la base si scurisce
   const [co, xo] = telaDisegno(128, 128), go = xo.createRadialGradient(64, 64, 0, 64, 64, 64);
   go.addColorStop(0, 'rgba(0,0,0,0.55)'); go.addColorStop(0.55, 'rgba(0,0,0,0.25)'); go.addColorStop(1, 'rgba(0,0,0,0)');
@@ -527,9 +597,54 @@ function costruisciLuoghi3D() {
 
 // ---------------------------------------------------------------- soldati
 // Un soldato fatto di pezzi: gambe e braccia che si muovono camminando, giubbotto con le tasche, elmetto, zaino, fucile.
+// le divise delle squadre: verde bosco, sabbia, grigio città, blu notte
+const DIVISE = [0x4a5634, 0x8a7550, 0x5a5e66, 0x2c3448];
+// un'arma vera (modello), girata con la canna in avanti e lunga quanto serve
+function modelloArma(tipo, lunghezza) {
+  const T = V3.T, g = V3.mod && V3.mod['arma_' + tipo]; if (!g) return null;
+  const o = g.scene.clone(true), box = new T.Box3().setFromObject(o), dim = box.getSize(new T.Vector3()), c = box.getCenter(new T.Vector3());
+  const k = lunghezza / Math.max(dim.x, dim.z);
+  const piv = new T.Group(); o.position.sub(c); piv.add(o); piv.scale.setScalar(k); piv.rotation.y = Math.PI / 2; // la canna dei modelli guarda verso destra: la giro in avanti
+  o.traverse(m => { if (m.isMesh) { m.castShadow = true; m.material = m.material.clone(); m.material.metalness = Math.max(m.material.metalness, 0.55); m.material.roughness = 0.45; } });
+  const fuori = new T.Group(); fuori.add(piv); fuori.userData.lunghezza = lunghezza;
+  return fuori;
+}
+function meshSoldato(b, squadra) {
+  const T = V3.T, g = V3.mod.soldato, gruppo = new T.Group();
+  const o = T.SkeletonUtils.clone(g.scene);
+  if (!V3.altezzaSoldato) { g.scene.updateMatrixWorld(true); const bx = new T.Box3().setFromObject(g.scene); V3.altezzaSoldato = bx.max.y - bx.min.y; }
+  o.scale.setScalar(1.8 / V3.altezzaSoldato); o.rotation.y = Math.PI; // il modello guarda verso di noi: lo giro come gli altri
+  o.traverse(m => {
+    if (!m.isMesh) return;
+    m.castShadow = true; m.receiveShadow = true; m.frustumCulled = false;
+    if (m.material.name === 'Swat') { m.material = m.material.clone(); m.material.color.setHex(DIVISE[squadra % 4]); m.material.roughness = 0.8; }
+  });
+  gruppo.add(o);
+  const mixer = new T.AnimationMixer(o), azioni = {};
+  for (const a of g.animations) azioni[a.name.split('|').pop()] = mixer.clipAction(a);
+  // l'arma che porta: davanti al petto, puntata avanti
+  const arma = modelloArma(b.arma && ARMI_BOT[b.arma] && b.arma !== 'piccone' ? b.arma : 'mitra', 0.85);
+  if (arma) { arma.position.set(0.16, 1.22, -0.35); gruppo.add(arma); }
+  const lampo = new T.Mesh(new T.SphereGeometry(0.12, 8, 6), new T.MeshBasicMaterial({ color: new T.Color(6, 4, 1.8) }));
+  lampo.position.set(0.16, 1.24, -0.8); lampo.visible = false; gruppo.add(lampo);
+  const compagno = G.modalita === 'battaglia' && b.team === B.mioTeam;
+  const nome = scritta3D(b.nome || b.def.nome, compagno ? '#7fd4ff' : '#ffffff', 0.32, false); nome.position.y = 2.25; gruppo.add(nome);
+  gruppo.userData = { modello: true, mixer, azioni, corrente: null, arma, armaTipo: b.arma, lampo, px: b.x, pz: b.z, dir: 0 };
+  V3.scena.add(gruppo);
+  return gruppo;
+}
+// sceglie l'animazione giusta e la fa entrare morbida
+function animaSoldato(u, nome, una = false) {
+  if (u.corrente === nome || !u.azioni[nome]) return;
+  const a = u.azioni[nome], prima = u.azioni[u.corrente];
+  a.reset(); a.setLoop(una ? V3.T.LoopOnce : V3.T.LoopRepeat); a.clampWhenFinished = una; a.play();
+  if (prima) prima.crossFadeTo(a, 0.2, false);
+  u.corrente = nome;
+}
 function meshBot(b, i) {
   const T = V3.T, gruppo = new T.Group();
   const squadra = G.modalita === 'battaglia' && b.team !== undefined ? b.team : i;
+  if (V3.mod && V3.mod.soldato) return meshSoldato(b, squadra);
   const mimetica = new T.MeshStandardMaterial({ map: V3.tex.mimetiche[squadra % 4], roughness: 0.9 });
   const scuro = new T.MeshStandardMaterial({ color: 0x2a2c26, roughness: 0.75 }), pelle = new T.MeshStandardMaterial({ color: 0xc89a78, roughness: 0.65 });
   const giubbotto = new T.MeshStandardMaterial({ color: [0x4b5232, 0x8c7a56, 0x4a4e52, 0x2f3646][squadra % 4], roughness: 0.8 });
@@ -633,6 +748,13 @@ function meshTetto(casa) {
 // cassa militare: verde oliva, chiusure di metallo, scritta, una lucina rossa che lampeggia
 function meshCassa() {
   const T = V3.T, g = new T.Group();
+  if (V3.mod && V3.mod.cassa) {
+    // la cassa militare vera, lunga un metro, con la spia che lampeggia sopra
+    const o = V3.mod.cassa.scene.clone(true), bx = new T.Box3().setFromObject(V3.mod.cassa.scene), d = bx.getSize(new T.Vector3()), k = 1.0 / Math.max(d.x, d.z);
+    o.scale.setScalar(k); o.position.y = -bx.min.y * k; o.traverse(m => { if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; } }); g.add(o);
+    const led = new T.Mesh(new T.SphereGeometry(0.025, 8, 6), new T.MeshBasicMaterial({ color: new T.Color(8, 0.6, 0.4) })); led.position.set(0.3, d.y * k + 0.01, 0); g.add(led);
+    g.userData.led = led; V3.scena.add(g); return g;
+  }
   V3.matCassa = V3.matCassa || { lato: new T.MeshStandardMaterial({ map: V3.tex.cassa, roughness: 0.7 }), verde: new T.MeshStandardMaterial({ color: 0x46552f, roughness: 0.75 }), metallo: new T.MeshStandardMaterial({ color: 0x9a9a92, metalness: 0.8, roughness: 0.35 }) };
   const M = V3.matCassa;
   const corpo = ombra(new T.Mesh(new T.BoxGeometry(1.1, 0.55, 0.62), [M.verde, M.verde, M.verde, M.verde, M.lato, M.lato])); corpo.position.y = 0.28; g.add(corpo);
@@ -674,6 +796,15 @@ function armaInMano() {
   if (A.userData.tipo === chiave) return;
   A.userData.tipo = chiave;
   while (A.children.length) A.remove(A.children[0]);
+  const LUNGHEZZE = { mitra: 0.78, pistola: 0.26, pompa: 0.95, mitraglietta: 0.5, precisione: 1.12 };
+  if (LUNGHEZZE[tipo] && V3.mod && V3.mod['arma_' + tipo]) {
+    // modello vero, con i guanti che lo reggono
+    const T = V3.T, m = modelloArma(tipo, LUNGHEZZE[tipo]);
+    m.position.set(0, 0, -LUNGHEZZE[tipo] * 0.28); A.add(m);
+    if (sil) { const lung = -LUNGHEZZE[tipo] * 0.78 - 0.08; const s = new T.Mesh(new T.CylinderGeometry(0.028, 0.028, 0.2, 14), new T.MeshStandardMaterial({ color: 0x232323, roughness: 0.5, metalness: 0.6 })); s.rotation.x = Math.PI / 2; s.position.set(0, 0.012, lung); A.add(s); }
+    A.position.set(0.2, -0.2, -0.42); A.scale.set(0.85, 0.85, 0.85); A.rotation.set(0, 0.04, 0);
+    return;
+  }
   const nero = new T.MeshStandardMaterial({ color: 0x26272a, metalness: 0.8, roughness: 0.42 });
   const polimero = new T.MeshStandardMaterial({ color: 0x3a3a34, metalness: 0.05, roughness: 0.78 });
   const legno = new T.MeshStandardMaterial({ map: V3.tex.legno.map, roughness: 0.6, color: 0xa07050 });
@@ -720,7 +851,7 @@ function armaInMano() {
   }
   // il silenziatore: un cilindro opaco in fondo alla canna
   if (sil) { const lung = { pistola: -0.42, mitra: -0.8, precisione: -1.12, mitraglietta: -0.52 }[tipo] ?? -0.6; p(cil(0.03, 0.22, 14), polimero, 0, tipo === 'precisione' ? 0.01 : 0.015, lung, Math.PI / 2); }
-  A.position.set(0.26, -0.25, -0.52); A.scale.set(0.72, 0.72, 0.72);
+  A.position.set(0.26, -0.25, -0.52); A.scale.set(0.72, 0.72, 0.72); A.rotation.set(0, 0, 0);
 }
 
 // ---------------------------------------------------------------- luci, fumo, esplosioni
@@ -741,9 +872,29 @@ function sbuffoFumo(x, y, z, quanti, scuro = false, grande = 1) {
 }
 
 // ---------------------------------------------------------------- ogni fotogramma
+// Qualità che si adatta da sola: il gioco misura quanto è fluido e, se arranca, toglie prima quello che si vede meno.
+// Gradino 1: meno pixel. Gradino 2: niente ombre degli alberi e ombre più semplici. Gradino 3: niente bagliori.
+function adattaQualita(ora) {
+  const Q = V3.qualita = V3.qualita || { gradino: 0, ultimo: ora, somma: 0, n: 0, da: ora };
+  const passo = ora - Q.ultimo; Q.ultimo = ora;
+  if (passo <= 0 || passo > 250) return;            // pausa o scheda nascosta: non conta
+  Q.somma += passo; Q.n++;
+  if (ora - Q.da < 4000) return;
+  const media = Q.somma / Q.n; Q.somma = 0; Q.n = 0; Q.da = ora;
+  if (media < 24 || Q.gradino >= 3) return;          // sopra le 40 immagini al secondo va bene così
+  Q.gradino++;
+  if (Q.gradino === 1) { V3.r.setPixelRatio(1); if (V3.composer) { V3.composer.setPixelRatio(1); V3.composer.setSize(innerWidth, innerHeight); } }
+  if (Q.gradino === 2) {
+    V3.scena.traverse(o => { if (o.isInstancedMesh && /Leaves|Bark/.test((o.material && o.material.name) || '')) o.castShadow = false; });
+    V3.sole.shadow.mapSize.set(1024, 1024); if (V3.sole.shadow.map) { V3.sole.shadow.map.dispose(); V3.sole.shadow.map = null; }
+  }
+  if (Q.gradino === 3 && V3.composer) { V3.composer = null; V3.r.toneMapping = V3.T.ACESFilmicToneMapping; V3.r.outputEncoding = V3.T.sRGBEncoding; }
+  console.log('qualità grafica abbassata al gradino', Q.gradino, 'media', media.toFixed(1), 'ms');
+}
 function disegna3D(ora, dt) {
   if (!iniziaGrafica3D()) return false;
   V3.tela3d.style.display = 'block';
+  adattaQualita(ora);
   const T = V3.T, cam = V3.camera;
   // telecamera: sul bus e in caduta dall'alto, poi all'altezza degli occhi; a terra (ferito) bassa
   const inCielo = G.modalita === 'battaglia' && B.cielo;
@@ -788,6 +939,26 @@ function disegna3D(ora, dt) {
     u.px = b.x; u.pz = b.z;
     m.visible = b.vivo ? !b.inAria && (b.udito !== false || (G.modalita === 'battaglia' && b.team === B.mioTeam)) : (b.morteT || 0) < 4;
     if (!m.visible) return;
+    if (u.modello) {
+      // modello vero: le animazioni fanno tutto (corsa, camminata, mira, tiro, colpito, caduta)
+      const sparando = (b.lampo || 0) > 0.3;
+      if (!b.vivo) animaSoldato(u, 'Death', true);
+      else if (G.tempo - (b.colpitoT ?? -9) < 0.35) animaSoldato(u, 'HitRecieve', true);
+      else if (mosso > 3.4) animaSoldato(u, sparando ? 'Run_Shoot' : 'Run');
+      else if (mosso > 0.4) animaSoldato(u, sparando ? 'Run_Shoot' : 'Walk');
+      else animaSoldato(u, sparando ? 'Idle_Gun_Shoot' : b.bersaglio ? 'Idle_Gun_Pointing' : 'Idle_Gun');
+      u.mixer.update(dt);
+      if (u.arma) u.arma.visible = b.vivo;
+      m.position.set(b.x, (b.livello || 0) * 2.5, b.z);
+      m.rotation.y = u.dir;
+      // se ha cambiato arma, cambia anche il modello che porta
+      if (b.arma !== u.armaTipo && b.arma && b.arma !== 'piccone') { if (u.arma) m.remove(u.arma); u.arma = modelloArma(b.arma, 0.85); if (u.arma) { u.arma.position.set(0.16, 1.22, -0.35); m.add(u.arma); } u.armaTipo = b.arma; }
+      u.lampo.visible = sparando;
+      if (sparando && !u.lampoFatto) { u.lampoFatto = true; lampoLuce(b.x, (b.livello || 0) * 2.5 + 1.4, b.z, 2.5, 0.07); }
+      if (!sparando) u.lampoFatto = false;
+      if (b.lampo) b.lampo = Math.max(0, b.lampo - dt * 6);
+      return;
+    }
     // camminata: le gambe vanno avanti e indietro, il corpo sobbalza appena
     const vel = Math.min(1, mosso / 3);
     u.passo += dt * (4 + mosso * 2.2) * (vel > 0.1 ? 1 : 0);
@@ -821,6 +992,16 @@ function disegna3D(ora, dt) {
     });
     // cespugli: foglie fitte e irregolari
     sincronizza(V3.cespugli, B.cespugli || [], c => c.id, c => {
+      if (V3.mod && V3.mod.pianta_a) {
+        // un cespuglio vero: tre piante fitte, girate a caso
+        const g = new T.Group();
+        for (const [dx, dz, k, n] of [[0, 0, 1.5, 'pianta_a'], [0.55, 0.3, 1.1, 'pianta_b'], [-0.5, -0.25, 1.2, 'pianta_a']]) {
+          const p = V3.mod[n].scene.clone(true); p.traverse(o => { if (o.isMesh) { o.castShadow = true; o.material = o.material.clone(); o.material.transparent = false; o.material.alphaTest = 0.4; o.material.side = T.DoubleSide; fogliaPianta(o.material); } });
+          const bx = new T.Box3().setFromObject(V3.mod[n].scene), h = bx.max.y - bx.min.y || 1;
+          p.scale.setScalar(k / h); p.position.set(dx, 0, dz); p.rotation.y = (c.x * 3.1 + dx * 7) % PI2; g.add(p);
+        }
+        g.position.set(c.x, 0, c.z); V3.scena.add(g); return g;
+      }
       const g = new T.Group(); V3.matFoglie = V3.matFoglie || materiale('foglie', { roughness: 0.95 });
       for (const [x, y, z, r] of [[0, 0.55, 0, 0.8], [0.5, 0.45, 0.2, 0.55], [-0.45, 0.45, -0.15, 0.6], [0.1, 0.95, -0.1, 0.5], [-0.2, 0.4, 0.45, 0.5]]) { const s = ombra(new T.Mesh(new T.IcosahedronGeometry(r, 1), V3.matFoglie)); s.position.set(x, y, z); s.rotation.set(x * 3, z * 5, y); g.add(s); }
       g.position.set(c.x, 0, c.z); V3.scena.add(g); return g;
