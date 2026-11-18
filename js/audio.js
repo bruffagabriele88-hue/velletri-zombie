@@ -126,17 +126,17 @@ async function inizializzaAudio(avanzamento) {
   Object.assign(A.buf, creaSuoniDuello(ctx));
   if (typeof creaSuoniRealismo === 'function') Object.assign(A.buf, creaSuoniRealismo(ctx));
   let fatti = 0;
-  await caricaInGruppi(ELENCO_SUONI.map(nome => [nome, `suoni/${nome}.wav?v=45`]), () => { fatti++; if (avanzamento) avanzamento(fatti / ELENCO_SUONI.length); });
+  await caricaInGruppi(ELENCO_SUONI.map(nome => [nome, `suoni/${nome}.wav?v=46`]), () => { fatti++; if (avanzamento) avanzamento(fatti / ELENCO_SUONI.length); });
   // frasi dei nemici: voce -> categoria -> elenco di suoni
   try {
-    A.voci = await (await fetch('suoni/voci/elenco.json?v=45')).json();
+    A.voci = await (await fetch('suoni/voci/elenco.json?v=46')).json();
     const nomi = Object.values(A.voci).flatMap(c => Object.values(c).flat());
-    await caricaInGruppi(nomi.map(nome => [nome, `suoni/voci/${nome}.wav?v=45`]));
+    await caricaInGruppi(nomi.map(nome => [nome, `suoni/voci/${nome}.wav?v=46`]));
   } catch (e) { console.error('voci non caricate', e); A.voci = {}; }
   // il menù letto dal narratore: file piccoli, si caricano subito (se mancano, legge la voce del computer)
   try {
-    const menu = await (await fetch('suoni/voci/menu/elenco.json?v=45')).json();
-    await caricaInGruppi(menu.map(n => ['menu_' + n, `suoni/voci/menu/menu_${n}.mp3?v=45`]));
+    const menu = await (await fetch('suoni/voci/menu/elenco.json?v=46')).json();
+    await caricaInGruppi(menu.map(n => ['menu_' + n, `suoni/voci/menu/menu_${n}.mp3?v=46`]));
   } catch (e) { /* il menù lo legge il computer */ }
   try {
     const scelta = localStorage.getItem('vz_orecchie');
@@ -173,8 +173,8 @@ const Orecchie = { scelta: 'browser', dati: {}, meta: null, sorgenti: new Set() 
 async function caricaOrecchie(nome) {
   if (Orecchie.dati[nome]) return Orecchie.dati[nome];
   const ctx = Audio3D.ctx;
-  if (!Orecchie.meta) Orecchie.meta = await (await fetch('suoni/orecchie/elenco.json?v=45')).json();
-  const M = Orecchie.meta, grezzi = new Float32Array(await (await fetch(`suoni/orecchie/${nome}.bin?v=45`)).arrayBuffer());
+  if (!Orecchie.meta) Orecchie.meta = await (await fetch('suoni/orecchie/elenco.json?v=46')).json();
+  const M = Orecchie.meta, grezzi = new Float32Array(await (await fetch(`suoni/orecchie/${nome}.bin?v=46`)).arrayBuffer());
   const nAz = 360 / M.passoAz, rapporto = ctx.sampleRate / 48000, n = Math.round(M.n * rapporto), buf = [];
   for (let e = 0; e < M.el.length; e++) for (let a = 0; a < nAz; a++) {
     const b = ctx.createBuffer(2, n, ctx.sampleRate);

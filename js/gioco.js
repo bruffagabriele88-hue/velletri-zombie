@@ -5,7 +5,7 @@ const CENTRO_VELLETRI = { lat: 41.6889914, lon: 12.7793312, nome: 'Velletri', pi
 
 const G = {
   stato: 'inizio',          // inizio | caricamento | menu | armi | digitazione | gioco | morto
-  pausa: true, modalita: 'assedio', principale: 'pompa',
+  pausa: true, modalita: 'battaglia', principale: 'pompa',
   tempo: 0, eventi: [],
   x: 0, z: 0, rotta: 0, vita: 100, occupatoFino: 0, inMovimento: false,
   arsenale: null, inventario: null, nemici: [], costruzioni: [], uccisi: 0,
@@ -32,17 +32,14 @@ function eseguiEventi() {
 
 // ---------------------------------------------------------------- menù (voce + tastiera)
 const MENU = {
-  menu: { titolo: 'Menù', voci: [['battaglia', 'Battaglia reale: tu contro undici, da solo o a squadre'], ['caccia', "Caccia all'uomo: sei tu il bersaglio, undici ti danno la caccia, resisti cinque minuti"], ['brete', 'Battaglia reale in rete con gli amici: i bot prendono i posti vuoti'], ['assedio', `Assedio a ${CENTRO_VELLETRI.piazza}, Velletri`], ['esplora', 'Esplorazione di Velletri'], ['altra', 'Esplorazione di un\'altra città'], ['duello', 'Duello uno contro uno in rete'], ['allenamento', 'Allenamento: ripassa tutti i comandi, uno alla volta'], ['orecchie', "Test delle orecchie: scegli l'audio 3D più preciso per te"]] },
+  menu: { titolo: 'Menù', voci: [['battaglia', 'Battaglia reale contro i bot: da solo o a squadre'], ['brete', 'Battaglia reale in rete con gli amici: i bot prendono i posti vuoti'], ['allenamento', 'Allenamento: ripassa tutti i comandi, uno alla volta'], ['orecchie', "Test delle orecchie: scegli l'audio 3D più preciso per te"]] },
   difficolta: { titolo: 'Difficoltà', voci: [['facile', 'Facile: sette avversari, meno precisi, mira molto assistita'], ['normale', 'Normale: undici avversari'], ['difficile', 'Difficile: avversari più svelti e precisi, poca assistenza']] },
   lancio: { titolo: 'Dove vuoi atterrare? Ti avviso io quando lanciarti.', voci: [['piazza', 'Piazza, al centro: tanti forzieri, tanta gente'], ['campanile', 'Campanile, a nord'], ['fontana', 'Fontana, a est'], ['canile', 'Canile, a sud'], ['bosco', 'Bosco, a ovest']] },
   squadre: { titolo: 'Come giochi?', voci: [['1', 'Da solo, tutti contro tutti'], ['2', 'In coppia: tu e un compagno'], ['4', 'Squadre da quattro: tu e tre compagni']] },
   brete: { titolo: 'Battaglia reale in rete', voci: [['crea', 'Crea una stanza'], ['entra', 'Entra in una stanza con un codice']] },
   squadreRete: { titolo: 'Squadre', voci: [['1', 'Tutti contro tutti'], ['2', 'A coppie: gli amici in squadra insieme, i bot riempiono'], ['4', 'Squadre da quattro: gli amici insieme, i bot riempiono']] },
-  duello: { titolo: 'Duello', voci: [['crea', 'Crea una stanza'], ['entra', 'Entra in una stanza con un codice']] },
-  modoDuello: { titolo: 'Modalità del duello', voci: [['classico', 'Classico, uno contro uno: armi, costruzioni e round speciali'], ['nobuild', 'Senza costruzioni, uno contro uno: solo armi e mira'], ['caccia', "Caccia all'uomo: a turno uno è la preda e deve resistere sessanta secondi"]] },
-  armi: { titolo: 'Arma principale', voci: [['pompa', 'Fucile a pompa'], ['mitra', 'Mitragliatore'], ['precisione', 'Fucile di precisione']] },
 };
-let sceltaMenu = 0, sceltaModalita = 'assedio';
+let sceltaMenu = 0;
 
 // le frasi d'apertura che hanno una registrazione del narratore
 const INTRO_MENU = { 'Velletri Zombie. ': 'menu_benvenuto', 'Mappa pronta. ': 'menu_mappa' };
@@ -65,58 +62,24 @@ function confermaMenu() {
   const id = MENU[G.stato].voci[sceltaMenu][0];
   suona('tic2', { gain: 0.5 });
   if (G.stato === 'menu') {
-    if (id === 'battaglia') { B.cacciaScelta = false; apriMenu('squadre'); return; }
-    if (id === 'caccia') { B.cacciaScelta = true; B.squadre = 1; apriMenu('lancio'); return; }
-    if (id === 'allenamento') { tutorialAvvia(); return; }
-    if (id === 'orecchie') { testOrecchieAvvia(); return; }
-    if (id === 'brete') { apriMenu('brete'); return; }
-    if (id === 'duello') { apriMenu('duello'); return; }
-    if (id === 'altra') { G.stato = 'digitazione'; G.scopoTesto = 'citta'; G.testo = ''; parla('Scrivi il nome della città, poi Invio. Esc per tornare.', 2); aggiornaPannello(); return; }
-    sceltaModalita = id === 'assedio' ? 'assedio' : 'esplorazione';
-    G.citta = CENTRO_VELLETRI; G.osm = null;
-    apriMenu('armi');
-  } else if (G.stato === 'armi') {
-    G.principale = id;
-    avviaPartita();
+    if (id === 'battaglia') apriMenu('squadre');
+    else if (id === 'brete') apriMenu('brete');
+    else if (id === 'allenamento') tutorialAvvia();
+    else if (id === 'orecchie') testOrecchieAvvia();
   } else if (G.stato === 'squadre') {
     B.squadre = +id; apriMenu('lancio');
   } else if (G.stato === 'lancio') {
     B.lancio = id; apriMenu('difficolta');
   } else if (G.stato === 'difficolta') {
-    battagliaAvvia(B.lancio, id, { squadre: B.cacciaScelta ? 1 : B.squadre, caccia: !!B.cacciaScelta });
+    battagliaAvvia(B.lancio, id, { squadre: B.squadre });
   } else if (G.stato === 'brete') {
     if (id === 'crea') apriMenu('squadreRete');
     else { G.stato = 'digitazione'; G.scopoTesto = 'codice'; G.testo = ''; parla('Scrivi il codice di 4 cifre, poi Invio. Esc per tornare.', 2); aggiornaPannello(); }
   } else if (G.stato === 'squadreRete') {
     duelloCrea('battaglia', +id);
-  } else if (G.stato === 'modoDuello') {
-    duelloCrea('duello', 1, id);
-  } else if (G.stato === 'duello') {
-    if (id === 'crea') apriMenu('modoDuello');
-    else { G.stato = 'digitazione'; G.scopoTesto = 'codice'; G.testo = ''; parla('Scrivi il codice di 4 cifre, poi Invio. Esc per tornare.', 2); aggiornaPannello(); }
   }
 }
 
-async function confermaCitta() {
-  const nome = G.testo.trim();
-  if (!nome) { parla('Scrivi un nome.', 1); return; }
-  G.stato = 'caricamento'; aggiornaPannello();
-  parla(`Cerco ${nome}.`, 2);
-  try {
-    const c = await cercaCitta(nome);
-    if (!c) { parla('Città non trovata. Riprova.', 2); G.stato = 'digitazione'; aggiornaPannello(); return; }
-    parla(`Trovata: ${c.nome}. Scarico le strade, attendi.`, 2);
-    const attesa = setInterval(() => suona('tic', { gain: 0.25 }), 1500);
-    try { G.osm = await scaricaMappa(c.lat, c.lon); } finally { clearInterval(attesa); }
-    G.citta = { lat: c.lat, lon: c.lon, nome: c.nome.split(',')[0], piazza: c.nome.split(',')[0] };
-    sceltaModalita = 'esplorazione';
-    apriMenu('armi', 'Mappa pronta. ');
-  } catch (e) {
-    console.error(e);
-    parla('Scaricamento non riuscito. Controlla la connessione e riprova.', 2);
-    G.stato = 'digitazione'; aggiornaPannello();
-  }
-}
 
 // ---------------------------------------------------------------- partita
 async function preparaMappa() {
@@ -130,38 +93,6 @@ async function preparaMappa() {
   }
 }
 
-async function avviaPartita() {
-  G.modalita = sceltaModalita;
-  G.stato = 'caricamento'; aggiornaPannello();
-  await preparaMappa();
-  pulisciPartita();
-  G.arsenale = nuovoArsenale(G.principale);
-  G.inventario = { granate: 2, kit: 1, cibo: 0, materiali: G.modalita === 'assedio' ? 12 : 6, radar: 1 };
-  G.vita = 100; G.scudo = 0; G.alto = false; G.rampaSotto = null; G.velocitaExtra = 1; D.trappole = []; D.radarFino = 0; G.prossimaCassa = 30; D.casse = []; G.uccisi = 0; G.punti = 0; G.serie = { n: 0, fino: 0 }; G.tempo = 0; G.campo = null; G.prossimoCampo = 0; G.ultimaFerita = -99; G.prossimaSpinta = 0; G.occupatoFino = 0; G.inizioPartita = 0;
-  G.rotta = 0;
-  if (G.modalita === 'assedio') {
-    G.nodoPiazza = nodoPiuVicino(G.mappa, 0, 0);
-    G.x = G.cx = G.mappa.nodi[G.nodoPiazza].x; G.z = G.cz = G.mappa.nodi[G.nodoPiazza].z; G.pos = null;
-    G.ondata = { numero: 0, rimasti: 0, daGenerare: [], inPausa: true, fine: 6 };
-  } else {
-    const n = nodoPiuVicino(G.mappa, 0, 0);
-    G.pos = { nodo: n }; G.x = G.mappa.nodi[n].x; G.z = G.mappa.nodi[n].z;
-    const primo = G.mappa.nodi[n].adj[0];
-    if (primo) {
-      G.rotta = rottaVerso(G.x, G.z, G.mappa.nodi[primo.v].x, G.mappa.nodi[primo.v].z);
-      G.pos.nome = G.mappa.archi[primo.e].nome;
-    }
-    preparaScorte();
-    G.regia = { prossimoControllo: 4, prossimaOrda: 90 };
-  }
-  aggiornaAscoltatore(G.x, G.z, G.rotta);
-  avviaAmbiente();
-  G.stato = 'gioco';
-  const arma = ARMI[G.principale].nome;
-  parla(document.pointerLockElement === tela ? 'Via.' : 'Clicca per iniziare.', 2);
-  if (document.pointerLockElement === tela) { G.pausa = false; if (G.modalita === 'esplorazione') { pianifica(1.5, annunciaIncrocio); pianifica(2.5, primoIncontro); } else G.ondata.fine = 0.5; }
-  aggiornaPannello();
-}
 
 function pulisciPartita() {
   battagliaFerma();
@@ -216,10 +147,6 @@ function intensitaPericolo() {
 }
 
 // esplorazione: il primo zombie compare presto, non lontano
-function primoIncontro() {
-  const nodi = nodiDiPartenza(15, 25);
-  if (nodi.length) creaNemicoSuNodo('camminatore', scegli(nodi), true);
-}
 
 function feriscimi(danno, proiettile = false) {
   if (G.stato !== 'gioco') return;
@@ -259,126 +186,13 @@ function cura() {
 }
 
 // ---------------------------------------------------------------- assedio a ondate
-function composizioneOndata(n) {
-  // subito azione, poi sempre di più: 5, 7, 9, 12, 15, 18...
-  const tot = 4 + n + Math.floor(n * n / 5), lista = [];
-  for (let i = 0; i < tot; i++) {
-    let t = 'camminatore';
-    const r = Math.random();
-    if (n >= 2 && r < 0.10 + n * 0.02) t = 'corridore';
-    else if (n >= 4 && r < 0.20 + n * 0.02) t = 'soldato';
-    lista.push(t);
-  }
-  if (n >= 4 && n % 2 === 0) lista.push('bruto');
-  return lista;
-}
 
 // sceglie da quali vie arrivano: nodi a 35-55 metri a piedi, in direzioni diverse tra loro
-function sceglIngressi(quanti) {
-  const candidati = nodiDiPartenza(22, 38);
-  const scelti = [];
-  for (let tent = 0; tent < 200 && scelti.length < quanti && candidati.length; tent++) {
-    const c = scegli(candidati), N = G.mappa.nodi[c], dir = rottaVerso(G.x, G.z, N.x, N.z);
-    if (scelti.every(s => Math.abs(avvolgi(s.dir - dir)) > 50 * GRADI)) scelti.push({ nodo: c, dir, via: nomeViaDelNodo(c) });
-  }
-  return scelti;
-}
 
-function iniziaOndata() {
-  const O = G.ondata;
-  O.numero++; O.inPausa = false;
-  annullaEventi('pausa');
-  const lista = composizioneOndata(O.numero);
-  // dalla terza ondata, una su tre è speciale
-  O.mod = O.numero >= 3 && Math.random() < 0.34 ? scegli(['veloci', 'giganti', 'tiratori', 'orda']) : null;
-  if (O.mod === 'giganti') lista.push('bruto', 'bruto');
-  if (O.mod === 'tiratori') for (let i = 1; i < lista.length; i += 2) lista[i] = 'soldato';
-  if (O.mod === 'orda') for (let i = 0; i < 5; i++) lista.push('camminatore');
-  O.rimasti = lista.length;
-  const ingressi = sceglIngressi(O.numero < 2 ? 1 : O.numero < 5 ? 2 : 3);
-  O.direzioni = ingressi.map(i => i.dir);
-  colpoInizio();
-  if (O.numero > 1) suona('sirena', { gain: 0.2 });
-  const N0 = G.mappa.nodi[ingressi[0].nodo];
-  gridoAssalto(N0.x, N0.z);
-  const vie = [...new Set(ingressi.map(i => i.via))];
-  const speciale = { veloci: 'tutti di corsa', giganti: 'arrivano i giganti', tiratori: 'pieni di tiratori', orda: 'il doppio di gente' }[O.mod];
-  parla(`Ondata ${O.numero}${speciale ? ', speciale: ' + speciale : ''}, da ${vie.join(' e ')}.`, 2);
-  // il primo zombie è già vicino: l'azione comincia subito
-  const [fx, fz] = avanti(ingressi[0].dir);
-  pianifica(0.8, () => creaNemico(lista[0], G.x + fx * 12, G.z + fz * 12, null, true), 'ondata');
-  let t = 2.5;
-  for (const tipo of lista.slice(1)) {
-    const ing = scegli(ingressi);
-    pianifica(t, () => { const n = creaNemicoSuNodo(tipo, ing.nodo, true); if (O.mod === 'veloci') n.velocita *= 1.5; }, 'ondata');
-    t += caso(1.2, 2.8) / Math.min(1.8, 1 + O.numero * 0.08);
-  }
-}
 
-function fineOndata() {
-  const O = G.ondata, A = G.arsenale;
-  O.inPausa = true; O.fine = G.tempo + 12;
-  // rifornimenti e un po' di riposo
-  A.riserva['9mm'] += 30;
-  if (A.armi.pompa) A.riserva.cal12 += 12;
-  if (A.armi.mitra) A.riserva['762'] += 60;
-  if (A.armi.precisione) A.riserva['308'] += 10;
-  G.inventario.materiali += 6;
-  G.inventario.kit++;
-  if (O.numero % 2 === 0) G.inventario.granate++;
-  G.vita = Math.min(100, G.vita + 30);
-  const bonus = 250 * O.numero; G.punti += bonus;
-  let extra = '';
-  const mancante = ['pompa', 'mitra', 'precisione'].find(k => !A.armi[k]);
-  if ((O.numero === 2 || O.numero === 4) && mancante) {
-    A.armi[mancante] = { caricatore: ARMI[mancante].capacita, camera: 1 };
-    A.riserva[ARMI[mancante].munizione] += { pompa: 18, mitra: 60, precisione: 15 }[mancante];
-    extra = ` Nuova arma: ${ARMI[mancante].nome}, tasto ${ARMI[mancante].tasto}.`;
-  }
-  if (O.numero % 3 === 0) { G.inventario.radar = (G.inventario.radar || 0) + 1; extra += ' Un radar in più, tasto L.'; }
-  suona('raccogli', { gain: 0.5 });
-  parla(`Ondata superata. ${G.punti} punti.${extra}`, 2);
-  pianifica(9, () => parla('Arrivano.', 1), 'pausa');
-}
 
-function aggiornaAssedio() {
-  const O = G.ondata;
-  if (O.inPausa) { if (G.tempo >= O.fine) iniziaOndata(); return; }
-  const inArrivo = G.eventi.some(e => e.tag === 'ondata');
-  if (!inArrivo && O.rimasti <= 0 && !G.nemici.some(n => n.vivo)) fineOndata();
-}
 
 // ---------------------------------------------------------------- esplorazione: regia dei nemici
-function aggiornaRegia() {
-  const R = G.regia;
-  if (G.tempo < R.prossimoControllo) return;
-  R.prossimoControllo = G.tempo + 1;
-  const minuti = G.tempo / 60;
-  const vivi = G.nemici.filter(n => n.vivo);
-  // i nemici rimasti troppo indietro si perdono
-  for (const n of vivi) if (Math.hypot(n.x - G.x, n.z - G.z) > 90) { n.vivo = false; n.morteT = 99; chiudiSorgente(n.sorgente); }
-  const obiettivo = Math.min(12, 3 + Math.floor(minuti * 1.2));
-  if (vivi.length < obiettivo && Math.random() < 0.45) {
-    const r = Math.random();
-    let tipo = 'camminatore';
-    if (minuti > 2 && r < 0.15) tipo = 'corridore';
-    else if (minuti > 3 && r < 0.27) tipo = 'soldato';
-    else if (minuti > 5 && r < 0.31) tipo = 'bruto';
-    const nodi = nodiDiPartenza(25, 55);
-    if (nodi.length) creaNemicoSuNodo(tipo, scegli(nodi), false); // vaga finché non mi nota
-  }
-  if (G.tempo >= R.prossimaOrda) {
-    R.prossimaOrda = G.tempo + caso(100, 150);
-    const [ing] = sceglIngressi(1);
-    if (!ing) return;
-    const N = G.mappa.nodi[ing.nodo];
-    suona('sirena', { gain: 0.25 });
-    gridoAssalto(N.x, N.z);
-    parla(`Orda in arrivo da ${ing.via}.`, 2);
-    const quanti = 4 + Math.floor(minuti / 2);
-    for (let i = 0; i < quanti; i++) pianifica(3 + i * caso(1.5, 3), () => creaNemicoSuNodo(Math.random() < 0.2 ? 'corridore' : 'camminatore', ing.nodo, true));
-  }
-}
 
 // riprendo fiato: se nessuno è vicino e non vengo ferito da un po', la vita risale fino a 60
 function aggiornaRespiro(dt) {
@@ -392,72 +206,8 @@ function aggiornaRespiro(dt) {
 // Mi muovo solo lungo le strade reali. Agli incroci mi fermo, sento le vie e scelgo girandomi.
 const VEL_PASSO = 1.5, VEL_CORSA = 3.3;
 
-function direzioneArco(da, a) { const M = G.mappa; return rottaVerso(M.nodi[da].x, M.nodi[da].z, M.nodi[a].x, M.nodi[a].z); }
 
-function diramazioni(nodo) {
-  const M = G.mappa;
-  return M.nodi[nodo].adj.map(({ v, e }) => ({ v, e, arco: M.archi[e], dir: direzioneArco(nodo, v) }));
-}
 
-function aggiornaCammino(dt) {
-  const M = G.mappa, P = G.pos;
-  const su = G.tasti.KeyW || G.tasti.ArrowUp, giu = G.tasti.KeyS || G.tasti.ArrowDown;
-  G.inMovimento = false;
-  if (!su && !giu) { P.bloccato = false; return; }
-  if (P.bloccato || !puoAgire()) return;
-  const corsa = G.tasti.ShiftLeft || G.tasti.ShiftRight;
-  let resto = (corsa ? VEL_CORSA : VEL_PASSO) * dt;
-  const verso = su ? G.rotta : avvolgi(G.rotta + Math.PI);
-
-  if (P.nodo != null) {
-    // fermo su un nodo: scelgo la via più vicina alla direzione in cui guardo
-    const rami = diramazioni(P.nodo);
-    let best = null;
-    for (const r of rami) { const diff = Math.abs(avvolgi(r.dir - verso)); if (!best || diff < best.diff) best = { ...r, diff }; }
-    if (!best || best.diff > 50 * GRADI) {
-      if (!P.avvisato) { suona('tic2', { gain: 0.6 }); parla('Nessuna strada da quella parte.', 1); P.avvisato = true; }
-      return;
-    }
-    P.avvisato = false;
-    G.pos = { da: P.nodo, a: best.v, e: best.e, t: 0, nome: best.arco.nome };
-    if (best.arco.nome !== P.nome) parla(best.arco.nome, 0);
-  } else {
-    // a metà strada: vado verso l'estremo più vicino alla direzione scelta
-    const dir = direzioneArco(P.da, P.a);
-    if (Math.abs(avvolgi(dir - verso)) > Math.PI / 2) {
-      G.pos = { da: P.a, a: P.da, e: P.e, t: M.archi[P.e].len - P.t, nome: P.nome };
-    }
-  }
-  G.inMovimento = true;
-  if (corsa) allertaNemici(G.x, G.z, 25);
-  passiMiei(corsa);
-  let Q = G.pos;
-  while (resto > 0) {
-    const len = M.archi[Q.e].len;
-    if (Q.t + resto < len) { Q.t += resto; resto = 0; break; }
-    resto -= len - Q.t;
-    // arrivo al nodo
-    const nodo = Q.a, grado = gradoNodo(M, nodo);
-    if (grado === 2) {
-      const altro = M.nodi[nodo].adj.find(o => o.v !== Q.da);
-      const nuovo = M.archi[altro.e];
-      // seguo la curva della strada girandomi con lei
-      const giro = avvolgi(direzioneArco(nodo, altro.v) - direzioneArco(Q.da, nodo));
-      if (su) G.rotta = avvolgi(G.rotta + giro);
-      if (nuovo.nome !== Q.nome) parla(nuovo.nome, 1);
-      Q = G.pos = { da: nodo, a: altro.v, e: altro.e, t: 0, nome: nuovo.nome };
-      continue;
-    }
-    G.pos = { nodo, nome: Q.nome, bloccato: true };
-    G.x = M.nodi[nodo].x; G.z = M.nodi[nodo].z;
-    if (grado === 1) { suona('tic2', { gain: 0.6 }); parla('Fine strada.', 1); }
-    else annunciaIncrocio();
-    return;
-  }
-  const a = M.nodi[Q.da], b = M.nodi[Q.a], k = Q.t / M.archi[Q.e].len;
-  G.x = a.x + (b.x - a.x) * k; G.z = a.z + (b.z - a.z) * k;
-  controllaLuoghiVicini();
-}
 
 let prossimoMioPasso = 0, piedeMio = 0;
 function passiMiei(corsa) {
@@ -470,156 +220,22 @@ function passiMiei(corsa) {
   if (P.legno) suona('legno_colpito', { gain: 0.15, rate: caso(1.5, 1.8) }); // sui muri e sulle rampe i passi suonano di legno
 }
 
-function annunciaIncrocio() {
-  const P = G.pos; if (!P || P.nodo == null) return;
-  suona('tic', { gain: 0.6 });
-  const rami = diramazioni(P.nodo).map(r => ({ ...r, rel: avvolgi(r.dir - G.rotta) })).sort((a, b) => Math.abs(a.rel) - Math.abs(b.rel));
-  // raggruppo le direzioni per nome della via: "Via Cavour avanti e dietro. Via Roma a destra."
-  const perNome = new Map();
-  for (const r of rami) { if (!perNome.has(r.arco.nome)) perNome.set(r.arco.nome, []); perNome.get(r.arco.nome).push(direzioneRelativa(r.rel)); }
-  const parti = [...perNome].map(([nome, dirs]) => `${nome} ${dirs.length > 1 ? dirs.slice(0, -1).join(', ') + ' e ' + dirs[dirs.length - 1] : dirs[0]}`);
-  let f = `Incrocio. ${parti.join('. ')}.`;
-  const g = istruzioneRotta();
-  if (g) f += ` ${g}`;
-  parla(f, 1);
-  P.allineato = null;
-}
 
 // all'incrocio, quando la mia direzione si allinea con una via sento un tic e il suo nome
-function controllaAllineamento() {
-  const P = G.pos; if (!P || P.nodo == null) return;
-  let best = null;
-  for (const r of diramazioni(P.nodo)) { const diff = Math.abs(avvolgi(r.dir - G.rotta)); if (!best || diff < best.diff) best = { ...r, diff }; }
-  const allineato = best && best.diff < 20 * GRADI ? best.v : null;
-  if (allineato !== P.allineato) {
-    P.allineato = allineato;
-    if (allineato != null) { suona('tic', { gain: 0.45, rate: 1.3 }); parla(best.arco.nome, 0); }
-  }
-}
 
 // ---------------------------------------------------------------- luoghi, scorte e navigazione
-function preparaScorte() {
-  G.scorte = [];
-  for (const p of G.mappa.poi) {
-    if (!p.scorta || Math.random() < 0.25) continue;
-    p.scortaAttiva = true;
-  }
-}
 
-function contenutoScorta(p) {
-  const inv = G.inventario, A = G.arsenale, parti = [];
-  switch (p.scorta) {
-    case 'kit': { const n = casoInt(1, 2); inv.kit += n; parti.push(plurale(n, 'kit medico', 'kit medici')); break; }
-    case 'cibo': { const n = casoInt(1, 2); inv.cibo += n; parti.push(`${n} cibo`); break; }
-    case 'materiali': { const n = casoInt(4, 8); inv.materiali += n; parti.push(`${n} materiali`); break; }
-    case 'granate': { const n = casoInt(1, 3); inv.granate += n; parti.push(plurale(n, 'granata', 'granate')); break; }
-    case 'armi': {
-      for (const k of ['pompa', 'mitra', 'precisione']) if (!A.armi[k]) { A.armi[k] = { caricatore: ARMI[k].capacita, camera: 1 }; parti.push(`${ARMI[k].nome}, tasto ${ARMI[k].tasto}`); break; }
-    } // continua con le munizioni
-    case 'munizioni': {
-      A.riserva['9mm'] += 30; parti.push('munizioni');
-      if (A.armi.pompa) A.riserva.cal12 += 12;
-      if (A.armi.mitra) A.riserva['762'] += 60;
-      if (A.armi.precisione) A.riserva['308'] += 10;
-      break;
-    }
-  }
-  return parti.join(', ');
-}
 
-function raccogli() {
-  if (!puoAgire()) return;
-  let best = null;
-  for (const p of G.mappa.poi) {
-    if (!p.scortaAttiva) continue;
-    const d = Math.hypot(p.x - G.x, p.z - G.z);
-    if (d < 25 && (!best || d < best.d)) best = { p, d };
-  }
-  if (!best) { parla('Niente da raccogliere qui.', 1); return; }
-  G.occupatoFino = G.tempo + 1.8;
-  suona('raccogli', { gain: 0.7 });
-  pianifica(1.8, () => { best.p.scortaAttiva = false; parla(`${best.p.nome}: ${contenutoScorta(best.p)}.`, 1); });
-}
 
-function controllaLuoghiVicini() {
-  for (const p of G.mappa.poi) {
-    const d = Math.hypot(p.x - G.x, p.z - G.z);
-    const chiave = p.nome + p.x;
-    if (d < 18 && !G.annunciati.has(chiave)) {
-      G.annunciati.add(chiave);
-      const rel = avvolgi(rottaVerso(G.x, G.z, p.x, p.z) - G.rotta);
-      parla(`${p.nome}, ${direzioneRelativa(rel)}${p.scortaAttiva ? ', rifornimenti, E per prendere' : ''}.`, 1);
-    }
-    if (d > 60) G.annunciati.delete(chiave);
-  }
-  if (G.destinazione && Math.hypot(G.destinazione.x - G.x, G.destinazione.z - G.z) < 20) {
-    parla(`Arrivato: ${G.destinazione.nome}.`, 2);
-    G.destinazione = null;
-  }
-}
 
-function sfogliaLuoghi(passo) {
-  if (G.modalita !== 'esplorazione') { parla('Solo in esplorazione.', 1); return; }
-  G.elencoPoi = G.mappa.poi.map(p => ({ p, d: Math.hypot(p.x - G.x, p.z - G.z) })).filter(o => o.d < 1500).sort((a, b) => a.d - b.d).slice(0, 40);
-  if (!G.elencoPoi.length) { parla('Nessun luogo vicino.', 1); return; }
-  G.selezionePoi = (G.selezionePoi + passo + G.elencoPoi.length) % G.elencoPoi.length;
-  const { p, d } = G.elencoPoi[G.selezionePoi];
-  const rel = avvolgi(rottaVerso(G.x, G.z, p.x, p.z) - G.rotta);
-  parla(`${p.nome}, ${p.etichetta}, ${metri(d)} ${direzioneRelativa(rel)}${p.scortaAttiva ? ', rifornimenti' : ''}. L per andarci.`, 1);
-}
 
-function impostaDestinazione() {
-  if (G.modalita !== 'esplorazione') { parla('Solo in esplorazione.', 1); return; }
-  if (G.destinazione && (G.selezionePoi < 0 || G.elencoPoi[G.selezionePoi]?.p === G.destinazione)) {
-    G.destinazione = null; parla('Navigazione spenta.', 1); return;
-  }
-  const scelta = G.elencoPoi[G.selezionePoi];
-  if (!scelta) { parla('Prima scegli un luogo col tasto P.', 1); return; }
-  G.destinazione = scelta.p;
-  const r = calcolaRotta();
-  parla(`Destinazione: ${scelta.p.nome}${r ? `, ${metri(r.lunghezza)} a piedi` : ''}. Segui il segnale.`, 1);
-}
 
 // percorso dalla mia posizione al nodo più vicino alla destinazione
-function calcolaRotta() {
-  const M = G.mappa, D = G.destinazione; if (!D) return null;
-  if (!D.nodo) D.nodo = nodoPiuVicino(M, D.x, D.z);
-  const P = G.pos;
-  if (P.nodo != null) return percorso(M, P.nodo, D.nodo);
-  const len = M.archi[P.e].len;
-  const r1 = percorso(M, P.a, D.nodo), r2 = percorso(M, P.da, D.nodo);
-  const l1 = r1 ? r1.lunghezza + len - P.t : Infinity, l2 = r2 ? r2.lunghezza + P.t : Infinity;
-  if (l1 <= l2 && r1) return { nodi: r1.nodi, lunghezza: l1 };
-  if (r2) return { nodi: r2.nodi, lunghezza: l2 };
-  return null;
-}
 
 // il prossimo punto di svolta del percorso: un incrocio, oppure la destinazione
-function prossimoPuntoRotta() {
-  const M = G.mappa, r = calcolaRotta(); if (!r) return null;
-  const via = r.nodi;
-  for (let i = G.pos.nodo != null ? 1 : 0; i < via.length - 1; i++) {
-    if (gradoNodo(M, via[i]) >= 3) return { x: M.nodi[via[i]].x, z: M.nodi[via[i]].z };
-  }
-  return { x: G.destinazione.x, z: G.destinazione.z };
-}
 
-function istruzioneRotta() {
-  if (!G.destinazione || G.pos.nodo == null) return '';
-  const r = calcolaRotta(); if (!r || r.nodi.length < 2) return '';
-  const prossimo = r.nodi[1];
-  const ramo = diramazioni(G.pos.nodo).find(x => x.v === prossimo); if (!ramo) return '';
-  return `Per ${G.destinazione.nome}: ${direzioneRelativa(avvolgi(ramo.dir - G.rotta))}, ${ramo.arco.nome}.`;
-}
 
 let prossimoPing = 0;
-function aggiornaRadiofaro() {
-  if (!G.destinazione || G.tempo < prossimoPing) return;
-  prossimoPing = G.tempo + 1.6;
-  const p = prossimoPuntoRotta(); if (!p) return;
-  const minacce = G.nemici.some(n => n.vivo && Math.hypot(n.x - G.x, n.z - G.z) < 12);
-  suonaInPunto('ping', p.x, p.z, { gain: minacce ? 0.25 : 0.6, ref: 8, riverbero: 0.1 });
-}
 
 // ---------------------------------------------------------------- ambiente sonoro della città
 let prossimaCampana = 0, prossimiCani = 0, prossimaCivetta = 0;
@@ -662,32 +278,12 @@ function aggiornaAmbiente() {
 }
 
 // ---------------------------------------------------------------- informazioni a richiesta
-function nomeLuogo() {
-  if (G.modalita === 'assedio') return G.citta.piazza;
-  const M = G.mappa;
-  let vicino = null;
-  for (const p of M.poi) { const d = Math.hypot(p.x - G.x, p.z - G.z); if (d < 80 && (!vicino || d < vicino.d)) vicino = { p, d }; }
-  return `${G.pos.nome || 'strada'}${vicino ? `, vicino a ${vicino.p.nome}` : ''}`;
-}
 
 function descriviArma() {
   const def = armaDef(), st = armaStato();
   return def.mischia ? def.nome : `${def.nome}, ${def.categoria}${st.silenziatore ? ', col silenziatore' : ''}, ${testoColpi(def, st)}`;
 }
 
-function ricognizione() {
-  const vivi = G.nemici.filter(n => n.vivo && n.udito).map(n => ({ n, d: Math.hypot(n.x - G.x, n.z - G.z) })).sort((a, b) => a.d - b.d);
-  let f = `${nomeLuogo()}. `;
-  if (G.modalita === 'assedio') f += G.ondata.inPausa ? `Pausa dopo l'ondata ${G.ondata.numero}. ` : `Ondata ${G.ondata.numero}. `;
-  if (!vivi.length) f += 'Nessun nemico. ';
-  else {
-    f += `${plurale(vivi.length, 'nemico', 'nemici')}. `;
-    f += vivi.slice(0, 3).map(({ n, d }) => `${n.def.nome} ${direzioneRelativa(avvolgi(rottaVerso(G.x, G.z, n.x, n.z) - G.rotta))} ${metri(d)}${n.occluso ? ', dietro i palazzi' : ''}`).join(', ') + '. ';
-  }
-  f += `${descriviArma()}. Vita ${Math.round(G.vita)}. ${G.punti} punti.`;
-  if (G.destinazione) f += ` Destinazione ${G.destinazione.nome}.`;
-  parla(f, 2);
-}
 
 function inventario() {
   const A = G.arsenale, I = G.inventario, parti = [];
@@ -701,22 +297,6 @@ function inventario() {
   parla(parti.join('. ') + '.', 2);
 }
 
-function orientamento() {
-  const card = puntoCardinale(G.rotta);
-  if (G.modalita === 'assedio') { parla(`${G.citta.piazza}, guardi verso ${card}.`, 1); return; }
-  const M = G.mappa, P = G.pos;
-  let f = `${P.nome || 'strada'}, guardi verso ${card}.`;
-  if (P.nodo == null) {
-    // cammino fino al prossimo incrocio nella direzione in cui guardo
-    let da = P.da, a = P.a, dist = M.archi[P.e].len - P.t;
-    if (Math.abs(avvolgi(direzioneArco(P.da, P.a) - G.rotta)) > Math.PI / 2) { da = P.a; a = P.da; dist = P.t; }
-    for (let i = 0; i < 200 && gradoNodo(M, a) === 2; i++) {
-      const o = M.nodi[a].adj.find(x => x.v !== da); dist += M.archi[o.e].len; da = a; a = o.v;
-    }
-    f += gradoNodo(M, a) === 1 ? ` Fine strada tra ${metri(dist)}.` : ` Incrocio tra ${metri(dist)}.`;
-  } else f += ' Sei a un incrocio.';
-  parla(f, 1);
-}
 
 // ---------------------------------------------------------------- input
 function agganciaPuntatore() {
@@ -735,12 +315,7 @@ document.addEventListener('pointerlockchange', () => {
     if (!agganciato) parla('Mouse sganciato. Clicca per riprendere. La partita continua.', 2);
   } else if (G.stato === 'gioco') {
     G.pausa = !agganciato;
-    if (agganciato) {
-      if (G.tempo < 0.1) {
-        if (G.modalita === 'esplorazione') { parla('Via.', 1); pianifica(1.5, annunciaIncrocio); pianifica(2.5, primoIncontro); }
-        else if (G.ondata) G.ondata.fine = 0.5;
-      } else parla('Via.', 1);
-    } else parla('Pausa. Clicca per riprendere. M per il menù.', 2);
+    if (agganciato) { if (G.tempo >= 0.1) parla('Via.', 1); } else parla('Pausa. Clicca per riprendere. M per il menù.', 2);
   }
   aggiornaPannello();
 });
@@ -813,7 +388,7 @@ document.addEventListener('keydown', e => {
     return;
   }
   if (G.stato === 'digitazione') {
-    if (k === 'Enter') { if (G.scopoTesto === 'codice') duelloEntra(); else confermaCitta(); }
+    if (k === 'Enter') duelloEntra();
     else if (k === 'Escape') apriMenu('menu');
     else if (k === 'Backspace') { const tolta = G.testo.slice(-1); G.testo = G.testo.slice(0, -1); parla(tolta === ' ' ? 'spazio' : tolta || 'vuoto', 0); }
     else if (k.length === 1) { G.testo += k; parla(k === ' ' ? 'spazio' : k, 0); }
@@ -822,10 +397,8 @@ document.addEventListener('keydown', e => {
   }
   if (G.stato === 'morto') {
     if (k === 'Enter') {
-      if (G.modalita === 'duello') duelloRivincita();
-      else if (G.modalita === 'battaglia' && B.rete) { if (D.ospite) reteBRRivincita(); else parla('La prossima partita la avvia chi ha creato la stanza.', 1); }
-      else if (G.modalita === 'battaglia') battagliaAvvia(B.lancio, null, { squadre: B.squadre, caccia: B.caccia });
-      else avviaPartita();
+      if (B.rete) { if (D.ospite) reteBRRivincita(); else parla('La prossima partita la avvia chi ha creato la stanza.', 1); }
+      else battagliaAvvia(B.lancio, null, { squadre: B.squadre });
       if (document.pointerLockElement !== tela) agganciaPuntatore();
     }
     else if (c === 'KeyM') { if (D.rete) duelloChiudi(); pulisciPartita(); apriMenu('menu'); if (document.pointerLockElement) document.exitPointerLock(); }
@@ -889,8 +462,8 @@ document.addEventListener('keydown', e => {
     case 'Digit6': cambiaArma('mitraglietta'); break;
     case 'KeyN': costruisci('rampa'); break;
     case 'KeyJ': if (G.modalita === 'duello') vocaleMuto(); break;
-    case 'KeyP': if (G.modalita === 'battaglia') { bevePozione(); break; } sfogliaLuoghi(e.shiftKey ? -1 : 1); break;
-    case 'KeyO': if (G.modalita === 'battaglia') { battagliaZona(); break; } orientamento(); break;
+    case 'KeyP': bevePozione(); break;
+    case 'KeyO': battagliaZona(); break;
     case 'KeyQ': lanciaGranata(); break;
     case 'KeyZ': spintone(); break;
     case 'KeyX': G.rotta = avvolgi(G.rotta + Math.PI); suona('arma_estrai', { gain: 0.3, rate: 1.3 }); break;
@@ -900,13 +473,12 @@ document.addEventListener('keydown', e => {
     case 'KeyB': costruisci('barricata'); break;
     case 'KeyF': if (e.shiftKey) costruisci('filo'); else duelloTrappola(); break;
     case 'KeyT': if (e.shiftKey) costruisci('mina'); else costruisciScatola(); break;
-    case 'KeyE': if (G.modalita === 'battaglia' && provaRianimare()) break; if (!duelloApriCassa() && G.modalita === 'esplorazione') raccogli(); break;
-    case 'Space': ricognizione(); break;
+    case 'KeyE': if (provaRianimare()) break; duelloApriCassa(); break;
     case 'KeyI': case 'Tab': inventario(); break;
     case 'KeyC': if (e.shiftKey || !inArena()) parla(descriviArma(), 1); else mira(); break;
     case 'KeyV': parla(`vita ${Math.round(G.vita)}`, 1); break;
     case 'KeyK': parla(descriviCostruzioni(), 1); break;
-    case 'KeyL': if (G.modalita === 'esplorazione' && !e.shiftKey) impostaDestinazione(); else duelloRadar(); break;
+    case 'KeyL': duelloRadar(); break;
     case 'KeyG':
       G.graficaAccesa = !G.graficaAccesa;
       $('buio').style.display = G.graficaAccesa ? 'none' : 'block';
@@ -968,13 +540,9 @@ function cicloInterno(ora) {
     if (G.tasti.ArrowLeft) giro -= 1;
     if (G.tasti.ArrowRight) giro += 1;
     if (giro) ruota(giro * 120 * GRADI * dt);
-    if (G.modalita === 'esplorazione') { aggiornaCammino(dt); controllaAllineamento(); aggiornaRegia(); aggiornaRadiofaro(); }
-    else if (G.modalita === 'duello') aggiornaDuello(dt);
-    else if (G.modalita === 'battaglia') aggiornaBattaglia(dt);
-    else { muoviLibero(dt, G.cx, G.cz, 22, false); aggiornaAssedio(); }
-    if (G.modalita !== 'duello') { controllaTrappole(); aggiornaRadar(); }
-    if (G.modalita === 'battaglia') { if (!B.cielo && !B.morto) { aggiornaTurbo(); aggiornaPianoMio(); aggiornaCasse(false); } }
-    else if (G.modalita !== 'duello') { aggiornaAltezza(); aggiornaCasseSolitario(); }
+    aggiornaBattaglia(dt);
+    controllaTrappole(); aggiornaRadar();
+    if (!B.cielo && !B.morto) { aggiornaTurbo(); aggiornaPianoMio(); aggiornaCasse(false); }
     eseguiEventi();
     aggiornaArmi();
     aggiornaNemici(dt);

@@ -437,3 +437,12 @@ armi vere in mano e nelle mani dei nemici; pini, alberi, rocce e cespugli veri; 
 La qualità si adatta da sola: se il computer fa fatica, il gioco abbassa i dettagli meno visibili.
 
 La sfida contro Claude è stata tolta.
+
+IL GIOCO È STATO SEMPLIFICATO
+Ora il menù ha solo quattro voci:
+1. Battaglia reale contro i bot: da solo, in coppia o a squadre da quattro.
+2. Battaglia reale in rete con gli amici: i bot prendono i posti vuoti.
+3. Allenamento.
+4. Test delle orecchie.
+Sono state tolte: assedio, esplorazione di Velletri, esplorazione di un'altra città, duello e caccia all'uomo.
+Le parti di queste istruzioni che parlano di quelle modalità non valgono più.
