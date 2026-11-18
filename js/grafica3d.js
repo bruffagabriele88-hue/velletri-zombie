@@ -287,13 +287,13 @@ const SUPERFICI_VERE = {
 };
 // ---------------------------------------------------------------- modelli 3D veri
 // Soldati animati, armi, alberi, pini, rocce e piante: modelli di Quaternius (licenza CC0, liberi).
-const MODELLI = ['soldato', 'arma_mitra', 'arma_pistola', 'arma_pompa', 'arma_mitraglietta', 'arma_precisione',
+const MODELLI = ['palazzo', 'soldato', 'arma_mitra', 'arma_pistola', 'arma_pompa', 'arma_mitraglietta', 'arma_precisione',
   'cassa', 'albero_a', 'albero_b', 'albero_c', 'pino_a', 'pino_b', 'pino_c', 'roccia_a', 'roccia_b', 'roccia_c', 'pianta_a', 'pianta_b'];
 function caricaModelli() {
   const T = V3.T; if (!T.GLTFLoader) return;
   const L = new T.GLTFLoader(); V3.mod = {};
   let fatti = 0;
-  for (const n of MODELLI) L.load(`grafica/modelli/${n}.glb?v=46`, g => { V3.mod[n] = g; if (++fatti === MODELLI.length) applicaModelli(); }, undefined, e => { console.error('modello', n, e); if (++fatti === MODELLI.length) applicaModelli(); });
+  for (const n of MODELLI) L.load(`grafica/modelli/${n}.glb?v=47`, g => { V3.mod[n] = g; if (++fatti === MODELLI.length) applicaModelli(); }, undefined, e => { console.error('modello', n, e); if (++fatti === MODELLI.length) applicaModelli(); });
 }
 // le foglie degli alberi sono dipinte in rosso autunnale: giro la tinta verso il verde della campagna, direttamente nella scheda grafica
 // le piante hanno le punte arancioni: le rendo verdi scure, da macchia mediterranea
@@ -339,6 +339,20 @@ function applicaModelli() {
   const sassi = gruppi(P.sassi.map(([x, , z, r, k]) => [x, z, k * 0.9, r]), ['roccia_a', 'roccia_b', 'roccia_c']);
   ['roccia_a', 'roccia_b', 'roccia_c'].forEach((n, j) => nuovi.push(...istanzeModello(n, sassi[j], 1.3)));
   if (nuovi.length) for (const v of V3.vecchioVerde || []) v.visible = false;
+  // i palazzi intorno alla piazza: il palazzo vero, girato verso la piazza, largo quanto quello che sostituisce
+  const pal = V3.mod.palazzo;
+  if (pal && V3.palazzi) {
+    pal.scene.updateMatrixWorld(true);
+    const bx = new V3.T.Box3().setFromObject(pal.scene), dim = bx.getSize(new V3.T.Vector3());
+    for (const P of V3.palazzi) {
+      const o = pal.scene.clone(true), k = (P.w * 1.1) / Math.max(dim.x, dim.z);
+      o.scale.setScalar(k); o.position.set(P.x, -bx.min.y * k, P.z); o.rotation.y = -P.a;
+      o.traverse(m => { if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; } });
+      V3.scena.add(o);
+      for (const v of P.vecchi) v.visible = false;
+    }
+    for (const f of V3.finestrePalazzi || []) if (f) f.visible = false;
+  }
   V3.modelliPronti = true;
   // i soldati e l'arma in mano si rifanno coi modelli al prossimo fotogramma
   for (const [, m] of V3.bot) V3.scena.remove(m);
@@ -501,10 +515,11 @@ function costruisciLuoghi3D() {
     const m = intonaco.clone(); m.color = new T.Color(tinte[i]);
     const casa = ombra(new T.Mesh(new T.BoxGeometry(w, h, 8), m));
     casa.position.set(Math.sin(a) * d, h / 2, -Math.cos(a) * d); casa.rotation.y = -a; S.add(casa);
-    const zoccolo = ombra(new T.Mesh(new T.BoxGeometry(w + 0.12, 0.9, 8.12), materiale('pietra'))); zoccolo.position.set(casa.position.x, 0.45, casa.position.z); zoccolo.rotation.y = -a; S.add(zoccolo);
-    const cornice = ombra(new T.Mesh(new T.BoxGeometry(w + 0.5, 0.28, 8.5), intonaco)); cornice.position.set(casa.position.x, h - 0.1, casa.position.z); cornice.rotation.y = -a; S.add(cornice);
+    (V3.palazzi = V3.palazzi || []).push({ x: casa.position.x, z: casa.position.z, a, w, h, vecchi: [casa] });
+    const zoccolo = ombra(new T.Mesh(new T.BoxGeometry(w + 0.12, 0.9, 8.12), materiale('pietra'))); zoccolo.position.set(casa.position.x, 0.45, casa.position.z); zoccolo.rotation.y = -a; S.add(zoccolo); V3.palazzi[V3.palazzi.length - 1].vecchi.push(zoccolo);
+    const cornice = ombra(new T.Mesh(new T.BoxGeometry(w + 0.5, 0.28, 8.5), intonaco)); cornice.position.set(casa.position.x, h - 0.1, casa.position.z); cornice.rotation.y = -a; S.add(cornice); V3.palazzi[V3.palazzi.length - 1].vecchi.push(cornice);
     const tetto = ombra(new T.Mesh(new T.CylinderGeometry(0.01, w * 0.62, 2.6, 4, 1), coppi));
-    tetto.position.set(casa.position.x, h + 1.3, casa.position.z); tetto.rotation.y = -a + Math.PI / 4; tetto.scale.set(1, 1, 0.66); S.add(tetto);
+    tetto.position.set(casa.position.x, h + 1.3, casa.position.z); tetto.rotation.y = -a + Math.PI / 4; tetto.scale.set(1, 1, 0.66); S.add(tetto); V3.palazzi[V3.palazzi.length - 1].vecchi.push(tetto);
     for (let p = 0; p < piani; p++) for (let k = 0; k < 3; k++) {
       const off = (k - 1) * (w / 3.4), y = 2 + p * 3.2;
       const fx = casa.position.x - Math.sin(a) * 4.02 + Math.cos(a) * off, fz = casa.position.z + Math.cos(a) * 4.02 + Math.sin(a) * off;
@@ -517,8 +532,7 @@ function costruisciLuoghi3D() {
     elenco.forEach(([x, y, z, r], i) => { q.setFromAxisAngle(new T.Vector3(0, 1, 0), r); m.compose(new T.Vector3(x, y, z), q, s); im.setMatrixAt(i, m); });
     im.castShadow = ombre; im.receiveShadow = true; S.add(im); return im;
   };
-  metti(new T.BoxGeometry(1.0, 1.5, 0.08), vetro, finestre);
-  metti(new T.BoxGeometry(0.55, 1.6, 0.06), persiana, persiane);
+  V3.finestrePalazzi = [metti(new T.BoxGeometry(1.0, 1.5, 0.08), vetro, finestre), metti(new T.BoxGeometry(0.55, 1.6, 0.06), persiana, persiane)];
   // Campanile: mattoni, cella campanaria con gli archi, guglia
   const mattoni = materiale('mattoni');
   const torre = ombra(new T.Mesh(new T.BoxGeometry(5, 24, 5), mattoni)); torre.position.set(L.campanile.x, 12, L.campanile.z); S.add(torre);

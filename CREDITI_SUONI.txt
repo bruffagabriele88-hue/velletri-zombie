@@ -89,5 +89,5 @@ Dettagli e licenza in suoni/orecchie/LEGGIMI.txt e suoni/orecchie/LICENSE-2.0.tx
 
 MODELLI 3D
 Soldato animato (SWAT), armi (fucile d'assalto, pistola, fucile a pompa, mitraglietta, fucile di precisione),
-alberi, pini, rocce, piante e cassa militare: Quaternius (quaternius.com), scaricati da poly.pizza, licenza CC0.
+alberi, pini, rocce, piante, cassa militare e palazzi della piazza: Quaternius (quaternius.com), scaricati da poly.pizza, licenza CC0.
 Grazie a Quaternius.
