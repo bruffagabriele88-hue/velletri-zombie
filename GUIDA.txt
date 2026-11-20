@@ -446,3 +446,10 @@ Ora il menù ha solo quattro voci:
 4. Test delle orecchie.
 Sono state tolte: assedio, esplorazione di Velletri, esplorazione di un'altra città, duello e caccia all'uomo.
 Le parti di queste istruzioni che parlano di quelle modalità non valgono più.
+
+SPARARE ANCHE CON INVIO
+Oltre al clic, ora si spara anche con il tasto Invio: un colpo a ogni pressione, e tenendolo premuto
+le armi automatiche sparano a raffica. Serve quando il clic del trackpad non arriva al gioco
+(succede con VoiceOver attivo, o subito dopo aver premuto Esc).
+Se il mouse si è sganciato, il primo clic o Invio riprende la partita e il gioco dice "Via".
+Cura (H) e piastra (P) ora dicono subito "Kit medico", "Benda" o "Piastra", e il risultato alla fine.

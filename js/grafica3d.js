@@ -293,7 +293,7 @@ function caricaModelli() {
   const T = V3.T; if (!T.GLTFLoader) return;
   const L = new T.GLTFLoader(); V3.mod = {};
   let fatti = 0;
-  for (const n of MODELLI) L.load(`grafica/modelli/${n}.glb?v=47`, g => { V3.mod[n] = g; if (++fatti === MODELLI.length) applicaModelli(); }, undefined, e => { console.error('modello', n, e); if (++fatti === MODELLI.length) applicaModelli(); });
+  for (const n of MODELLI) L.load(`grafica/modelli/${n}.glb?v=48`, g => { V3.mod[n] = g; if (++fatti === MODELLI.length) applicaModelli(); }, undefined, e => { console.error('modello', n, e); if (++fatti === MODELLI.length) applicaModelli(); });
 }
 // le foglie degli alberi sono dipinte in rosso autunnale: giro la tinta verso il verde della campagna, direttamente nella scheda grafica
 // le piante hanno le punte arancioni: le rendo verdi scure, da macchia mediterranea

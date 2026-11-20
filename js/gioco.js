@@ -180,6 +180,7 @@ function cura() {
   if (!usa) { parla('Niente per curarti.', 1); return; }
   inv[usa]--;
   const tempo = usa === 'kit' ? 2.5 : 1.5;
+  parla(usa === 'kit' ? 'Kit medico.' : 'Benda.', 1);
   G.occupatoFino = G.tempo + tempo;   // mentre mi curo sono vulnerabile
   suona('raccogli', { gain: 0.6 });
   pianifica(tempo, () => { G.vita = Math.min(100, G.vita + (usa === 'kit' ? 50 : 20)); parla(`vita ${Math.round(G.vita)}`, 1); });
@@ -347,7 +348,12 @@ document.addEventListener('mousedown', e => {
   if (G.stato === 'inizio') { primoAvvio(); return; }
   if (Audio3D.ctx && Audio3D.ctx.state !== 'running') Audio3D.ctx.resume().catch(() => {});
   if (G.stato === 'gioco') {
-    if (document.pointerLockElement !== tela) { agganciaPuntatore(); return; }
+    // Safari a volte rifiuta di riagganciare il puntatore (subito dopo Esc, o con VoiceOver attivo):
+    // allora il clic non deve restare muto. Riprendo la partita, provo ad agganciare, e sparo comunque.
+    if (document.pointerLockElement !== tela) {
+      agganciaPuntatore();
+      if (G.pausa) { G.pausa = false; aggiornaPannello(); parla('Via.', 1); return; }
+    }
     premiGrilletto();
   }
 });
@@ -408,7 +414,7 @@ document.addEventListener('keydown', e => {
   if (G.pausa) {
     if (c === 'KeyM' && G.modalita === 'battaglia' && B.tutorial && TUT.obbligatorio) { annuncio('tut_obbligo', 'La prima volta l\'allenamento va finito. Clicca per riprendere.', 2); return; }
     if (c === 'KeyM') { if (D.rete) duelloChiudi(); pulisciPartita(); apriMenu('menu'); }
-    else if (k === 'Enter') agganciaPuntatore();
+    else if (k === 'Enter') { agganciaPuntatore(); G.pausa = false; aggiornaPannello(); parla('Via.', 1); }
     return;
   }
   if (e.repeat && !c.startsWith('Arrow') && !['KeyW', 'KeyS', 'KeyA', 'KeyD'].includes(c)) return;
@@ -487,8 +493,9 @@ document.addEventListener('keydown', e => {
       G.ambienteAcceso = !G.ambienteAcceso;
       Audio3D.ambienteGain.gain.setTargetAtTime(G.ambienteAcceso ? 0.10 : 0, Audio3D.ctx.currentTime, 0.3);
       parla(G.ambienteAcceso ? 'Vento acceso.' : 'Vento spento.', 1); break;
-    case 'Enter':
-      if (G.modalita === 'assedio' && G.ondata.inPausa && G.ondata.numero > 0) G.ondata.fine = G.tempo; break;
+    case 'Enter': case 'NumpadEnter':
+      // sparare da tastiera: utile quando il trackpad, con VoiceOver, non manda i clic al gioco
+      if (G.arsenale && !G.arsenale.grilletto) premiGrilletto(); break;
     default:
       if (k === '+' || k === '=' || k === '-' || k === '_') {
         G.sensibilita = lim(G.sensibilita + (k === '+' || k === '=' ? 1 : -1), 1, 12);
@@ -498,6 +505,7 @@ document.addEventListener('keydown', e => {
 });
 document.addEventListener('keyup', e => {
   delete G.tasti[e.code];
+  if ((e.code === 'Enter' || e.code === 'NumpadEnter') && G.stato === 'gioco' && G.arsenale) rilasciaGrilletto();
   // su Windows, Alt rilasciato da solo sposterebbe il fuoco sul menù del browser
   if (G.stato === 'gioco' && (e.code === 'AltLeft' || e.code === 'AltRight')) e.preventDefault();
 });

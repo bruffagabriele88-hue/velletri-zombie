@@ -1084,7 +1084,8 @@ function bevePozione() {
   if (!G.inventario.pozioni) { parla('Niente piastre.', 1); return; }
   if (G.scudo >= 100) { parla('Giubbotto pieno.', 1); return; }
   G.inventario.pozioni--;
-  G.occupatoFino = G.tempo + 2;   // mentre bevo sono scoperto
+  G.occupatoFino = G.tempo + 2;   // mentre monto la piastra sono scoperto
+  parla('Piastra.', 1);
   suona('raccogli', { gain: 0.5, rate: 0.8 });
   pianifica(2, () => { G.scudo = Math.min(100, G.scudo + 50); suona('scudo_su', { gain: 0.6 }); parla(`giubbotto ${G.scudo}`, 1); });
 }
