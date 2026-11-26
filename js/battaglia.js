@@ -191,7 +191,7 @@ async function battagliaAvvia(lancio, difficolta, opz = {}) {
 
   aggiornaAscoltatore(G.x, G.z, G.rotta);
   avviaAmbiente();
-  G.stato = 'gioco'; G.pausa = B.rete ? false : document.pointerLockElement !== tela;
+  G.stato = 'gioco'; G.pausa = B.rete || (typeof TOCCO !== 'undefined' && TOCCO) ? false : document.pointerLockElement !== tela;
   if (B.tutorial) { tutorialInizia(); aggiornaAscoltatore(G.x, G.z, G.rotta); aggiornaPannello(); return; }
   avviaBus();
   const compagni = compagniVivi().map(c => c.nome);
@@ -823,6 +823,7 @@ function battagliaColpito(b, danno, testa, ritardo, esplosivo) {
   if (avevaScudo && !esplosivo) suona('scudo_colpo', { dest: b.sorgente.ingresso, gain: 0.9, quando: ritardo });
   // conferma del colpo, subito, al centro: tic, oppure "ding" se è alla testa
   suona(testa ? 'testa_marker' : 'colpito_marker', { gain: 0.7 });
+  if (typeof vibra === 'function') vibra(testa ? 35 : 15);
   b.ultimoSuono = G.tempo; b.udito = true;
   b.stordito = Math.max(b.stordito, 0.25);
   feritoBot(b, danno, 'io');

@@ -168,6 +168,7 @@ function feriscimi(danno, proiettile = false) {
   G.effetti.dolore = 1;
   suona(scegli(['dolore1', 'dolore2', 'dolore3']), { gain: 0.7, rate: caso(0.95, 1.05) });
   if (proiettile) suona('colpo_corpo', { gain: 0.7, rate: 1.2 });
+  if (typeof vibra === 'function') vibra(proiettile ? 70 : 40);
   if (G.vita <= 0) { G.vita = 0; morte(); return; }
   for (const soglia of [75, 50, 25]) if (prima > soglia && G.vita <= soglia) { parla(`vita ${Math.round(G.vita)}`, 1); break; }
 }
@@ -339,12 +340,14 @@ async function primoAvvio() {
   await new Promise(r => setTimeout(r, 30));
   try { if (typeof iniziaGrafica3D === 'function') { iniziaGrafica3D(); nascondi3D(); } } catch (e) { console.error('grafica 3D', e); }
   // la prima volta l'allenamento è obbligatorio: si entra nel menù solo dopo averlo finito
-  if (!tutorialFatto()) { tutorialAvvia(); return; }
+  // (sul telefono l'allenamento, fatto per la tastiera, non è obbligatorio)
+  if (!tutorialFatto() && !(typeof TOCCO !== 'undefined' && TOCCO)) { tutorialAvvia(); return; }
   apriMenu('menu', 'Velletri Zombie. ');
 }
 
 document.addEventListener('mousedown', e => {
   if (e.button !== 0) return;
+  if (typeof TOCCO !== 'undefined' && TOCCO) return; // sul telefono i tocchi li gestisce tocco.js
   if (G.stato === 'inizio') { primoAvvio(); return; }
   if (Audio3D.ctx && Audio3D.ctx.state !== 'running') Audio3D.ctx.resume().catch(() => {});
   if (G.stato === 'gioco') {

@@ -325,6 +325,7 @@ function lanciaGranata() {
 }
 
 function esplosione(x, z, raggio, danno) {
+  if (typeof vibra === 'function' && Math.hypot(x - G.x, z - G.z) < 20) vibra(140);
   suonaInPunto('esplosione', x, z, { gain: 1.6, riverbero: 1.2, ref: 4 });
   G.effetti.esplosioni.push({ x, z, t: 0 });
   allertaNemici(x, z, 90);

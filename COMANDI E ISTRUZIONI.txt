@@ -531,3 +531,20 @@ le armi automatiche sparano a raffica. Serve quando il clic del trackpad non arr
 (succede con VoiceOver attivo, o subito dopo aver premuto Esc).
 Se il mouse si è sganciato, il primo clic o Invio riprende la partita e il gioco dice "Via".
 Cura (H) e piastra (P) ora dicono subito "Kit medico", "Benda" o "Piastra", e il risultato alla fine.
+
+GIOCARE DAL TELEFONO (Android e iPhone)
+Si apre lo stesso link nel browser del telefono (su Android, Chrome) e si gioca con le dita, col telefono in orizzontale.
+Al primo tocco il gioco va a schermo intero.
+- Levetta: appoggia il pollice sinistro dove vuoi nella metà sinistra e trascinalo; spinta fino in fondo in avanti, corri.
+- Sguardo: trascina il pollice destro nella metà destra per girarti.
+- SPARA: il pulsante rosso grande a destra; tienilo premuto per la raffica; trascinando il dito sopra continui a girare.
+- Intorno: MIRA, RICARICA, AGGANCIA (tenuto: la mira segue il nemico), APRI (casse e rianimare).
+- In alto a destra: GRANATA, SCATOLA, RAMPA, MURO (tenuti: costruisci a raffica).
+- In alto a sinistra: pausa, CURA, PIASTRA, INFO (la situazione), ZONA.
+- In basso: la barra delle armi, tocca un'arma per prenderla.
+- Sul bus: il pulsante LANCIATI.
+- Menù: si toccano le voci. Per entrare nella stanza di un amico compare un campo dove scrivere il codice.
+Il telefono vibra quando vieni colpito, quando colpisci (di più alla testa) e alle esplosioni vicine.
+Sul telefono l'allenamento non è obbligatorio e la grafica parte più leggera.
+Per giocare insieme: uno crea la stanza dal menù "Battaglia reale in rete", l'altro sceglie "Entra in una stanza"
+e scrive il codice di 4 cifre. Computer e telefono possono stare nella stessa partita.

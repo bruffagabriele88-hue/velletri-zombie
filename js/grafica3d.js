@@ -151,7 +151,7 @@ function iniziaGrafica3D() {
   if (T.ColorManagement) T.ColorManagement.legacyMode = false;
   const tela3d = $('scena3d');
   const r = new T.WebGLRenderer({ canvas: tela3d, antialias: true, powerPreference: 'high-performance' });
-  r.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+  r.setPixelRatio(typeof TOCCO !== 'undefined' && TOCCO ? 1 : Math.min(window.devicePixelRatio || 1, 1.5)); // sul telefono meno pixel: non scalda e non scatta
   r.shadowMap.enabled = true; r.shadowMap.type = T.PCFSoftShadowMap;
   r.outputEncoding = T.sRGBEncoding; r.toneMapping = T.ACESFilmicToneMapping; r.toneMappingExposure = 0.85;
   const scena = new T.Scene();
@@ -183,7 +183,7 @@ function iniziaGrafica3D() {
 
   scena.add(new T.HemisphereLight(0xc8dcf5, 0x4a4630, 0.3));
   const sole = new T.DirectionalLight(0xffe6c4, 3.3);
-  sole.castShadow = true; sole.shadow.mapSize.set(2048, 2048);
+  sole.castShadow = true; sole.shadow.mapSize.set(typeof TOCCO !== 'undefined' && TOCCO ? 1024 : 2048, typeof TOCCO !== 'undefined' && TOCCO ? 1024 : 2048);
   Object.assign(sole.shadow.camera, { left: -60, right: 60, top: 60, bottom: -60, near: 1, far: 400 });
   sole.shadow.bias = -0.0004; sole.shadow.normalBias = 0.04;
   scena.add(sole); scena.add(sole.target); V3.sole = sole;
@@ -293,7 +293,7 @@ function caricaModelli() {
   const T = V3.T; if (!T.GLTFLoader) return;
   const L = new T.GLTFLoader(); V3.mod = {};
   let fatti = 0;
-  for (const n of MODELLI) L.load(`grafica/modelli/${n}.glb?v=48`, g => { V3.mod[n] = g; if (++fatti === MODELLI.length) applicaModelli(); }, undefined, e => { console.error('modello', n, e); if (++fatti === MODELLI.length) applicaModelli(); });
+  for (const n of MODELLI) L.load(`grafica/modelli/${n}.glb?v=49`, g => { V3.mod[n] = g; if (++fatti === MODELLI.length) applicaModelli(); }, undefined, e => { console.error('modello', n, e); if (++fatti === MODELLI.length) applicaModelli(); });
 }
 // le foglie degli alberi sono dipinte in rosso autunnale: giro la tinta verso il verde della campagna, direttamente nella scheda grafica
 // le piante hanno le punte arancioni: le rendo verdi scure, da macchia mediterranea
