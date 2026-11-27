@@ -293,7 +293,7 @@ function caricaModelli() {
   const T = V3.T; if (!T.GLTFLoader) return;
   const L = new T.GLTFLoader(); V3.mod = {};
   let fatti = 0;
-  for (const n of MODELLI) L.load(`grafica/modelli/${n}.glb?v=50`, g => { V3.mod[n] = g; if (++fatti === MODELLI.length) applicaModelli(); }, undefined, e => { console.error('modello', n, e); if (++fatti === MODELLI.length) applicaModelli(); });
+  for (const n of MODELLI) L.load(`grafica/modelli/${n}.glb?v=54`, g => { V3.mod[n] = g; if (++fatti === MODELLI.length) applicaModelli(); }, undefined, e => { console.error('modello', n, e); if (++fatti === MODELLI.length) applicaModelli(); });
 }
 // le foglie degli alberi sono dipinte in rosso autunnale: giro la tinta verso il verde della campagna, direttamente nella scheda grafica
 // le piante hanno le punte arancioni: le rendo verdi scure, da macchia mediterranea
@@ -362,20 +362,53 @@ function applicaModelli() {
   for (const [, m] of V3.casse) V3.scena.remove(m);
   V3.casse.clear();
   if (V3.arma) V3.arma.userData.tipo = null;
+  scaldaGrafica();
+}
+// Prepara subito, una volta sola, i programmi grafici di quello che compare durante gli scontri (sangue, macchie, numeri,
+// fumo, armi): altrimenti la scheda grafica li prepara al primo colpo e il gioco si ferma per un attimo.
+function scaldaGrafica() {
+  try {
+    const T = V3.T, lontano = -3000;
+    sangue3D(lontano, lontano, 0, true, 40); mostraNumero3D(lontano, lontano, 0, '0', false); mostraNumero3D(lontano, lontano, 0, '0', true);
+    sbuffoFumo(lontano, 0, lontano, 1);
+    const prova = new T.Group();
+    for (const n of ['arma_mitra', 'arma_pistola', 'arma_pompa', 'arma_mitraglietta', 'arma_precisione']) { const m = modelloArma(n.slice(5), 0.8); if (m) prova.add(m); }
+    // il soldato animato, la cassa e le piante: anche loro si preparano adesso, ombre comprese
+    if (V3.mod.soldato && T.SkeletonUtils) { const s = T.SkeletonUtils.clone(V3.mod.soldato.scene); s.traverse(m => { if (m.isMesh) { m.castShadow = true; m.frustumCulled = false; } }); prova.add(s); }
+    for (const n of ['cassa', 'pianta_a', 'pianta_b']) if (V3.mod[n]) { const c = V3.mod[n].scene.clone(true); c.traverse(m => { if (m.isMesh) m.castShadow = true; }); prova.add(c); }
+    // davanti alla telecamera, per un solo fotogramma: così si preparano anche le ombre e il ritocco
+    const [fx, fz] = avanti(V3.camera.rotation ? -V3.camera.rotation.y : 0);
+    prova.position.set(V3.camera.position.x + fx * 6, V3.camera.position.y - 1, V3.camera.position.z + fz * 6); V3.scena.add(prova);
+    V3.r.compile(V3.scena, V3.camera);
+    if (V3.composer) V3.composer.render(0.016); else V3.r.render(V3.scena, V3.camera);
+    V3.scena.remove(prova);
+  } catch (e) { console.error('preparazione grafica', e); }
 }
 
 // dopo un cambio di luce o di superfici, tutti i materiali si ricompilano (altrimenti alcuni restano neri)
+// Si chiama a ogni arrivo (superfici e cielo). I materiali si ripreparano una volta sola, quando è arrivato tutto:
+// farlo a ogni arrivo bloccava il gioco più volte nei primi secondi di partita.
 function ricompilaMateriali() {
-  clearTimeout(V3.ricompila);
-  V3.ricompila = setTimeout(() => V3.scena.traverse(o => { if (o.isMesh) for (const m of [].concat(o.material)) if (m) m.needsUpdate = true; }), 300);
+  if (--V3.arriviMancanti > 0) return;
+  ricompilaQuandoCalmo();
+}
+// ripreparare i materiali ferma il gioco per un attimo: se stai combattendo aspetto un momento tranquillo
+function ricompilaQuandoCalmo() {
+  const inAzione = typeof G !== 'undefined' && G.stato === 'gioco' && !G.pausa && !(typeof B !== 'undefined' && B.cielo)
+    && G.tempo - Math.max((typeof B !== 'undefined' && B.ultimoMioSparo) || -99, G.ultimaFerita || -99) < 4;
+  if (inAzione) { setTimeout(ricompilaQuandoCalmo, 1000); return; }
+  V3.scena.traverse(o => { if (o.isMesh) for (const m of [].concat(o.material)) if (m) m.needsUpdate = true; });
+  if (V3.modelliPronti) setTimeout(scaldaGrafica, 50);   // e preparo subito i programmi, invece che al primo sguardo
 }
 function caricaGraficaVera() {
   const T = V3.T, L = new T.TextureLoader(), ani = V3.r.capabilities.getMaxAnisotropy();
-  const carica = (url, colore) => new Promise(ok => L.load(url, t => { t.wrapS = t.wrapT = T.RepeatWrapping; t.anisotropy = ani; if (colore) t.encoding = T.sRGBEncoding; ok(t); }, undefined, () => ok(null)));
+  // ogni immagine va subito nella scheda grafica appena arriva, non al primo fotogramma in cui serve
+  const carica = (url, colore) => new Promise(ok => L.load(url, t => { t.wrapS = t.wrapT = T.RepeatWrapping; t.anisotropy = ani; if (colore) t.encoding = T.sRGBEncoding; try { V3.r.initTexture(t); } catch (e) { /* la caricherà dopo */ } ok(t); }, undefined, () => ok(null)));
+  V3.arriviMancanti = Object.keys(SUPERFICI_VERE).length + (T.RGBELoader ? 1 : 0);
   for (const [nome, [file, scala]] of Object.entries(SUPERFICI_VERE)) {
     const vecchia = V3.tex[nome]; if (!vecchia) continue;
     Promise.all([carica(`grafica/superfici/${file}_diff.jpg`, true), carica(`grafica/superfici/${file}_nor_gl.jpg`), carica(`grafica/superfici/${file}_arm.jpg`)]).then(([map, nor, arm]) => {
-      if (!map || !nor || !arm) return;
+      if (!map || !nor || !arm) { ricompilaMateriali(); return; }
       for (const t of [map, nor, arm]) t.repeat.copy(vecchia.map.repeat).multiplyScalar(scala);
       V3.scena.traverse(o => {
         if (!o.isMesh) return;
@@ -430,7 +463,7 @@ function caricaGraficaVera() {
     for (let i = 0; i < w; i++) { const k = (r0 * w + i) * 4; c[0] += val(k); c[1] += val(k + 1); c[2] += val(k + 2); }
     const m = Math.max(...c) || 1; V3.scena.fog.color.setRGB(c[0] / m * 0.8, c[1] / m * 0.8, c[2] / m * 0.8);
     V3.cieloVero = true;
-  });
+  }, undefined, () => ricompilaMateriali()); // se il cielo non arriva, non resto ad aspettarlo
 }
 
 function ombra(m) { m.castShadow = true; m.receiveShadow = true; return m; }
@@ -781,17 +814,33 @@ function meshCassa() {
   return g;
 }
 
+const CacheScritte = new Map();
 function scritta3D(testo, colore, alt = 1, sempreVisibile = true) {
+  // la stessa scritta (stesso numero, stesso colore) usa la stessa immagine: niente da disegnare e caricare di nuovo
+  const chiave = testo + '|' + colore;
+  if (CacheScritte.has(chiave)) {
+    const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: CacheScritte.get(chiave), transparent: true, depthTest: !sempreVisibile, toneMapped: false }));
+    s.scale.set(alt * 4, alt, 1); s.renderOrder = 10; return s;
+  }
   const [c, x] = telaDisegno(512, 128);
   x.font = 'bold 64px -apple-system, Helvetica, sans-serif'; x.textAlign = 'center';
   x.lineWidth = 8; x.strokeStyle = 'rgba(0,0,0,0.7)'; x.strokeText(testo, 256, 88);
   x.fillStyle = colore; x.fillText(testo, 256, 88);
   const t = new THREE.CanvasTexture(c); t.encoding = THREE.sRGBEncoding;
+  if (CacheScritte.size < 400) CacheScritte.set(chiave, t);
   const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true, depthTest: !sempreVisibile, toneMapped: false }));
   s.scale.set(alt * 4, alt, 1); s.renderOrder = 10;
   return s;
 }
 
+// libera dalla scheda grafica le forme fatte apposta per un oggetto (non quelle condivise o dei modelli)
+function liberaMesh(o) {
+  o.traverse(m => {
+    if (!m.isMesh || m.isSkinnedMesh) return;
+    const g = m.geometry;
+    if (g && g.type !== 'BufferGeometry' && !g.userData.condivisa && g !== V3.gocciaGeo && g !== V3.macchiaGeo) g.dispose();
+  });
+}
 function sincronizza(mappa, elenco, chiave, crea, aggiorna) {
   const visti = new Set();
   for (const o of elenco) {
@@ -800,7 +849,7 @@ function sincronizza(mappa, elenco, chiave, crea, aggiorna) {
     if (!m) { m = crea(o); mappa.set(k, m); }
     aggiorna(o, m);
   }
-  for (const [k, m] of mappa) if (!visti.has(k)) { V3.scena.remove(m); mappa.delete(k); }
+  for (const [k, m] of mappa) if (!visti.has(k)) { V3.scena.remove(m); mappa.delete(k); liberaMesh(m); }
 }
 
 // ---------------------------------------------------------------- arma in mano
@@ -1069,7 +1118,7 @@ function disegna3D(ora, dt) {
   // numeri dei danni che salgono e svaniscono
   V3.numeri = V3.numeri.filter(n => {
     n.t += dt; n.sprite.position.y = n.y + n.t * 1.2; n.sprite.material.opacity = Math.max(0, 1 - n.t / 1.0);
-    if (n.t > 1.0) { V3.scena.remove(n.sprite); return false; }
+    if (n.t > 1.0) { V3.scena.remove(n.sprite); n.sprite.material.dispose(); return false; }
     return true;
   });
   aggiornaParticelle(dt);
@@ -1160,16 +1209,23 @@ function hudBattaglia(W, H, ora) {
 const Particelle = [];
 function sangue3D(x, z, livello, testa, danno) {
   if (!V3.pronto) return;
-  const T = V3.T, y = livello * 2.5 + (testa ? 1.75 : 1.2), n = Math.min(22, 6 + Math.round(danno / 7));
+  const T = V3.T, y = livello * 2.5 + (testa ? 1.75 : 1.2), n = Math.min(14, 5 + Math.round(danno / 9));
+  // una sola forma e un solo materiale per tutte le gocce e tutte le macchie: niente memoria che cresce, niente scatti
   V3.matSangue = V3.matSangue || new T.MeshStandardMaterial({ color: 0x5a0606, roughness: 0.4 });
+  V3.gocciaGeo = V3.gocciaGeo || new T.SphereGeometry(1, 5, 4);
+  V3.macchiaGeo = V3.macchiaGeo || new T.CircleGeometry(1, 16);
+  V3.matMacchia = V3.matMacchia || new T.MeshStandardMaterial({ color: 0x3a0404, roughness: 0.3, transparent: true, opacity: 0.8, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 });
+  if (Particelle.length > 260) return; // già tante gocce in volo: basta così
   for (let i = 0; i < n; i++) {
-    const p = new T.Mesh(new T.SphereGeometry(caso(0.015, 0.045), 5, 4), V3.matSangue);
+    const p = new T.Mesh(V3.gocciaGeo, V3.matSangue); p.scale.setScalar(caso(0.015, 0.045));
     p.position.set(x, y, z); V3.scena.add(p);
     Particelle.push({ m: p, vx: caso(-1.8, 1.8), vy: caso(0.3, 2.4), vz: caso(-1.8, 1.8), t: 0, vita: caso(0.4, 0.8), terra: livello * 2.5 });
   }
-  const macchia = new T.Mesh(new T.CircleGeometry(caso(0.25, 0.5) * (testa ? 1.3 : 1), 16), new T.MeshStandardMaterial({ color: 0x3a0404, roughness: 0.3, transparent: true, opacity: 0.85, depthWrite: false }));
-  macchia.rotation.x = -Math.PI / 2; macchia.position.set(x + caso(-0.3, 0.3), livello * 2.5 + 0.05, z + caso(-0.3, 0.3)); V3.scena.add(macchia);
-  Particelle.push({ m: macchia, macchia: true, t: 0, vita: 25, opacita: 0.85 });
+  const r = caso(0.25, 0.5) * (testa ? 1.3 : 1), macchia = new T.Mesh(V3.macchiaGeo, V3.matMacchia);
+  macchia.scale.set(r, r, r); macchia.rotation.x = -Math.PI / 2; macchia.position.set(x + caso(-0.3, 0.3), livello * 2.5 + 0.05, z + caso(-0.3, 0.3)); V3.scena.add(macchia);
+  const macchie = Particelle.filter(p => p.macchia);
+  if (macchie.length >= 40) macchie[0].t = macchie[0].vita; // la più vecchia se ne va
+  Particelle.push({ m: macchia, macchia: true, t: 0, vita: 25, r });
 }
 function scheggeVetro3D(c) {
   if (!V3.pronto) return;
@@ -1184,7 +1240,7 @@ function aggiornaParticelle(dt) {
   for (let i = Particelle.length - 1; i >= 0; i--) {
     const p = Particelle[i];
     p.t += dt;
-    if (p.macchia) { p.m.material.opacity = (p.opacita || 0.85) * Math.max(0, 1 - p.t / p.vita); }
+    if (p.macchia) { const k = p.t < p.vita - 3 ? 1 : Math.max(0.01, (p.vita - p.t) / 3); p.m.scale.set(p.r * k, p.r * k, p.r * k); } // negli ultimi tre secondi si asciuga e sparisce
     else {
       p.vy -= 9.8 * dt;
       p.m.position.x += p.vx * dt; p.m.position.y = Math.max(p.terra + 0.02, p.m.position.y + p.vy * dt); p.m.position.z += p.vz * dt;
