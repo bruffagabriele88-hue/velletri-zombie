@@ -470,3 +470,14 @@ Il telefono vibra quando vieni colpito, quando colpisci (di più alla testa) e a
 Sul telefono l'allenamento non è obbligatorio e la grafica parte più leggera.
 Per giocare insieme: uno crea la stanza dal menù "Battaglia reale in rete", l'altro sceglie "Entra in una stanza"
 e scrive il codice di 4 cifre. Computer e telefono possono stare nella stessa partita.
+
+BOT CHE VEDONO E PIÙ VOCI
+I bot adesso vedono come un giocatore vedente: davanti a sé, fino a 22 metri in facile, 40 in normale, 60 in difficile
+(di più se stai in alto su una rampa). Non vedono alle spalle, né attraverso muri e case; nel cespuglio ti vedono solo
+se ti vengono addosso. Quando si fermano si guardano intorno. In combattimento ti guardano sempre.
+I soldati dicono più cose: quando ti avvistano da lontano, quando ti perdono, quando abbattono qualcuno, quando si curano,
+quando costruiscono, quando trovano un'arma, e ogni tanto ti provocano.
+Il narratore annuncia: primo sangue, doppia e tripla eliminazione, inarrestabile, colpo alla testa, ne restano dieci e
+cinque, fuori dalla zona, vita bassa, rianimato, munizioni finite, arma delle forze speciali, cecchino, nascosto nel
+cespuglio, dentro una casa, atterraggio caldo, e "così vicino alla vittoria" quando arrivi secondo.
+(Finché le voci nuove non sono registrate, il narratore usa la voce del computer e i soldati le frasi che hanno già.)

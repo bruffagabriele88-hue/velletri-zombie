@@ -170,7 +170,7 @@ function feriscimi(danno, proiettile = false) {
   if (proiettile) suona('colpo_corpo', { gain: 0.7, rate: 1.2 });
   if (typeof vibra === 'function') vibra(proiettile ? 70 : 40);
   if (G.vita <= 0) { G.vita = 0; morte(); return; }
-  for (const soglia of [75, 50, 25]) if (prima > soglia && G.vita <= soglia) { parla(`vita ${Math.round(G.vita)}`, 1); break; }
+  for (const soglia of [75, 50, 25]) if (prima > soglia && G.vita <= soglia) { if (soglia === 25 && G.modalita === 'battaglia') annuncio('vita_bassa', 'Vita bassa. Trova un riparo e curati.', 1); else parla(`vita ${Math.round(G.vita)}`, 1); break; }
 }
 
 function cura() {

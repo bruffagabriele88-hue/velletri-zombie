@@ -123,7 +123,7 @@ function messaggioValido(m) {
     case 'bsp': return intOk(m.i, 0, nBot - 1) && testoOk(m.n) && testoOk(m.a, 12) ? { t: 'bsp', c: m.c, i: m.i, n: m.n, a: m.a } : null;
     case 'bc': return intOk(m.i, 0, nBot - 1) && testoOk(m.a, 12) && numOk(m.d) && m.d >= 0 ? { t: 'bc', c: m.c, i: m.i, a: m.a, d: Math.min(m.d, 200), m: !!m.m, w: !!m.w } : null;
     case 'bsu': return intOk(m.i, 0, nBot - 1) && testoOk(m.n) && Audio3D.buf[m.n] ? { t: 'bsu', c: m.c, i: m.i, n: m.n, g: numOk(m.g) ? lim(m.g, 0, 3) : 1, r: numOk(m.r) ? lim(m.r, 0.3, 3) : 1 } : null;
-    case 'bvo': return intOk(m.i, 0, nBot - 1) && ['minaccia', 'attacco', 'colpito', 'spara'].includes(m.k) ? m : null;
+    case 'bvo': return intOk(m.i, 0, nBot - 1) && ['minaccia', 'attacco', 'colpito', 'spara', 'ricarica', 'granata', 'visto', 'perso', 'eliminato', 'cura', 'costruisce', 'arma', 'provoca'].includes(m.k) ? m : null;
     case 'bm': return intOk(m.i, 0, nBot - 1) && (m.da === null || testoOk(m.da, 12)) ? { t: 'bm', c: m.c, i: m.i, da: m.da, k: cassaPulita(m.k) } : null;
     case 'bg': case 'br': return intOk(m.i, 0, nBot - 1) && numOk(m.x) && numOk(m.z) ? m : null;
     case 'cb': return intOk(m.i, 0, nBot - 1) && numOk(m.d) && m.d > 0 ? { t: 'cb', c: m.c, i: m.i, d: Math.min(m.d, 300) } : null;
@@ -581,6 +581,7 @@ function duelloApriCassa() {
       }
     }
     if (c.materiali) { I.materiali += c.materiali; }
+    if (c.rar === 1.5 && ARMI[c.cont]) pianifica(1.6, () => annuncio('arma_rara', 'Arma delle forze speciali!', 1));
     parla(G.modalita === 'battaglia' ? `${f}.` : `Cassa: ${f}.`, 1);
   });
   return true;

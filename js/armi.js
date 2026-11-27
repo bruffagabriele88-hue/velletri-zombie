@@ -224,7 +224,7 @@ function ricarica() {
   const disponibili = G.arsenale.riserva[def.munizione];
   if (def.tipoRicarica === 'caricatore' && st.caricatore >= def.capacita) return;
   if (def.tipoRicarica === 'cartucce' && st.caricatore >= def.capacita && st.camera) return;
-  if (disponibili <= 0) { parla('Niente munizioni.', 1); return; }
+  if (disponibili <= 0) { annuncio('munizioni', 'Munizioni finite.', 1); return; }
   A.ricarica = true;
   if (def.tipoRicarica === 'cartucce') return caricaCartuccia(0.25);
 
